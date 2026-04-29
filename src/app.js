@@ -2673,7 +2673,7 @@
     let pointerStartX = 0;
     let pointerStartY = 0;
     let sliderIntent = 'pending';
-    const commitOnEndOnly = true;
+    const commitOnEndOnly = isMobileLayoutViewport();
     const startOnce = () => {
       if (started) return;
       started = true;
@@ -2734,7 +2734,7 @@
     };
     const finishDrag = () => {
       if (!isSliderDragging && !started && pointerId === null) return;
-      const shouldCommit = started && sliderIntent === 'horizontal';
+      const shouldCommit = started && (!commitOnEndOnly || sliderIntent === 'horizontal');
       pointerId = null;
       lastSliderRect = null;
       sliderIntent = 'pending';
@@ -2762,9 +2762,13 @@
       sliderPreviewFilters = null;
       if (els?.canvas) els.canvas.style.filter = '';
       if (shouldCommit) {
-        window.setTimeout(() => {
-          runWhenIdle(() => render(store.getState()), 120);
-        }, 32);
+        if (commitOnEndOnly) {
+          window.setTimeout(() => {
+            runWhenIdle(() => render(store.getState()), 120);
+          }, 32);
+        } else {
+          render(store.getState());
+        }
       }
     };
     const beginPointerDrag = (event) => {
