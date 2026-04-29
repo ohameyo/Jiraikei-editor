@@ -7,8 +7,8 @@
 }
 
 @font-face {
-  font-family: "Fusion Pixel TC";
-  src: url("./assets/fonts/fusion-pixel-tc.otf") format("opentype");
+  font-family: "Zhaizai Marker";
+  src: url("./assets/fonts/zhaizai-marker.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -368,6 +368,18 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
 }
 
+input[type="file"].native-file-picker-proxy {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  width: 1px;
+  height: 1px;
+  min-height: 1px;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
 button {
   border: var(--border-1) solid var(--line);
   background: linear-gradient(150deg, #fff9fd, #f9edf4);
@@ -698,6 +710,7 @@ button.is-active:hover {
 
 #editorCanvas {
   overflow: hidden;
+  will-change: filter;
 }
 
 .overlay-layer {
@@ -998,16 +1011,12 @@ textarea {
 }
 
 .overlay-preview.text-preview {
-  display: block;
+  display: grid;
+  place-items: center;
+  white-space: pre;
+  text-align: center;
+  line-height: 1.18;
   overflow: visible;
-}
-
-.text-preview-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-  overflow: visible;
-  pointer-events: none;
 }
 
 .overlay-preview.mosaic-preview {
@@ -1054,7 +1063,7 @@ textarea {
 
 .overlay-handle {
   position: absolute;
-  --handle-size: 22px;
+  --handle-size: 20px;
   width: var(--handle-size);
   height: var(--handle-size);
   min-width: 0;
@@ -1074,13 +1083,13 @@ textarea {
 .overlay-handle::before {
   content: "";
   position: absolute;
-  inset: -11px;
+  inset: -12px;
   border-radius: 999px;
 }
 
 .overlay-handle.scale {
-  right: -13px;
-  bottom: -13px;
+  right: -12px;
+  bottom: -12px;
   cursor: nwse-resize;
 }
 
@@ -1100,8 +1109,8 @@ textarea {
 }
 
 .overlay-handle.delete {
-  right: -13px;
-  top: -13px;
+  right: -12px;
+  top: -12px;
   width: var(--handle-size);
   height: var(--handle-size);
   border-radius: 999px;
@@ -1115,8 +1124,8 @@ textarea {
 }
 
 .overlay-handle.copy {
-  left: -13px;
-  top: -13px;
+  left: -12px;
+  top: -12px;
   width: var(--handle-size);
   height: var(--handle-size);
   border-radius: 999px;
@@ -1217,7 +1226,7 @@ textarea {
 
 
 .overlay-handle.stretch-x {
-  right: -13px;
+  right: -12px;
   top: 50%;
   transform: translateY(-50%) scale(var(--handle-scale-x, 1), var(--handle-scale-y, 1));
   cursor: ew-resize;
@@ -1225,9 +1234,31 @@ textarea {
 
 .overlay-handle.stretch-y {
   left: 50%;
-  bottom: -13px;
+  bottom: -12px;
   transform: translateX(-50%) scale(var(--handle-scale-x, 1), var(--handle-scale-y, 1));
   cursor: ns-resize;
+}
+
+.blush-control.blush-left .overlay-handle.delete {
+  right: -12px;
+  left: auto;
+}
+
+.blush-control.blush-left .overlay-handle.scale {
+  left: -12px;
+  right: auto;
+  cursor: nesw-resize;
+}
+
+.blush-control.blush-right .overlay-handle.delete {
+  right: -12px;
+  left: auto;
+}
+
+.blush-control.blush-right .overlay-handle.scale {
+  right: -12px;
+  left: auto;
+  cursor: nwse-resize;
 }
 
 @media (max-width: 1360px) {
@@ -1556,7 +1587,7 @@ textarea {
   }
 
   .canvas-empty::after {
-    content: "点击上传图片";
+    content: "点击开始加工♡";
     display: block;
     margin-top: 8px;
     font-size: 15px;
@@ -2049,20 +2080,20 @@ textarea {
   }
 
   .overlay-handle {
-    --handle-size: 22px;
+    --handle-size: 20px;
   }
 
   .overlay-handle.scale {
-    right: -13px;
-    bottom: -13px;
+    right: -12px;
+    bottom: -12px;
   }
 
   .overlay-handle.stretch-x {
-    right: -13px;
+    right: -12px;
   }
 
   .overlay-handle.stretch-y {
-    bottom: -13px;
+    bottom: -12px;
   }
 
   .overlay-handle.delete,

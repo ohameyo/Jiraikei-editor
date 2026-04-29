@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Jirai-editor 地雷系编辑器</title>
     <link rel="icon" type="image/png" href="./assets/logo.png" />
-    <link rel="preload" href="./assets/fonts/mushin.otf" as="font" type="font/otf" crossorigin />
-    <link rel="preload" href="./assets/fonts/fusion-pixel-tc.otf" as="font" type="font/otf" crossorigin />
-    <link rel="preload" href="./assets/fonts/fusion-pixel-sc.otf" as="font" type="font/otf" crossorigin />
-    <link rel="preload" href="./assets/fonts/fusion-pixel-jp.otf" as="font" type="font/otf" crossorigin />
-    <link rel="preload" href="./assets/fonts/wafu-pop.ttf" as="font" type="font/ttf" crossorigin />
-    <link rel="preload" href="./assets/fonts/darts-font.ttf" as="font" type="font/ttf" crossorigin />
-    <link rel="preload" href="./assets/fonts/nagino.otf" as="font" type="font/otf" crossorigin />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -36,7 +29,7 @@
       <aside class="ContentPanel panel">
         <section class="tool-pane active" data-pane="project">
           <h2 class="panel-title">导入</h2>
-          <p class="sub-note">素材管理与基础操作</p>
+          <p class="sub-note">给小天使请安！</p>
 
           <div class="card-block import-upload-block">
             <div class="field-title">图片</div>
@@ -50,7 +43,7 @@
 
         <section class="tool-pane" data-pane="filters">
           <h2 class="panel-title">滤镜</h2>
-          <p class="sub-note">低饱和冷调、病弱人偶感</p>
+          <p class="sub-note">蕾味调色</p>
           <button id="originalFilterBtn" type="button" class="preset-chip">
             <span class="preset-name">原图</span>
             <span class="preset-desc">仅基础调节，不使用叠加色层</span>
@@ -63,7 +56,7 @@
 
         <section class="tool-pane" data-pane="mosaic">
           <h2 class="panel-title">马赛克</h2>
-          <p class="sub-note">图案贴纸马赛克</p>
+          <p class="sub-note">贴纸形式的马赛克</p>
           <div class="card-block">
             <div class="field-title">图案风格</div>
             <div class="inline-actions two-col">
@@ -80,7 +73,7 @@
 
         <section class="tool-pane" data-pane="stickers">
           <h2 class="panel-title">贴纸</h2>
-          <p class="sub-note">病弱甜暗符号包</p>
+          <p class="sub-note">蕾系装饰贴纸</p>
           <div class="card-block">
             <div class="field-title">地雷系像素风贴纸</div>
             <div id="stickerPackList" class="sticker-pack-list"></div>
@@ -89,7 +82,7 @@
 
         <section class="tool-pane" data-pane="text">
           <h2 class="panel-title">文字</h2>
-          <p class="sub-note">文案预设模板</p>
+          <p class="sub-note">文案加工</p>
           <div class="card-block">
             <div class="field-title">添加文字</div>
             <button id="addTextLayerBtn" type="button">添加文字图层</button>
@@ -102,7 +95,7 @@
 
         <section class="tool-pane" data-pane="export">
           <h2 class="panel-title">导出</h2>
-          <p class="sub-note">用于社交平台发布</p>
+          <p class="sub-note">加工完成！</p>
           <div class="card-block">
             <div class="field-title">导出</div>
             <button id="exportBtn" type="button" class="primary">导出 PNG</button>
@@ -168,7 +161,6 @@
       </div>
     </div>
 
-    <script src="src/vision-skill.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>

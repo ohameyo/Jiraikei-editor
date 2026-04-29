@@ -135,13 +135,24 @@
     blushRightY: 0.45,
     blushRightRX: 0.115,
     blushRightRY: 0.085,
+    blushExtraEnabled: 0,
+    blushExtraLeftEnabled: 1,
+    blushExtraRightEnabled: 1,
+    blushExtraLeftX: 0.59,
+    blushExtraLeftY: 0.45,
+    blushExtraLeftRX: 0.105,
+    blushExtraLeftRY: 0.08,
+    blushExtraRightX: 0.73,
+    blushExtraRightY: 0.45,
+    blushExtraRightRX: 0.105,
+    blushExtraRightRY: 0.08,
     skinProtect: 0,
     redPreserve: 0,
     blackProtect: 0,
     fade: 0,
     overlayColor: '#e7d3ea',
     overlayStrength: 0,
-    hslActiveChannel: 'green',
+    hslActiveChannel: 'master',
     ...Object.fromEntries(HSL_CHANNELS.flatMap((channel) => HSL_AXES.map(({ axis }) => [hslKey(channel.id, axis), 0]))),
   };
 
@@ -157,6 +168,17 @@
     'blushRightY',
     'blushRightRX',
     'blushRightRY',
+    'blushExtraEnabled',
+    'blushExtraLeftEnabled',
+    'blushExtraRightEnabled',
+    'blushExtraLeftX',
+    'blushExtraLeftY',
+    'blushExtraLeftRX',
+    'blushExtraLeftRY',
+    'blushExtraRightX',
+    'blushExtraRightY',
+    'blushExtraRightRX',
+    'blushExtraRightRY',
   ];
 
   function preserveManualBlushRegion(currentFilters, nextFilters) {
@@ -352,7 +374,7 @@
   const TEXT_FONT_FALLBACK = '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif';
 
   const DEFAULT_TEXT_STYLE = {
-    content: '今日の私、満点！',
+    content: '>w<',
     color: '#ffffff',
     strokeColor: '#FF40FF',
     shadowColor: '#000000',
@@ -363,14 +385,14 @@
     bgOpacity: 0,
     bgPadding: 12,
     bgRadius: 16,
-    fontFamily: `"Mushin", ${TEXT_FONT_FALLBACK}`,
+    fontFamily: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`,
     textAlign: 'left',
   };
 
   const TEXT_FONTS = [
     { id: 'system', name: '系统默认', family: `"Avenir Next", ${TEXT_FONT_FALLBACK}` },
     { id: 'mushin', name: '無心', family: `"Mushin", ${TEXT_FONT_FALLBACK}`, face: 'Mushin', src: './assets/fonts/mushin.otf' },
-    { id: 'fusion-pixel-tc', name: '缝合像素繁中', family: `"Fusion Pixel TC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel TC', src: './assets/fonts/fusion-pixel-tc.otf' },
+    { id: 'zhaizai-marker', name: '宅在家麦克笔', family: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, face: 'Zhaizai Marker', src: './assets/fonts/zhaizai-marker.ttf' },
     { id: 'fusion-pixel-sc', name: '缝合像素简中', family: `"Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel SC', src: './assets/fonts/fusion-pixel-sc.otf' },
     { id: 'fusion-pixel-jp', name: '缝合像素日文', family: `"Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel JP', src: './assets/fonts/fusion-pixel-jp.otf' },
     { id: 'wafu-pop', name: '和風ぽっぷ', family: `"Wafu Pop", ${TEXT_FONT_FALLBACK}`, face: 'Wafu Pop', src: './assets/fonts/wafu-pop.ttf' },
@@ -381,7 +403,7 @@
   const TEXT_FONT_ACTIVATION_SAMPLE = '今日の私、満点!';
   const FONT_LOAD_TIMEOUT_MS = 2600;
   const FONT_ASSET_VERSION = '20260429-textfonts-2';
-  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'fusion-pixel-jp', 'darts-font', 'nagino', 'fusion-pixel-tc', 'fusion-pixel-sc', 'wafu-pop'];
+  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'fusion-pixel-jp', 'darts-font', 'nagino', 'zhaizai-marker', 'fusion-pixel-sc', 'wafu-pop'];
 
   const MOSAIC_TOOL_DEFAULTS = {
     variant: 'frosted',
@@ -393,13 +415,16 @@
 
   const STICKER_IMAGE_CACHE = new Map();
   const MOBILE_SLIDER_COMMIT_MS = 48;
-  const MOBILE_LIGHTWEIGHT_RENDER_MS = 48;
-  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 16;
+  const MOBILE_LIGHTWEIGHT_RENDER_MS = 72;
+  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 34;
+  const INTERACTIVE_RENDER_BUDGET_MS = 56;
   let stickerPacks = [];
   let isSliderDragging = false;
   let isTextEditing = false;
   let isDirectManipulating = false;
   let activeTransformLayerId = null;
+  let interactiveRenderPressure = 0;
+  let sliderDragStartFilters = null;
   let blushPreviewEnabled = false;
   let blushEditMode = false;
   let blushFallbackNoticeShown = false;
@@ -567,9 +592,10 @@
     const masterH = clamp(Number(filters[hslKey('master', 'h')] ?? 0), -40, 40);
     const masterS = clamp(Number(filters[hslKey('master', 's')] ?? 0), -70, 55);
     const masterL = clamp(Number(filters[hslKey('master', 'l')] ?? 0), -32, 32);
-    h = (h + masterH * 1.15 * hslSafety + 360) % 360;
-    s = clamp(s * (1 + (masterS / 100) * hslSafety), 0, 1);
-    l = clamp(l + (masterL / 100) * 0.28 * hslSafety, 0, 1);
+    const masterSafety = Math.max(hslSafety, skinMask > 0.0001 ? 0.42 : 0.68);
+    h = (h + masterH * 1.35 * masterSafety + 360) % 360;
+    s = clamp(s * (1 + (masterS / 100) * masterSafety * 1.12), 0, 1);
+    l = clamp(l + (masterL / 100) * 0.34 * masterSafety, 0, 1);
 
     HSL_CHANNELS.forEach((channel) => {
       if (channel.id === 'master' || channel.id === 'skin') return;
@@ -627,6 +653,8 @@
       selectedLayerId: state.selectedLayerId,
       activePresetId: state.activePresetId,
       imageTransform: { ...state.image.transform },
+      compareMode: Boolean(state.compareMode),
+      compareLabels: state.compareLabels !== false,
       renderToken: state.renderToken,
       toneToken: state.toneToken,
     };
@@ -651,6 +679,7 @@
       selectedLayerId: null,
       activePresetId: 'original',
       compareMode: false,
+      compareLabels: true,
       comparePeekOriginal: false,
       renderToken: 0,
       toneToken: 0,
@@ -688,6 +717,8 @@
       state.selectedLayerId = snapshot.selectedLayerId;
       state.activePresetId = snapshot.activePresetId;
       state.image.transform = { ...snapshot.imageTransform };
+      state.compareMode = Boolean(snapshot.compareMode);
+      state.compareLabels = snapshot.compareLabels !== false;
       state.renderToken = snapshot.renderToken ?? state.renderToken;
       state.toneToken = snapshot.toneToken ?? state.toneToken ?? state.renderToken;
     }
@@ -770,12 +801,26 @@
         state.selectedLayerId = null;
         state.activePresetId = 'original';
         state.compareMode = false;
+        state.compareLabels = true;
         state.comparePeekOriginal = false;
         bumpToneRenderToken();
         notify();
       },
-      setCompareMode(value) {
+      setCompareMode(value, labels = true) {
         state.compareMode = Boolean(value);
+        state.compareLabels = state.compareMode ? labels !== false : true;
+        notify();
+      },
+      cycleCompareMode() {
+        if (!state.compareMode) {
+          state.compareMode = true;
+          state.compareLabels = true;
+        } else if (state.compareLabels !== false) {
+          state.compareLabels = false;
+        } else {
+          state.compareMode = false;
+          state.compareLabels = true;
+        }
         notify();
       },
       setComparePeekOriginal(value) {
@@ -815,6 +860,7 @@
         state.layers = [];
         state.selectedLayerId = null;
         state.compareMode = false;
+        state.compareLabels = true;
         state.comparePeekOriginal = false;
         state.image.transform = { scale: 1 };
         bumpToneRenderToken();
@@ -1006,13 +1052,14 @@
     const region = regions[0];
     if (!region) return null;
     return {
+      regions,
       left: { x: region.leftX, y: region.cy, rx: region.rx, ry: region.ry, enabled: true },
       right: { x: region.rightX, y: region.cy, rx: region.rx, ry: region.ry, enabled: true },
     };
   }
 
   function getBlushControlsFromFilters(filters, canvasWidth, canvasHeight) {
-    return {
+    const controls = {
       left: {
         x: clamp(Number(filters.blushLeftX ?? DEFAULT_FILTERS.blushLeftX), 0, 1) * canvasWidth,
         y: clamp(Number(filters.blushLeftY ?? 0.45), 0, 1) * canvasHeight,
@@ -1028,6 +1075,23 @@
         enabled: Number(filters.blushRightEnabled ?? 1) > 0.5,
       },
     };
+    if (Number(filters.blushExtraEnabled ?? 0) > 0.5) {
+      controls.extraLeft = {
+        x: clamp(Number(filters.blushExtraLeftX ?? DEFAULT_FILTERS.blushExtraLeftX), 0, 1) * canvasWidth,
+        y: clamp(Number(filters.blushExtraLeftY ?? DEFAULT_FILTERS.blushExtraLeftY), 0, 1) * canvasHeight,
+        rx: clamp(Number(filters.blushExtraLeftRX ?? DEFAULT_FILTERS.blushExtraLeftRX), 0.01, 0.25) * canvasWidth,
+        ry: clamp(Number(filters.blushExtraLeftRY ?? DEFAULT_FILTERS.blushExtraLeftRY), 0.01, 0.2) * canvasHeight,
+        enabled: Number(filters.blushExtraLeftEnabled ?? 1) > 0.5,
+      };
+      controls.extraRight = {
+        x: clamp(Number(filters.blushExtraRightX ?? DEFAULT_FILTERS.blushExtraRightX), 0, 1) * canvasWidth,
+        y: clamp(Number(filters.blushExtraRightY ?? DEFAULT_FILTERS.blushExtraRightY), 0, 1) * canvasHeight,
+        rx: clamp(Number(filters.blushExtraRightRX ?? DEFAULT_FILTERS.blushExtraRightRX), 0.01, 0.25) * canvasWidth,
+        ry: clamp(Number(filters.blushExtraRightRY ?? DEFAULT_FILTERS.blushExtraRightRY), 0.01, 0.2) * canvasHeight,
+        enabled: Number(filters.blushExtraRightEnabled ?? 1) > 0.5,
+      };
+    }
+    return controls;
   }
 
   function getActiveBlushControls(filters, faceBoxes, faceLandmarks, canvasWidth, canvasHeight) {
@@ -1039,9 +1103,26 @@
 
   function controlsToBlushRegions(controls) {
     if (!controls) return [];
+    if (Array.isArray(controls.regions) && controls.regions.length) {
+      return controls.regions
+        .map((region) => ({
+          leftX: Number(region.leftX),
+          rightX: Number(region.rightX),
+          cy: Number(region.cy),
+          rx: Number(region.rx),
+          ry: Number(region.ry),
+        }))
+        .filter((region) =>
+          [region.leftX, region.rightX, region.cy, region.rx, region.ry].every(Number.isFinite) &&
+          region.rx > 0 &&
+          region.ry > 0
+        );
+    }
     const regions = [];
     if (controls.left?.enabled) regions.push({ leftX: controls.left.x, rightX: controls.left.x, cy: controls.left.y, rx: controls.left.rx, ry: controls.left.ry });
     if (controls.right?.enabled) regions.push({ leftX: controls.right.x, rightX: controls.right.x, cy: controls.right.y, rx: controls.right.rx, ry: controls.right.ry });
+    if (controls.extraLeft?.enabled) regions.push({ leftX: controls.extraLeft.x, rightX: controls.extraLeft.x, cy: controls.extraLeft.y, rx: controls.extraLeft.rx, ry: controls.extraLeft.ry });
+    if (controls.extraRight?.enabled) regions.push({ leftX: controls.extraRight.x, rightX: controls.extraRight.x, cy: controls.extraRight.y, rx: controls.extraRight.rx, ry: controls.extraRight.ry });
     return regions;
   }
 
@@ -1054,8 +1135,8 @@
       const dy = (y - region.cy) / region.ry;
       const leftDist = Math.sqrt(leftDx * leftDx + dy * dy);
       const rightDist = Math.sqrt(rightDx * rightDx + dy * dy);
-      const leftW = 1 - smoothstep(0.44, 1.02, leftDist);
-      const rightW = 1 - smoothstep(0.44, 1.02, rightDist);
+      const leftW = Math.pow(1 - smoothstep(0.12, 1.24, leftDist), 1.18);
+      const rightW = Math.pow(1 - smoothstep(0.12, 1.24, rightDist), 1.18);
       best = Math.max(best, leftW, rightW);
     }
     return clamp(best, 0, 1);
@@ -1355,6 +1436,35 @@
     return scored[0]?.idx ?? -1;
   }
 
+  function sortFacesByPriority(faceBoxes, faceLandmarks, image) {
+    if (!Array.isArray(faceBoxes) || faceBoxes.length <= 1) {
+      return {
+        faceBoxes: faceBoxes || [],
+        faceLandmarks: faceLandmarks || [],
+      };
+    }
+    const primaryIndex = getPrimaryFaceIndex(faceBoxes, image);
+    if (primaryIndex < 0) {
+      return {
+        faceBoxes,
+        faceLandmarks: faceLandmarks || [],
+      };
+    }
+    const order = faceBoxes
+      .map((_, index) => index)
+      .sort((a, b) => {
+        if (a === primaryIndex) return -1;
+        if (b === primaryIndex) return 1;
+        const areaA = faceBoxes[a].width * faceBoxes[a].height;
+        const areaB = faceBoxes[b].width * faceBoxes[b].height;
+        return areaB - areaA;
+      });
+    return {
+      faceBoxes: order.map((index) => faceBoxes[index]),
+      faceLandmarks: order.map((index) => faceLandmarks?.[index]).filter(Boolean),
+    };
+  }
+
   function normalizeFaceLandmarks(landmarks, image) {
     if (!Array.isArray(landmarks)) return [];
     return landmarks
@@ -1377,6 +1487,9 @@
   }
 
   async function analyzePortraitWithSkill(image) {
+    if (!window.jiraiVisionSkill && !window.__JIRAI_VISION_SKILL__) {
+      await loadVisionSkill();
+    }
     const skill = window.jiraiVisionSkill || window.__JIRAI_VISION_SKILL__;
     if (!skill) return null;
     try {
@@ -1390,6 +1503,20 @@
       }
     } catch {}
     return null;
+  }
+
+  function loadVisionSkill() {
+    if (window.jiraiVisionSkill || window.__JIRAI_VISION_SKILL__) return Promise.resolve();
+    if (visionSkillLoadPromise) return visionSkillLoadPromise;
+    visionSkillLoadPromise = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'src/vision-skill.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.appendChild(script);
+    });
+    return visionSkillLoadPromise;
   }
 
   async function detectPortraitData(image) {
@@ -1429,15 +1556,9 @@
     if (!faceBoxes.length) {
       faceBoxes = estimateFaceBoxHeuristic(image);
     }
-    const primaryIndex = getPrimaryFaceIndex(faceBoxes, image);
-    if (primaryIndex >= 0) {
-      faceBoxes = [faceBoxes[primaryIndex]];
-      if (faceLandmarks.length > primaryIndex) {
-        faceLandmarks.splice(0, faceLandmarks.length, faceLandmarks[primaryIndex]);
-      } else if (faceLandmarks.length) {
-        faceLandmarks.splice(0, faceLandmarks.length);
-      }
-    }
+    const sortedFaces = sortFacesByPriority(faceBoxes, faceLandmarks, image);
+    faceBoxes = sortedFaces.faceBoxes;
+    faceLandmarks.splice(0, faceLandmarks.length, ...sortedFaces.faceLandmarks);
     const personMaskCanvas = null;
     return { faceBoxes, faceLandmarks, personMaskCanvas, autoBlushDetected };
   }
@@ -1488,7 +1609,7 @@
       const oLuma = or * 0.299 + og * 0.587 + ob * 0.114;
       const oCb = 128 - 0.168736 * or - 0.331264 * og + 0.5 * ob;
       const oCr = 128 + 0.5 * or - 0.418688 * og - 0.081312 * ob;
-      const [oHue, oSat] = rgbToHsl(or, og, ob);
+      const [oHue, oSat, oLight] = rgbToHsl(or, og, ob);
       let r = data[i] * b;
       let g = data[i + 1] * b;
       let bl = data[i + 2] * b;
@@ -1576,6 +1697,31 @@
           g = lerp(g, rg2, t);
           bl = lerp(bl, rb2, t);
         }
+      }
+
+      const [nhAfterProtect, nsAfterProtect, nlAfterProtect] = rgbToHsl(r, g, bl);
+      const greenSpeckHue = Math.max(
+        1 - smoothstep(26, 70, hueDistance(nhAfterProtect, 120)),
+        1 - smoothstep(24, 62, hueDistance(nhAfterProtect, 172))
+      );
+      const originalSkinOrLip = clamp(
+        skinProtectMask + smoothstep(0.04, 0.24, oSat) * Math.max(
+          1 - smoothstep(34, 74, hueDistance(oHue, 12)),
+          1 - smoothstep(36, 78, hueDistance(oHue, 346))
+        ) * 0.72,
+        0,
+        1
+      );
+      const lowChromaSpeck = 1 - smoothstep(0.16, 0.34, nsAfterProtect);
+      const greenSpeckFix = clamp(greenSpeckHue * originalSkinOrLip * lowChromaSpeck * (skinProtect + 0.28), 0, 1);
+      if (greenSpeckFix > 0.001) {
+        const targetH = oSat > 0.08 ? oHue : 8;
+        const targetS = Math.max(nsAfterProtect * 0.82, Math.min(0.34, oSat * 0.82 + 0.04));
+        const targetL = nlAfterProtect * 0.78 + oLight * 0.22;
+        const [sr2, sg2, sb2] = hslToRgb(targetH, clamp(targetS, 0, 1), clamp(targetL, 0, 1));
+        r = lerp(r, sr2, greenSpeckFix);
+        g = lerp(g, sg2, greenSpeckFix);
+        bl = lerp(bl, sb2, greenSpeckFix);
       }
 
       if (skinWhiten > 0 || blushStrength > 0) {
@@ -1752,9 +1898,10 @@
     ctx.globalCompositeOperation = 'source-over';
     blushRegions.forEach((region) => {
       const paint = (cx) => {
-        const grad = ctx.createRadialGradient(cx, region.cy, region.rx * 0.14, cx, region.cy, region.rx * 1.05);
-        grad.addColorStop(0, 'rgba(255, 130, 190, 0.34)');
-        grad.addColorStop(0.55, 'rgba(250, 150, 205, 0.18)');
+        const grad = ctx.createRadialGradient(cx, region.cy, region.rx * 0.06, cx, region.cy, region.rx * 1.28);
+        grad.addColorStop(0, 'rgba(255, 130, 190, 0.3)');
+        grad.addColorStop(0.42, 'rgba(250, 150, 205, 0.16)');
+        grad.addColorStop(0.72, 'rgba(250, 160, 214, 0.07)');
         grad.addColorStop(1, 'rgba(250, 170, 220, 0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -1838,8 +1985,51 @@
     };
   }
 
+  function makeTextStrokeShadow(layer, scale = 1) {
+    const strokeWidth = Math.max(0, (layer.strokeWidth ?? 0) * scale);
+    const strokeColor = layer.strokeColor ?? '#2f2532';
+    const shadowBlur = Math.max(0, (layer.shadowBlur ?? 0) * scale);
+    const shadowColor = layer.shadowColor ?? '#2f2532';
+    const shadows = [];
+    if (strokeWidth > 0.1) {
+      const r = Math.max(1, Math.min(3, strokeWidth * 0.72));
+      const d = Number((r * 0.72).toFixed(2));
+      const o = Number(r.toFixed(2));
+      shadows.push(
+        `${o}px 0 0 ${strokeColor}`,
+        `${-o}px 0 0 ${strokeColor}`,
+        `0 ${o}px 0 ${strokeColor}`,
+        `0 ${-o}px 0 ${strokeColor}`,
+        `${d}px ${d}px 0 ${strokeColor}`,
+        `${-d}px ${d}px 0 ${strokeColor}`,
+        `${d}px ${-d}px 0 ${strokeColor}`,
+        `${-d}px ${-d}px 0 ${strokeColor}`,
+      );
+    }
+    if (shadowBlur > 0.1) {
+      shadows.push(`0 0 ${Math.max(1, shadowBlur)}px ${shadowColor}`);
+    }
+    return shadows.length ? shadows.join(', ') : 'none';
+  }
+
   const textMeasureCanvas = document.createElement('canvas');
   const textMeasureCtx = textMeasureCanvas.getContext('2d');
+  const HEART_PATH_POINTS = [
+    ['M', 0, -0.24],
+    ['C', -0.06, -0.54, -0.42, -0.64, -0.68, -0.45],
+    ['C', -1.02, -0.18, -0.98, 0.33, -0.28, 0.78],
+    ['C', -0.14, 0.88, -0.04, 0.95, 0, 1],
+    ['C', 0.04, 0.95, 0.14, 0.88, 0.28, 0.78],
+    ['C', 0.98, 0.33, 1.02, -0.18, 0.68, -0.45],
+    ['C', 0.42, -0.64, 0.06, -0.54, 0, -0.24],
+  ];
+
+  function heartPathToSvgD(scale = 100) {
+    return HEART_PATH_POINTS.map((segment) => {
+      const [command, ...values] = segment;
+      return `${command}${values.map((value) => Number((value * scale).toFixed(3))).join(' ')}`;
+    }).join(' ');
+  }
 
   function drawShapePath(ctx, shape, width, height) {
     if (shape === 'circle') {
@@ -1853,13 +2043,21 @@
       const sx = width / 2;
       const sy = height / 2;
       ctx.beginPath();
-      ctx.moveTo(0, -sy * 0.24);
-      ctx.bezierCurveTo(-sx * 0.06, -sy * 0.54, -sx * 0.42, -sy * 0.64, -sx * 0.68, -sy * 0.45);
-      ctx.bezierCurveTo(-sx * 1.02, -sy * 0.18, -sx * 0.98, sy * 0.33, -sx * 0.28, sy * 0.78);
-      ctx.bezierCurveTo(-sx * 0.14, sy * 0.88, -sx * 0.04, sy * 0.95, 0, sy);
-      ctx.bezierCurveTo(sx * 0.04, sy * 0.95, sx * 0.14, sy * 0.88, sx * 0.28, sy * 0.78);
-      ctx.bezierCurveTo(sx * 0.98, sy * 0.33, sx * 1.02, -sy * 0.18, sx * 0.68, -sy * 0.45);
-      ctx.bezierCurveTo(sx * 0.42, -sy * 0.64, sx * 0.06, -sy * 0.54, 0, -sy * 0.24);
+      HEART_PATH_POINTS.forEach((segment) => {
+        const [command, ...values] = segment;
+        if (command === 'M') {
+          ctx.moveTo(values[0] * sx, values[1] * sy);
+          return;
+        }
+        ctx.bezierCurveTo(
+          values[0] * sx,
+          values[1] * sy,
+          values[2] * sx,
+          values[3] * sy,
+          values[4] * sx,
+          values[5] * sy
+        );
+      });
       ctx.closePath();
       return;
     }
@@ -1976,12 +2174,27 @@
   function getPreviewScaleForState(state) {
     if (!state.image.loaded || !state.canvas.width || !state.canvas.height) return 1;
     const mobilePreview = window.matchMedia('(max-width: 760px)').matches;
-    const lightweight = isSliderDragging || isDirectManipulating || isTextEditing;
-    const maxSide = lightweight ? (mobilePreview ? 420 : 780) : (mobilePreview ? 1100 : 1700);
-    const maxPixels = lightweight ? (mobilePreview ? 150000 : 340000) : (mobilePreview ? 1100000 : 2200000);
+    const lightweight = isDirectManipulating || isTextEditing;
+    const pressureScale = lightweight ? clamp(1 - interactiveRenderPressure * 0.1, 0.72, 1) : 1;
+    const maxSide = (lightweight ? (mobilePreview ? 460 : 820) : (mobilePreview ? 1100 : 1700)) * pressureScale;
+    const maxPixels = (lightweight ? (mobilePreview ? 180000 : 420000) : (mobilePreview ? 1100000 : 2200000)) * pressureScale;
     const bySide = maxSide / Math.max(state.canvas.width, state.canvas.height);
     const byArea = Math.sqrt(maxPixels / Math.max(1, state.canvas.width * state.canvas.height));
     return clamp(Math.min(1, bySide, byArea), 0.12, 1);
+  }
+
+  function applyCanvasCssInteractionPreview(state) {
+    if (!els?.canvas) return;
+    if (!isSliderDragging || !sliderDragStartFilters || !state.image.loaded) {
+      els.canvas.style.filter = '';
+      return;
+    }
+    const current = state.filters || {};
+    const start = sliderDragStartFilters;
+    const brightness = clamp((current.brightness ?? 1) / Math.max(0.01, start.brightness ?? 1), 0.72, 1.32);
+    const contrast = clamp((current.contrast ?? 1) / Math.max(0.01, start.contrast ?? 1), 0.72, 1.42);
+    const saturation = clamp((current.saturation ?? 1) / Math.max(0.01, start.saturation ?? 1), 0.45, 1.7);
+    els.canvas.style.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
   }
 
   function scaleLayerForPreview(layer, scale) {
@@ -2048,11 +2261,18 @@
     // 画布尺寸与原图像素一致，基底始终 1:1 覆盖，禁止自动补边/扩展。
     baseCtx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
 
-    applyTonePipeline(ctx, baseCanvas, renderState.filters, {
-      faceBoxes: renderState.image.faceBoxes || [],
-      faceLandmarks: renderState.image.faceLandmarks || [],
-      personMaskCanvas: renderState.image.personMaskCanvas || null,
-    });
+    try {
+      applyTonePipeline(ctx, baseCanvas, renderState.filters, {
+        faceBoxes: renderState.image.faceBoxes || [],
+        faceLandmarks: renderState.image.faceLandmarks || [],
+        personMaskCanvas: renderState.image.personMaskCanvas || null,
+        interactivePreview: Boolean(options.interactivePreview),
+      });
+    } catch (error) {
+      console.error('Tone render failed, showing original image:', error);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(baseCanvas, 0, 0);
+    }
 
     return { canvas, renderState };
   }
@@ -2177,36 +2397,55 @@
 
   function renderCanvas(ctx, state) {
     const previewState = createPreviewRenderState(state);
-    ctx.canvas.width = previewState.canvas.width;
-    ctx.canvas.height = previewState.canvas.height;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = previewState.canvas.width;
+    outputCanvas.height = previewState.canvas.height;
+    const outputCtx = outputCanvas.getContext('2d');
+    if (!outputCtx) return;
+
+    const commitOutput = () => {
+      if (ctx.canvas.width !== outputCanvas.width) ctx.canvas.width = outputCanvas.width;
+      if (ctx.canvas.height !== outputCanvas.height) ctx.canvas.height = outputCanvas.height;
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.drawImage(outputCanvas, 0, 0);
+    };
 
     if (!previewState.image.loaded || !previewState.image.element) {
-      ctx.fillStyle = '#f2ecf3';
-      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      outputCtx.fillStyle = '#f2ecf3';
+      outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+      commitOutput();
       return;
     }
 
+    const drawOriginalFallback = () => {
+      outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+      outputCtx.drawImage(renderOriginalCanvas(state, false, { usePreviewScale: true }), 0, 0);
+    };
+
     const ensureCache = () => {
       const hiddenLayerId = activeTransformLayerId || null;
+      const interactivePreview = isTextEditing;
       if (
         previewRenderCache.renderToken === state.renderToken &&
         previewRenderCache.toneToken === state.toneToken &&
         previewRenderCache.width === previewState.canvas.width &&
         previewRenderCache.height === previewState.canvas.height &&
-        previewRenderCache.hiddenLayerId === hiddenLayerId
+        previewRenderCache.hiddenLayerId === hiddenLayerId &&
+        previewRenderCache.interactivePreview === interactivePreview
       ) {
         return;
       }
       const toneChanged =
         previewRenderCache.toneToken !== state.toneToken ||
         previewRenderCache.width !== previewState.canvas.width ||
-        previewRenderCache.height !== previewState.canvas.height;
+        previewRenderCache.height !== previewState.canvas.height ||
+        previewRenderCache.interactivePreview !== interactivePreview;
       previewRenderCache.renderToken = state.renderToken;
       previewRenderCache.toneToken = state.toneToken;
       previewRenderCache.width = previewState.canvas.width;
       previewRenderCache.height = previewState.canvas.height;
       previewRenderCache.hiddenLayerId = hiddenLayerId;
+      previewRenderCache.interactivePreview = interactivePreview;
       if (toneChanged) {
         previewRenderCache.original = null;
         previewRenderCache.toneBase = null;
@@ -2226,7 +2465,10 @@
       ensureCache();
       if (!previewRenderCache.edited) {
         if (!previewRenderCache.toneBase) {
-          previewRenderCache.toneBase = renderToneBaseCanvas(state, false, { usePreviewScale: true }).canvas;
+          previewRenderCache.toneBase = renderToneBaseCanvas(state, false, {
+            usePreviewScale: true,
+            interactivePreview: isTextEditing,
+          }).canvas;
         }
         const edited = document.createElement('canvas');
         edited.width = previewRenderCache.toneBase.width;
@@ -2240,54 +2482,69 @@
     };
 
     if (state.comparePeekOriginal) {
-      ctx.drawImage(getOriginal(), 0, 0);
-      drawBlushPreview(ctx, previewState);
+      try {
+        outputCtx.drawImage(getOriginal(), 0, 0);
+      } catch (error) {
+        console.error('Original preview render failed:', error);
+        drawOriginalFallback();
+      }
+      drawBlushPreview(outputCtx, previewState);
+      commitOutput();
       return;
     }
 
     if (!state.compareMode) {
-      ctx.drawImage(getEdited(), 0, 0);
-      drawBlushPreview(ctx, previewState);
+      try {
+        outputCtx.drawImage(getEdited(), 0, 0);
+      } catch (error) {
+        console.error('Edited preview render failed, showing original image:', error);
+        drawOriginalFallback();
+      }
+      drawBlushPreview(outputCtx, previewState);
+      commitOutput();
       return;
     }
 
     const original = getOriginal();
     const edited = getEdited();
 
-    const w = ctx.canvas.width;
-    const h = ctx.canvas.height;
+    const w = outputCanvas.width;
+    const h = outputCanvas.height;
     const gap = 0;
     const paneWidth = (w - gap) / 2;
 
-    ctx.clearRect(0, 0, w, h);
+    outputCtx.clearRect(0, 0, w, h);
 
-    const beforeRect = drawCanvasContain(ctx, original, 0, 0, paneWidth, h);
-    const afterRect = drawCanvasContain(ctx, edited, paneWidth + gap, 0, paneWidth, h);
+    const beforeRect = drawCanvasContain(outputCtx, original, 0, 0, paneWidth, h);
+    const afterRect = drawCanvasContain(outputCtx, edited, paneWidth + gap, 0, paneWidth, h);
 
     // 对比模式下仅在 AFTER 区域绘制预览，避免 BEFORE 被污染。
     if (blushPreviewEnabled && previewState.image.faceBoxes?.length) {
-      ctx.save();
+      outputCtx.save();
       const scale = Math.min(afterRect.w / previewState.canvas.width, afterRect.h / previewState.canvas.height);
       const tx = afterRect.x + (afterRect.w - previewState.canvas.width * scale) / 2;
       const ty = afterRect.y + (afterRect.h - previewState.canvas.height * scale) / 2;
-      ctx.translate(tx, ty);
-      ctx.scale(scale, scale);
-      drawBlushPreview(ctx, previewState);
-      ctx.restore();
+      outputCtx.translate(tx, ty);
+      outputCtx.scale(scale, scale);
+      drawBlushPreview(outputCtx, previewState);
+      outputCtx.restore();
     }
 
-    const compareStyle = getCompareLabelStyle(Math.min(beforeRect.w, afterRect.w));
-    ctx.save();
-    ctx.font = `700 ${compareStyle.fontSize}px "Avenir Next", "PingFang SC", sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.lineWidth = compareStyle.lineWidth;
-    ctx.strokeStyle = 'rgba(236, 170, 210, 0.95)';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeText('BEFORE', beforeRect.x + compareStyle.insetX, beforeRect.y + compareStyle.insetY);
-    ctx.fillText('BEFORE', beforeRect.x + compareStyle.insetX, beforeRect.y + compareStyle.insetY);
-    ctx.strokeText('AFTER', afterRect.x + compareStyle.insetX, afterRect.y + compareStyle.insetY);
-    ctx.fillText('AFTER', afterRect.x + compareStyle.insetX, afterRect.y + compareStyle.insetY);
-    ctx.restore();
+    if (state.compareLabels !== false) {
+      const compareStyle = getCompareLabelStyle(Math.min(beforeRect.w, afterRect.w));
+      outputCtx.save();
+      outputCtx.font = `700 ${compareStyle.fontSize}px "Avenir Next", "PingFang SC", sans-serif`;
+      outputCtx.textBaseline = 'top';
+      outputCtx.lineWidth = compareStyle.lineWidth;
+      outputCtx.strokeStyle = 'rgba(236, 170, 210, 0.95)';
+      outputCtx.fillStyle = '#ffffff';
+      outputCtx.strokeText('BEFORE', beforeRect.x + compareStyle.insetX, beforeRect.y + compareStyle.insetY);
+      outputCtx.fillText('BEFORE', beforeRect.x + compareStyle.insetX, beforeRect.y + compareStyle.insetY);
+      outputCtx.strokeText('AFTER', afterRect.x + compareStyle.insetX, afterRect.y + compareStyle.insetY);
+      outputCtx.fillText('AFTER', afterRect.x + compareStyle.insetX, afterRect.y + compareStyle.insetY);
+      outputCtx.restore();
+    }
+    commitOutput();
   }
 
   function makeSlider({ label, min, max, step, value, onInput, onBegin, onEnd, rangeClass = '', trackGradient = '' }) {
@@ -2325,6 +2582,7 @@
       if (started) return;
       started = true;
       isSliderDragging = true;
+      sliderDragStartFilters = { ...store.getState().filters };
       onBegin?.();
     };
     const flushSliderInput = () => {
@@ -2340,19 +2598,16 @@
     const queueSliderInput = (v) => {
       latestSliderValue = v;
       syncRangeProgress();
-      if (isMobileViewport()) {
-        const now = performance.now();
-        const gap = now - lastSliderCommitAt;
-        if (gap >= MOBILE_SLIDER_COMMIT_MS) {
+      const now = performance.now();
+      const commitMs = isMobileViewport() ? MOBILE_SLIDER_COMMIT_MS : 34;
+      const gap = now - lastSliderCommitAt;
+      if (gap >= commitMs) {
+        if (!pendingSliderFrame) pendingSliderFrame = window.requestAnimationFrame(flushSliderInput);
+      } else if (!pendingSliderTimer) {
+        pendingSliderTimer = window.setTimeout(() => {
+          pendingSliderTimer = 0;
           if (!pendingSliderFrame) pendingSliderFrame = window.requestAnimationFrame(flushSliderInput);
-        } else if (!pendingSliderTimer) {
-          pendingSliderTimer = window.setTimeout(() => {
-            pendingSliderTimer = 0;
-            if (!pendingSliderFrame) pendingSliderFrame = window.requestAnimationFrame(flushSliderInput);
-          }, MOBILE_SLIDER_COMMIT_MS - gap);
-        }
-      } else {
-        onInput(v);
+        }, commitMs - gap);
       }
     };
 
@@ -2396,6 +2651,8 @@
         window.clearTimeout(pendingRenderTimer);
         pendingRenderTimer = 0;
       }
+      sliderDragStartFilters = null;
+      if (els?.canvas) els.canvas.style.filter = '';
       render(store.getState());
     };
     input.addEventListener('pointerdown', (event) => {
@@ -2418,7 +2675,7 @@
     return wrapper;
   }
 
-  function makeColorInput({ label, value, onInput }) {
+  function makeColorInput({ label, value, onInput, onBegin, onEnd }) {
     const wrapper = document.createElement('div');
     wrapper.className = 'control-item';
 
@@ -2436,11 +2693,31 @@
     input.type = 'color';
     input.value = safeValue;
     input.className = 'native-color-input';
-    input.oninput = () => {
+    let started = false;
+    let latestValue = safeValue;
+    const startOnce = () => {
+      if (started) return;
+      started = true;
+      onBegin?.();
+    };
+    const commitValue = () => {
+      if (input.value === latestValue) return;
+      startOnce();
+      latestValue = input.value;
       swatch.style.background = input.value;
       onInput(input.value);
     };
-    input.onchange = input.oninput;
+    const finish = () => {
+      if (!started) return;
+      started = false;
+      onEnd?.(latestValue);
+    };
+    input.oninput = commitValue;
+    input.onchange = () => {
+      commitValue();
+      finish();
+    };
+    input.onblur = finish;
 
     swatch.appendChild(input);
     row.appendChild(swatch);
@@ -2560,6 +2837,8 @@
   function createOverlayLayer(overlayEl, store) {
     let interaction = null;
     let pendingTransformCanvasFrame = 0;
+    let pendingInteractionPreviewFrame = 0;
+    let queuedInteractionPatch = null;
     const MIN_TOUCH_FRAME = { w: 54, h: 54 };
 
     function minOverlayFrame(bounds, minSize = MIN_TOUCH_FRAME) {
@@ -2585,6 +2864,42 @@
           ry: canvasHeight * DEFAULT_FILTERS.blushRightRY,
           enabled: true,
         },
+      };
+    }
+
+    function getExtraBlushDefaults(state) {
+      const canvasWidth = Math.max(1, state.canvas.width);
+      const canvasHeight = Math.max(1, state.canvas.height);
+      const autoRegions = state.image.autoBlushDetected
+        ? buildBlushRegions(
+            state.image.faceBoxes || [],
+            state.image.faceLandmarks || [],
+            canvasWidth,
+            canvasHeight
+          )
+        : [];
+      const region = autoRegions[1];
+      if (region) {
+        return {
+          blushExtraLeftX: region.leftX / canvasWidth,
+          blushExtraLeftY: region.cy / canvasHeight,
+          blushExtraLeftRX: region.rx / canvasWidth,
+          blushExtraLeftRY: region.ry / canvasHeight,
+          blushExtraRightX: region.rightX / canvasWidth,
+          blushExtraRightY: region.cy / canvasHeight,
+          blushExtraRightRX: region.rx / canvasWidth,
+          blushExtraRightRY: region.ry / canvasHeight,
+        };
+      }
+      return {
+        blushExtraLeftX: DEFAULT_FILTERS.blushExtraLeftX,
+        blushExtraLeftY: DEFAULT_FILTERS.blushExtraLeftY,
+        blushExtraLeftRX: DEFAULT_FILTERS.blushExtraLeftRX,
+        blushExtraLeftRY: DEFAULT_FILTERS.blushExtraLeftRY,
+        blushExtraRightX: DEFAULT_FILTERS.blushExtraRightX,
+        blushExtraRightY: DEFAULT_FILTERS.blushExtraRightY,
+        blushExtraRightRX: DEFAULT_FILTERS.blushExtraRightRX,
+        blushExtraRightRY: DEFAULT_FILTERS.blushExtraRightRY,
       };
     }
 
@@ -2616,18 +2931,60 @@
         blushRightRX: (controls?.right?.rx ?? state.canvas.width * DEFAULT_FILTERS.blushRightRX) / state.canvas.width,
         blushRightRY: (controls?.right?.ry ?? state.canvas.height * DEFAULT_FILTERS.blushRightRY) / state.canvas.height,
       };
+      if (controls?.regions?.[1]) {
+        Object.assign(partial, {
+          blushExtraEnabled: 1,
+          blushExtraLeftEnabled: 1,
+          blushExtraRightEnabled: 1,
+          ...getExtraBlushDefaults(state),
+        });
+      }
       store.setFilters(partial, state.activePresetId ?? 'original', true);
       return true;
     }
 
     function patchBlush(side, patch, recordHistory = false) {
-      const prefix = side === 'left' ? 'blushLeft' : 'blushRight';
+      const prefixMap = {
+        left: 'blushLeft',
+        right: 'blushRight',
+        extraLeft: 'blushExtraLeft',
+        extraRight: 'blushExtraRight',
+      };
+      const prefix = prefixMap[side] || 'blushLeft';
       const partial = {};
+      if (side === 'extraLeft' || side === 'extraRight') partial.blushExtraEnabled = 1;
       Object.entries(patch).forEach(([key, value]) => {
         partial[`${prefix}${key}`] = value;
       });
+      if ((side === 'extraLeft' || side === 'extraRight') && Number(patch.Enabled ?? 1) <= 0.5) {
+        partial.blushExtraEnabled = 0;
+      }
       partial.blushManual = 1;
       store.setFilters(partial, store.getState().activePresetId ?? 'original', recordHistory);
+    }
+
+    function addExtraBlushGroup() {
+      const state = store.getState();
+      if (!state.image.loaded) {
+        alert('请先上传图片。');
+        return;
+      }
+      ensureManualBlushSetup();
+      const nextState = store.getState();
+      store.setFilters(
+        {
+          blushManual: 1,
+          blushExtraEnabled: 1,
+          blushExtraLeftEnabled: 1,
+          blushExtraRightEnabled: 1,
+          ...getExtraBlushDefaults(nextState),
+        },
+        nextState.activePresetId ?? 'original',
+        true
+      );
+      blushPreviewEnabled = true;
+      blushEditMode = true;
+      render(store.getState());
     }
 
     function sizePx(layer, bounds) {
@@ -2751,6 +3108,11 @@
 
     function finishInteraction() {
       if (!interaction && !isDirectManipulating) return;
+      if (pendingInteractionPreviewFrame) {
+        window.cancelAnimationFrame(pendingInteractionPreviewFrame);
+        pendingInteractionPreviewFrame = 0;
+      }
+      flushQueuedInteractionPreview();
       const current = interaction;
       if (pendingTransformCanvasFrame) {
         window.cancelAnimationFrame(pendingTransformCanvasFrame);
@@ -2788,13 +3150,33 @@
       element.style.transform = `translate3d(${dx}px, ${dy}px, 0) translate(-50%, -50%) scale(${scaleX}, ${scaleY})`;
     }
 
+    function flushQueuedInteractionPreview() {
+      if (!queuedInteractionPatch || !interaction) return;
+      const patch = queuedInteractionPatch;
+      queuedInteractionPatch = null;
+      if (interaction.kind === 'blush') {
+        applyBlushInteractionPreview(patch);
+      } else {
+        applyInteractionPreview(patch);
+      }
+    }
+
+    function queueInteractionPreview(patch) {
+      queuedInteractionPatch = { ...(queuedInteractionPatch || {}), ...patch };
+      if (pendingInteractionPreviewFrame) return;
+      pendingInteractionPreviewFrame = window.requestAnimationFrame(() => {
+        pendingInteractionPreviewFrame = 0;
+        flushQueuedInteractionPreview();
+      });
+    }
+
     function attachMoveHandler(el, layer, frameRect) {
       el.onpointerdown = (event) => {
         event.preventDefault();
         event.stopPropagation();
+        startInteraction(event, 'move', layer, frameRect);
         store.selectLayer(layer.id);
         revealLayerControlsFor(layer);
-        startInteraction(event, 'move', layer, frameRect);
       };
     }
 
@@ -2827,9 +3209,9 @@
       handle.onpointerdown = (event) => {
         event.preventDefault();
         event.stopPropagation();
+        startInteraction(event, type, layer, frameRect);
         store.selectLayer(layer.id);
         revealLayerControlsFor(layer);
-        startInteraction(event, type, layer, frameRect);
       };
       return handle;
     }
@@ -2851,41 +3233,13 @@
         const canvasWidth = Math.max(1, store.getState().canvas?.width || frameRect.width || 1);
         const displayScale = frameRect.width / canvasWidth;
         const fontSize = Math.max(8, (layer.fontSize ?? 56) * displayScale);
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        const fontFamily = layer.fontFamily ?? '"Avenir Next", sans-serif';
-        textMeasureCtx.font = `${fontSize}px ${fontFamily}`;
-        const layout = getTextLayout(textMeasureCtx, { ...layer, fontSize });
-        const metrics = getTextBoxMetrics(layout, layer, displayScale);
-        const viewW = Math.max(1, metrics.w);
-        const viewH = Math.max(1, metrics.h);
-        const align = ['left', 'center', 'right'].includes(layer.textAlign) ? layer.textAlign : 'left';
-        const textAnchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-        const textX = align === 'left' ? metrics.padX : align === 'right' ? viewW - metrics.padX : viewW / 2;
-        const firstY = viewH / 2 - layout.textHeight / 2 + layout.lineHeight / 2;
-        svg.setAttribute('viewBox', `0 0 ${viewW} ${viewH}`);
-        svg.setAttribute('aria-hidden', 'true');
-        svg.setAttribute('focusable', 'false');
-        svg.classList.add('text-preview-svg');
-        if ((layer.shadowBlur ?? 0) > 0) {
-          svg.style.filter = `drop-shadow(0 0 ${Math.max(1, (layer.shadowBlur ?? 0) * displayScale)}px ${layer.shadowColor ?? '#2f2532'})`;
-        }
-        layout.lines.forEach((line, index) => {
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.textContent = line || ' ';
-          text.setAttribute('x', `${textX}`);
-          text.setAttribute('y', `${firstY + index * layout.lineHeight}`);
-          text.setAttribute('font-family', fontFamily);
-          text.setAttribute('font-size', `${fontSize}`);
-          text.setAttribute('text-anchor', textAnchor);
-          text.setAttribute('dominant-baseline', 'middle');
-          text.setAttribute('fill', layer.color ?? '#ffeef5');
-          text.setAttribute('stroke', layer.strokeColor ?? '#2f2532');
-          text.setAttribute('stroke-width', `${Math.max(0, (layer.strokeWidth ?? 0) * displayScale)}`);
-          text.setAttribute('stroke-linejoin', 'round');
-          text.setAttribute('paint-order', 'stroke fill');
-          svg.appendChild(text);
-        });
-        preview.appendChild(svg);
+        preview.textContent = layer.content || '';
+        preview.style.fontFamily = layer.fontFamily ?? '"Avenir Next", sans-serif';
+        preview.style.fontSize = `${fontSize}px`;
+        preview.style.color = layer.color ?? '#ffeef5';
+        preview.style.webkitTextStroke = `${Math.max(0, (layer.strokeWidth ?? 0) * displayScale)}px ${layer.strokeColor ?? '#2f2532'}`;
+        preview.style.textShadow = makeTextStrokeShadow(layer, displayScale);
+        preview.style.textAlign = ['left', 'center', 'right'].includes(layer.textAlign) ? layer.textAlign : 'left';
         item.appendChild(preview);
         return;
       }
@@ -2899,15 +3253,33 @@
           svg.setAttribute('viewBox', '-50 -50 100 100');
           svg.setAttribute('aria-hidden', 'true');
           path.setAttribute('class', 'mosaic-heart-path');
-          path.setAttribute(
-            'd',
-            'M0 -12 C-3 -27 -21 -32 -34 -22 C-51 -9 -49 17 -14 39 C-7 44 -2 48 0 50 C2 48 7 44 14 39 C49 17 51 -9 34 -22 C21 -32 3 -27 0 -12 Z',
-          );
+          path.setAttribute('d', `${heartPathToSvgD(50)} Z`);
           svg.appendChild(path);
           preview.appendChild(svg);
         }
         item.appendChild(preview);
       }
+    }
+
+    function isInteractiveLayerRenderable(layer, frameRect) {
+      if (!layer || !layer.visible || !['mosaic', 'sticker', 'text'].includes(layer.type)) return false;
+      if ((layer.opacity ?? 1) <= 0.001) return false;
+      const x = Number(layer.x ?? 0.5);
+      const y = Number(layer.y ?? 0.5);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+      if (x < -0.02 || x > 1.02 || y < -0.02 || y > 1.02) return false;
+      if (layer.type === 'text' && !String(layer.content ?? '').trim()) return false;
+      if (layer.type === 'sticker' && !layer.src) return false;
+      const { w, h } = sizePx(layer, frameRect);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w < 2 || h < 2) return false;
+      const boxLeft = x * frameRect.width - w / 2;
+      const boxTop = y * frameRect.height - h / 2;
+      const boxRight = boxLeft + w;
+      const boxBottom = boxTop + h;
+      const visibleW = Math.max(0, Math.min(frameRect.width, boxRight) - Math.max(0, boxLeft));
+      const visibleH = Math.max(0, Math.min(frameRect.height, boxBottom) - Math.max(0, boxTop));
+      const visibleRatio = (visibleW * visibleH) / Math.max(1, w * h);
+      return visibleRatio >= 0.32;
     }
 
     function render() {
@@ -2918,7 +3290,7 @@
       const activeId = state.selectedLayerId;
       const interactiveLayers = isBlushEditActive(state)
         ? []
-        : state.layers.filter((layer) => layer.visible && ['mosaic', 'sticker', 'text'].includes(layer.type));
+        : state.layers.filter((layer) => isInteractiveLayerRenderable(layer, frameRect));
       interactiveLayers.sort((a, b) => {
         if (a.id === activeId) return 1;
         if (b.id === activeId) return -1;
@@ -2994,12 +3366,16 @@
         const blushItems = [
           { side: 'left', control: controls?.left, label: '左腮红' },
           { side: 'right', control: controls?.right, label: '右腮红' },
+          { side: 'extraLeft', control: controls?.extraLeft, label: '第二组左腮红' },
+          { side: 'extraRight', control: controls?.extraRight, label: '第二组右腮红' },
         ];
         blushItems.forEach(({ side, control, label }) => {
           if (!control || !control.enabled) return;
           const item = document.createElement('div');
-          item.className = 'overlay-item blush-control selected';
-          const minFrame = minOverlayFrame(frameRect, { w: 62, h: 52 });
+          const sideClass = side === 'left' || side === 'extraLeft' ? 'blush-left' : 'blush-right';
+          const groupClass = side === 'extraLeft' || side === 'extraRight' ? 'blush-extra' : 'blush-primary';
+          item.className = `overlay-item blush-control ${sideClass} ${groupClass} selected`;
+          const minFrame = minOverlayFrame(frameRect, { w: 84, h: 64 });
           const blushW = control.rx * 2;
           const blushH = control.ry * 2;
           item.style.left = `${control.x}px`;
@@ -3024,7 +3400,7 @@
 
           const scaleHandle = document.createElement('button');
           scaleHandle.type = 'button';
-          scaleHandle.className = 'overlay-handle scale';
+          scaleHandle.className = 'overlay-handle scale blush-scale';
           scaleHandle.onpointerdown = (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -3033,7 +3409,7 @@
 
           const deleteHandle = document.createElement('button');
           deleteHandle.type = 'button';
-          deleteHandle.className = 'overlay-handle delete';
+          deleteHandle.className = 'overlay-handle delete blush-delete';
           deleteHandle.textContent = '×';
           deleteHandle.onpointerdown = (event) => {
             event.preventDefault();
@@ -3054,7 +3430,7 @@
         if (interaction.mode === 'move') {
           const dx = (event.clientX - interaction.startX) / interaction.frameRect.width;
           const dy = (event.clientY - interaction.startY) / interaction.frameRect.height;
-          applyBlushInteractionPreview({
+          queueInteractionPreview({
             X: clamp(interaction.startCx + dx, 0, 1),
             Y: clamp(interaction.startCy + dy, 0, 1),
           });
@@ -3067,7 +3443,7 @@
           const dy = event.clientY - interaction.frameRect.top - cy;
           const dist = Math.max(1, Math.hypot(dx, dy));
           const ratio = clamp(dist / interaction.startDist, 0.35, 3.2);
-          applyBlushInteractionPreview({
+          queueInteractionPreview({
             RX: clamp(interaction.startRx * ratio, 0.01, 0.25),
             RY: clamp(interaction.startRy * ratio, 0.01, 0.2),
           });
@@ -3078,7 +3454,7 @@
       if (interaction.mode === 'move') {
         const dx = (event.clientX - interaction.startX) / interaction.frameRect.width;
         const dy = (event.clientY - interaction.startY) / interaction.frameRect.height;
-        applyInteractionPreview({
+        queueInteractionPreview({
           x: clamp(interaction.startLayerX + dx, 0, 1),
           y: clamp(interaction.startLayerY + dy, 0, 1),
         });
@@ -3093,21 +3469,21 @@
         const dist = Math.max(1, Math.hypot(dx, dy));
         const ratio = clamp(dist / interaction.startDist, 0.2, 6);
         if (interaction.layerType === 'sticker') {
-          applyInteractionPreview({
+          queueInteractionPreview({
             width: clamp(interaction.startWidth * ratio, 0.04, 0.95),
           });
           return;
         }
         if (interaction.layerType === 'text') {
           const nextFontSize = clamp(Math.round((interaction.startFontSize ?? 56) * ratio), 12, 260);
-          applyInteractionPreview({
+          queueInteractionPreview({
             fontSize: nextFontSize,
             width: clamp(interaction.startWidth * ratio, 0.04, 0.95),
             height: clamp(interaction.startHeight * ratio, 0.04, 0.95),
           });
           return;
         }
-        applyInteractionPreview({
+        queueInteractionPreview({
           width: clamp(interaction.startWidth * ratio, 0.04, 0.95),
           height: clamp(interaction.startHeight * ratio, 0.04, 0.95),
         });
@@ -3118,7 +3494,7 @@
         const cx = (interaction.startLayerX ?? 0.5) * interaction.frameRect.width;
         const dx = Math.max(1, Math.abs(event.clientX - interaction.frameRect.left - cx));
         const ratio = clamp(dx / interaction.startAbsDx, 0.2, 6);
-        applyInteractionPreview({
+        queueInteractionPreview({
           width: clamp(interaction.startWidth * ratio, 0.04, 0.95),
         });
         return;
@@ -3128,7 +3504,7 @@
         const cy = (interaction.startLayerY ?? 0.5) * interaction.frameRect.height;
         const dy = Math.max(1, Math.abs(event.clientY - interaction.frameRect.top - cy));
         const ratio = clamp(dy / interaction.startAbsDy, 0.2, 6);
-        applyInteractionPreview({
+        queueInteractionPreview({
           height: clamp(interaction.startHeight * ratio, 0.04, 0.95),
         });
         return;
@@ -3141,7 +3517,7 @@
         const dy = event.clientY - interaction.frameRect.top - cy;
         const angle = Math.atan2(dy, dx);
         const delta = ((angle - interaction.startAngle) * 180) / Math.PI;
-        applyInteractionPreview({ rotation: interaction.startRotation + delta });
+        queueInteractionPreview({ rotation: interaction.startRotation + delta });
       }
     };
 
@@ -3158,7 +3534,7 @@
       mobileLayerControlsExpanded = false;
     };
 
-    return { render, ensureManualBlushSetup, finishInteraction };
+    return { render, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
   }
 
   function canvasToBlob(canvas) {
@@ -3177,7 +3553,7 @@
     });
   }
 
-  function buildExportCanvas(state, safeFontMode = false) {
+  function buildExportCanvas(state, safeFontMode = false, safeSizeMode = false) {
     let canvas;
     let ctx;
     const exportState = safeFontMode
@@ -3188,11 +3564,12 @@
               ? { ...layer, fontFamily: '"PingFang SC", "Noto Sans SC", sans-serif' }
               : { ...layer }
           ),
-        }
-      : state;
+	        }
+	      : state;
+    const renderOptions = { usePreviewScale: safeSizeMode };
     if (exportState.compareMode) {
-      const original = renderOriginalCanvas(exportState, true, { usePreviewScale: false });
-      const edited = renderEditedCanvas(exportState, true, { usePreviewScale: false });
+      const original = renderOriginalCanvas(exportState, true, renderOptions);
+      const edited = renderEditedCanvas(exportState, true, renderOptions);
       canvas = document.createElement('canvas');
       canvas.width = original.width + edited.width;
       canvas.height = Math.max(original.height, edited.height);
@@ -3200,20 +3577,22 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(original, 0, 0);
       ctx.drawImage(edited, original.width, 0);
-      const compareStyle = getCompareLabelStyle(original.width);
-      ctx.save();
-      ctx.font = `700 ${compareStyle.fontSize}px "Avenir Next", "PingFang SC", sans-serif`;
-      ctx.textBaseline = 'top';
-      ctx.lineWidth = compareStyle.lineWidth;
-      ctx.strokeStyle = 'rgba(236, 170, 210, 0.95)';
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeText('BEFORE', compareStyle.insetX, compareStyle.insetY);
-      ctx.fillText('BEFORE', compareStyle.insetX, compareStyle.insetY);
-      ctx.strokeText('AFTER', original.width + compareStyle.insetX, compareStyle.insetY);
-      ctx.fillText('AFTER', original.width + compareStyle.insetX, compareStyle.insetY);
-      ctx.restore();
+      if (exportState.compareLabels !== false) {
+        const compareStyle = getCompareLabelStyle(original.width);
+        ctx.save();
+        ctx.font = `700 ${compareStyle.fontSize}px "Avenir Next", "PingFang SC", sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.lineWidth = compareStyle.lineWidth;
+        ctx.strokeStyle = 'rgba(236, 170, 210, 0.95)';
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeText('BEFORE', compareStyle.insetX, compareStyle.insetY);
+        ctx.fillText('BEFORE', compareStyle.insetX, compareStyle.insetY);
+        ctx.strokeText('AFTER', original.width + compareStyle.insetX, compareStyle.insetY);
+        ctx.fillText('AFTER', original.width + compareStyle.insetX, compareStyle.insetY);
+        ctx.restore();
+      }
     } else {
-      canvas = renderEditedCanvas(exportState, true, { usePreviewScale: false });
+      canvas = renderEditedCanvas(exportState, true, renderOptions);
     }
     return canvas;
   }
@@ -3234,6 +3613,7 @@
     els.exportModal.setAttribute('aria-hidden', 'false');
     trackEvent('export_preview_open', {
       compareMode: Boolean(store.getState().compareMode),
+      compareLabels: store.getState().compareLabels !== false,
       layerCount: store.getState().layers.length,
     });
     return true;
@@ -3270,26 +3650,40 @@
       }, 1800);
     };
 
+    const deliverExport = (href) => {
+      if (isMobileLikeBrowser()) {
+        if (!showExportPreview(href, fileName)) triggerDownload(href);
+      } else {
+        triggerDownload(href);
+      }
+    };
+
     // 优先同步 dataURL 导出，避免异步导致用户手势丢失而被浏览器拦截下载。
     try {
       const canvas = buildExportCanvas(state, false);
       const dataUrl = canvas.toDataURL('image/png');
-      if (isMobileLikeBrowser()) {
-        if (!showExportPreview(dataUrl, fileName)) triggerDownload(dataUrl);
-      } else {
-        triggerDownload(dataUrl);
-      }
+      deliverExport(dataUrl);
       return;
     } catch {}
 
     try {
       const fallbackCanvas = buildExportCanvas(state, true);
       const dataUrl = fallbackCanvas.toDataURL('image/png');
-      if (isMobileLikeBrowser()) {
-        if (!showExportPreview(dataUrl, fileName)) triggerDownload(dataUrl);
-      } else {
-        triggerDownload(dataUrl);
-      }
+      deliverExport(dataUrl);
+      return;
+    } catch {}
+
+    try {
+      const safeCanvas = buildExportCanvas(state, false, true);
+      const dataUrl = safeCanvas.toDataURL('image/png');
+      deliverExport(dataUrl);
+      return;
+    } catch {}
+
+    try {
+      const safeFallbackCanvas = buildExportCanvas(state, true, true);
+      const dataUrl = safeFallbackCanvas.toDataURL('image/png');
+      deliverExport(dataUrl);
       return;
     } catch {}
 
@@ -3313,7 +3707,7 @@
         return true;
       } catch {
         try {
-          const fallbackCanvas = buildExportCanvas(state, true);
+          const fallbackCanvas = buildExportCanvas(state, true, true);
           const fallbackBlob = await canvasToBlob(fallbackCanvas);
           const fallbackFile = new File([fallbackBlob], fileName, { type: 'image/png' });
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [fallbackFile] })) {
@@ -3360,6 +3754,7 @@
     renderToken: -1,
     toneToken: -1,
     hiddenLayerId: null,
+    interactivePreview: false,
     width: 0,
     height: 0,
     original: null,
@@ -3415,16 +3810,23 @@
   const overlayController = createOverlayLayer(els.overlayLayer, store);
   let activeTool = 'project';
   const mosaicToolState = { ...MOSAIC_TOOL_DEFAULTS };
-  let activeTextFontId = 'mushin';
+  let activeTextFontId = 'zhaizai-marker';
   let compareLongPressTimer = null;
   let compareLongPressActive = false;
   let comparePointerDownAt = 0;
   let compareToggleAt = 0;
   let compareSuppressClickUntil = 0;
+
+  function getCompareCycleEventMode(state) {
+    if (!state.compareMode) return 'labeled';
+    if (state.compareLabels !== false) return 'unlabeled';
+    return 'off';
+  }
   const COMPARE_LONG_PRESS_MS = 220;
   let brandSubtitleTimer = null;
   let latestExportUrl = '';
   let latestExportFileName = 'jirai-editor.png';
+  let visionSkillLoadPromise = null;
   let pendingRenderFrame = 0;
   let pendingRenderTimer = 0;
   let pendingRenderState = null;
@@ -3482,21 +3884,8 @@
       name: `贴纸 ${index + 1}`,
       src: `./assets/user_stickers/${fileName}?v=${USER_STICKER_VERSION}`,
     }));
-
-    const results = await Promise.allSettled(
-      stickers.map(
-        (sticker) =>
-          new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(sticker);
-            img.onerror = reject;
-            img.src = sticker.src;
-          })
-      )
-    );
-    const valid = results.filter((item) => item.status === 'fulfilled').map((item) => item.value);
-      stickerPacks = valid.length
-      ? [{ id: 'user-pack', name: '地雷系像素风贴纸', stickers: valid }]
+    stickerPacks = stickers.length
+      ? [{ id: 'user-pack', name: '地雷系像素风贴纸', stickers }]
       : [];
   }
 
@@ -3509,6 +3898,14 @@
         STICKER_IMAGE_CACHE.set(sticker.src, img);
       });
     });
+  }
+
+  function runWhenIdle(callback, timeout = 900) {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(callback, { timeout });
+      return;
+    }
+    window.setTimeout(callback, 80);
   }
 
   function addMosaic(variant, overrides = {}) {
@@ -3567,7 +3964,7 @@
 
   function addText(preset = null) {
     mobileLayerControlsExpanded = true;
-    const selectedPreset = preset || TEXT_PRESETS[0];
+    const selectedPreset = preset || { content: DEFAULT_TEXT_STYLE.content, style: {} };
     const preferredFontId = selectedPreset.fontId || activeTextFontId;
     const selectedFont = TEXT_FONTS.find((font) => font.id === preferredFontId) || TEXT_FONTS[0];
     ensureTextFontLoaded(selectedFont);
@@ -3675,6 +4072,11 @@
         const img = document.createElement('img');
         img.src = sticker.src;
         img.alt = sticker.name;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.onload = () => {
+          if (!STICKER_IMAGE_CACHE.has(sticker.src)) STICKER_IMAGE_CACHE.set(sticker.src, img);
+        };
 
         btn.appendChild(img);
         btn.onclick = () => addSticker(sticker);
@@ -3746,6 +4148,9 @@
           blushManual: 0,
           blushLeftEnabled: 1,
           blushRightEnabled: 1,
+          blushExtraEnabled: 0,
+          blushExtraLeftEnabled: 1,
+          blushExtraRightEnabled: 1,
         },
         state.activePresetId ?? 'original',
         true
@@ -3765,6 +4170,15 @@
       render(store.getState());
     };
     els.blushControls.appendChild(previewBtn);
+
+    const extraEnabled = Number(state.filters.blushExtraEnabled ?? 0) > 0.5;
+    const extraBtn = document.createElement('button');
+    extraBtn.type = 'button';
+    extraBtn.textContent = extraEnabled ? '已添加第二组腮红' : '新增一组腮红';
+    extraBtn.classList.toggle('is-active', extraEnabled);
+    extraBtn.disabled = extraEnabled;
+    extraBtn.onclick = () => overlayController.addExtraBlushGroup();
+    els.blushControls.appendChild(extraBtn);
   }
 
   function renderFilterControls(state) {
@@ -3840,7 +4254,15 @@
           makeColorInput({
             label: '预设叠加主色',
             value: state.filters.overlayColor || '#e7d3ea',
-            onInput: (value) => store.setFilters({ overlayColor: value }, state.activePresetId ?? 'original', true),
+            onBegin: () => store.beginStep(),
+            onInput: (value) => store.setFilters({ overlayColor: value }, state.activePresetId ?? 'original', false),
+            onEnd: () => {
+              trackEvent('filter_adjust', {
+                key: 'overlayColor',
+                presetId: state.activePresetId ?? 'original',
+                panel: activePanel.id,
+              });
+            },
           })
         );
       }
@@ -3849,7 +4271,7 @@
 
     const channelRow = document.createElement('div');
     channelRow.className = 'inline-actions hsl-channel-row';
-    const activeChannel = state.filters.hslActiveChannel || 'green';
+    const activeChannel = state.filters.hslActiveChannel || 'master';
     HSL_CHANNELS.forEach((channel) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -4319,8 +4741,29 @@
 
   function render(state) {
     syncCanvasFrameSize();
-    renderCanvas(ctx, state);
-    overlayController.render();
+    try {
+      renderCanvas(ctx, state);
+    } catch (error) {
+      console.error('Canvas render failed:', error);
+      if (state.image.loaded && state.image.element) {
+        const previewState = createPreviewRenderState(state);
+        const fallbackCanvas = document.createElement('canvas');
+        fallbackCanvas.width = previewState.canvas.width;
+        fallbackCanvas.height = previewState.canvas.height;
+        const fallbackCtx = fallbackCanvas.getContext('2d');
+        if (!fallbackCtx) return;
+        try {
+          fallbackCtx.drawImage(previewState.image.element, 0, 0, fallbackCanvas.width, fallbackCanvas.height);
+          if (ctx.canvas.width !== fallbackCanvas.width) ctx.canvas.width = fallbackCanvas.width;
+          if (ctx.canvas.height !== fallbackCanvas.height) ctx.canvas.height = fallbackCanvas.height;
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          ctx.drawImage(fallbackCanvas, 0, 0);
+        } catch {}
+      }
+    }
+    if (!isSliderDragging && !isTextEditing) {
+      overlayController.render();
+    }
 
     els.canvasEmpty.style.display = state.image.loaded ? 'none' : 'grid';
     els.canvasFrame.classList.toggle('interactive', state.image.loaded);
@@ -4341,8 +4784,10 @@
       if (els.restoreOriginalBtn) els.restoreOriginalBtn.textContent = '恢复原图';
     }
 
-    renderPresetButtons(state);
-    renderBlushControls(state);
+    if (!isSliderDragging && !isTextEditing) {
+      renderPresetButtons(state);
+      renderBlushControls(state);
+    }
     const selectedForControls = state.layers.find((layer) => layer.id === state.selectedLayerId);
     const layerControlsKey = `${activeTool}|${state.selectedLayerId || ''}|${selectedForControls?.type || ''}|${state.layers.length}`;
     const mustRefreshLayerControls = layerControlsKey !== lastLayerControlsKey;
@@ -4358,8 +4803,10 @@
         renderLayerList(state);
       }
     }
-    renderMobileLayerDock(state);
-    renderMosaicToolButtons();
+    if (!isSliderDragging && !isTextEditing) {
+      renderMobileLayerDock(state);
+      renderMosaicToolButtons();
+    }
 
     const showFilter = activeTool === 'filters';
     const layerTools = ['mosaic', 'stickers', 'text'];
@@ -4383,6 +4830,7 @@
 
   function scheduleRender(state) {
     pendingRenderState = state;
+    applyCanvasCssInteractionPreview(state);
     if (isDirectManipulating) return;
     const lightweight = isSliderDragging || isTextEditing;
     const now = performance.now();
@@ -4405,7 +4853,24 @@
       pendingRenderFrame = 0;
       if (isDirectManipulating) return;
       lastInteractiveRenderAt = performance.now();
-      render(pendingRenderState || store.getState());
+      const renderingLightweight = isSliderDragging || isTextEditing;
+      const renderStartedAt = performance.now();
+      const renderedState = pendingRenderState || store.getState();
+      render(renderedState);
+      if (isSliderDragging) {
+        sliderDragStartFilters = { ...renderedState.filters };
+        if (els?.canvas) els.canvas.style.filter = '';
+      }
+      if (renderingLightweight) {
+        const renderCost = performance.now() - renderStartedAt;
+        if (renderCost > INTERACTIVE_RENDER_BUDGET_MS) {
+          interactiveRenderPressure = clamp(interactiveRenderPressure + 1, 0, 3);
+        } else {
+          interactiveRenderPressure = clamp(interactiveRenderPressure - 0.35, 0, 3);
+        }
+      } else if (interactiveRenderPressure > 0) {
+        interactiveRenderPressure = clamp(interactiveRenderPressure - 0.2, 0, 3);
+      }
       pendingRenderState = null;
     });
   }
@@ -4417,26 +4882,42 @@
     window.addEventListener('pointerup', finishDirectInteraction);
     window.addEventListener('pointercancel', finishDirectInteraction);
 
-    els.imageUpload.onchange = async (event) => {
+    const openImagePicker = () => {
+      if (!els.imageUpload) return;
+      if (!els.imageUpload.getClientRects().length) {
+        els.imageUpload.classList.add('native-file-picker-proxy');
+        document.body.appendChild(els.imageUpload);
+      }
+      els.imageUpload.value = '';
+      els.imageUpload.click();
+    };
+
+    const handleImageUpload = async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      const image = await loadLocalImage(file);
-      store.setImage(image);
-      blushFallbackNoticeShown = false;
-      resetFiltersToOriginal();
-      trackEvent('image_upload_success', {
-        imageWidth: image.naturalWidth,
-        imageHeight: image.naturalHeight,
-        imageMegapixels: Math.round((image.naturalWidth * image.naturalHeight) / 10000) / 100,
-        fileSizeKb: Math.round((file.size || 0) / 1024),
-        fileType: file.type || 'unknown',
-      });
-      detectPortraitData(image).then((portrait) => {
-        if (store.getState().image.element !== image) return;
-        store.setVisionData(portrait);
-        if (!portrait.autoBlushDetected) enterManualBlushFallback();
-      });
+      try {
+        const image = await loadLocalImage(file);
+        store.setImage(image);
+        blushFallbackNoticeShown = false;
+        resetFiltersToOriginal();
+        trackEvent('image_upload_success', {
+          imageWidth: image.naturalWidth,
+          imageHeight: image.naturalHeight,
+          imageMegapixels: Math.round((image.naturalWidth * image.naturalHeight) / 10000) / 100,
+          fileSizeKb: Math.round((file.size || 0) / 1024),
+          fileType: file.type || 'unknown',
+        });
+        detectPortraitData(image).then((portrait) => {
+          if (store.getState().image.element !== image) return;
+          store.setVisionData(portrait);
+          if (!portrait.autoBlushDetected) enterManualBlushFallback();
+        });
+      } catch (error) {
+        console.error('Image import failed:', error);
+      }
     };
+
+    els.imageUpload.addEventListener('change', handleImageUpload);
 
     els.clearCanvasBtn.onclick = () => {
       store.clearCanvas();
@@ -4474,8 +4955,9 @@
         compareSuppressClickUntil = Date.now() + 900;
       } else {
         const state = store.getState();
-        store.setCompareMode(!state.compareMode);
-        trackEvent('compare_toggle', { mode: !state.compareMode ? 'on' : 'off', source: 'pointer' });
+        const mode = getCompareCycleEventMode(state);
+        store.cycleCompareMode();
+        trackEvent('compare_toggle', { mode, source: 'pointer' });
         compareToggleAt = Date.now();
         compareSuppressClickUntil = Date.now() + 900;
       }
@@ -4506,8 +4988,9 @@
       if (compareLongPressActive) return;
       if (comparePointerDownAt && Date.now() - comparePointerDownAt >= COMPARE_LONG_PRESS_MS) return;
       const state = store.getState();
-      store.setCompareMode(!state.compareMode);
-      trackEvent('compare_toggle', { mode: !state.compareMode ? 'on' : 'off', source: 'click' });
+      const mode = getCompareCycleEventMode(state);
+      store.cycleCompareMode();
+      trackEvent('compare_toggle', { mode, source: 'click' });
       compareToggleAt = Date.now();
       comparePointerDownAt = 0;
     };
@@ -4553,7 +5036,7 @@
       });
       render(store.getState());
     };
-    els.addTextLayerBtn.onclick = () => addText(TEXT_PRESETS[0]);
+    els.addTextLayerBtn.onclick = () => addText();
     if (els.originalFilterBtn) els.originalFilterBtn.onclick = () => applyOriginal();
 
     if (els.mobileLayerToggle) {
@@ -4598,9 +5081,17 @@
       const state = store.getState();
       const clickedOverlay = event.target.closest('.overlay-item');
       if (!state.image.loaded && !clickedOverlay) {
-        els.imageUpload.click();
+        openImagePicker();
       }
     };
+
+    if (els.canvasEmpty) {
+      els.canvasEmpty.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openImagePicker();
+      };
+    }
 
     els.canvasFrame.onwheel = (event) => {
       event.preventDefault();
@@ -4669,17 +5160,24 @@
 
   async function init() {
     trackEvent('app_open', { referrerType: document.referrer ? 'external_or_internal' : 'direct' });
-    await ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId));
-    await buildPixelStickerPack();
-    preloadStickerImages();
-    renderStickerPanel();
-    renderTextTemplates();
-    preloadTextFonts().then(() => render(store.getState()));
     setupBrandSubtitleTyping();
     bindEvents();
     store.subscribe(scheduleRender);
+    renderStickerPanel();
+    renderTextTemplates();
     render(store.getState());
-    document.fonts?.ready?.then(() => render(store.getState()));
+
+    runWhenIdle(() => {
+      ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
+    });
+    runWhenIdle(() => {
+      buildPixelStickerPack().then(() => {
+        renderStickerPanel();
+      });
+    }, 1200);
+    runWhenIdle(() => {
+      if (!isMobileViewport()) preloadTextFonts().then(() => render(store.getState()));
+    }, 1800);
   }
 
   init();
