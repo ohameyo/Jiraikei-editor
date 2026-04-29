@@ -434,8 +434,8 @@
   const STICKER_IMAGE_CACHE = new Map();
   const MOBILE_SLIDER_COMMIT_MS = 64;
   const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
-  const DESKTOP_SLIDER_COMMIT_MS = 48;
-  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 56;
+  const DESKTOP_SLIDER_COMMIT_MS = 16;
+  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 24;
   const INTERACTIVE_RENDER_BUDGET_MS = 56;
   let stickerPacks = [];
   let isSliderDragging = false;
@@ -2673,7 +2673,8 @@
     let pointerStartX = 0;
     let pointerStartY = 0;
     let sliderIntent = 'pending';
-    const commitOnEndOnly = isMobileLayoutViewport();
+    const useIntentLock = isMobileLayoutViewport();
+    const commitOnEndOnly = useIntentLock;
     const startOnce = () => {
       if (started) return;
       started = true;
@@ -2775,10 +2776,15 @@
       pointerId = event.pointerId;
       pointerStartX = event.clientX;
       pointerStartY = event.clientY;
-      sliderIntent = 'pending';
+      sliderIntent = useIntentLock ? 'pending' : 'horizontal';
       lastSliderRect = input.getBoundingClientRect();
       event.currentTarget?.setPointerCapture?.(event.pointerId);
       input.setPointerCapture?.(event.pointerId);
+      if (!useIntentLock) {
+        event.preventDefault();
+        startOnce();
+        setValueFromClientX(event.clientX);
+      }
     };
     const movePointerDrag = (event) => {
       if (pointerId !== event.pointerId) return;
@@ -4583,7 +4589,7 @@
 	            const currentFilters = store.getState().filters;
             sliderPreviewFilters =
               control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original'
-                ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset, value) }
+                ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset.filters, value) }
                 : { ...currentFilters, [control.key]: value };
             applyCanvasCssInteractionPreview(store.getState());
           },
