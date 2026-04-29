@@ -192,10 +192,13 @@
     return { ...nextFilters, ...preserved };
   }
 
-  function blendPresetFiltersByStrength(presetFilters, strengthValue) {
+  function blendPresetFiltersByStrength(preset, strengthValue) {
+    const presetFilters = preset?.filters || preset || {};
+    const maxOverlay = Number(preset?.overlayStrengthMax ?? FILTER_CONTROL_DEFS.find((item) => item.key === 'overlayStrength')?.max ?? 0.45);
+    const overlayStrength = clamp(Number(strengthValue ?? 0), 0, maxOverlay);
     const baseOverlay = Math.abs(Number(presetFilters?.overlayStrength ?? 0)) || 0.0001;
-    const ratio = clamp(Number(strengthValue ?? 0) / baseOverlay, 0, 1.6);
-    const partial = { overlayStrength: Number(strengthValue ?? 0) };
+    const ratio = clamp(overlayStrength / baseOverlay, 0, 1.6);
+    const partial = { overlayStrength };
     const blendKeys = [
       ...FILTER_CONTROL_DEFS.map((item) => item.key).filter((key) => key !== 'overlayStrength'),
       ...hslFilterKeys(),
@@ -279,6 +282,7 @@
       id: 'gray-pink',
       name: '灰粉',
       description: '去色清透 + 保留粉感 + 黑白灰氛围',
+      overlayStrengthMax: 0.1,
       filters: {
         brightness: 1.01,
         contrast: 1.03,
@@ -290,7 +294,7 @@
         blackProtect: 0.9,
         fade: 0.08,
         overlayColor: '#E2D7DF',
-        overlayStrength: 0.06,
+        overlayStrength: 0.04,
         ...buildHslPatch({
           master: { h: 0, s: -34, l: 2 },
           skin: { h: 4, s: 6, l: 11 },
@@ -308,28 +312,29 @@
       id: 'mono',
       name: '黑白',
       description: '高对比黑白灰 + 面部少量粉感',
+      overlayStrengthMax: 0.06,
       filters: {
-        brightness: 0.98,
-        contrast: 1.12,
-        saturation: 0.22,
-        temperature: -4,
+        brightness: 1,
+        contrast: 1.08,
+        saturation: 0.32,
+        temperature: -2,
         tint: 0,
-        skinWhiten: 0.42,
-        blushStrength: 0.34,
-        blackProtect: 0.96,
+        skinWhiten: 0.46,
+        blushStrength: 0.42,
+        blackProtect: 0.92,
         fade: 0.04,
         overlayColor: '#DCDDE3',
-        overlayStrength: 0.03,
+        overlayStrength: 0.02,
         ...buildHslPatch({
-          master: { h: 0, s: -68, l: 0 },
-          skin: { h: 2, s: -12, l: 9 },
-          red: { h: 0, s: -44, l: 1 },
-          orange: { h: 0, s: -82, l: 2 },
-          yellow: { h: 0, s: -98, l: 2 },
-          green: { h: 0, s: -99, l: 4 },
-          cyan: { h: 0, s: -98, l: 2 },
-          blue: { h: 0, s: -95, l: 1 },
-          purple: { h: 0, s: -76, l: 1 },
+          master: { h: 0, s: -52, l: 0 },
+          skin: { h: 2, s: 8, l: 10 },
+          red: { h: 0, s: -20, l: 2 },
+          orange: { h: 0, s: -62, l: 2 },
+          yellow: { h: 0, s: -92, l: 2 },
+          green: { h: 0, s: -94, l: 4 },
+          cyan: { h: 0, s: -92, l: 2 },
+          blue: { h: 0, s: -88, l: 1 },
+          purple: { h: 0, s: -58, l: 1 },
         }),
       },
     },
@@ -4558,25 +4563,29 @@
     if (activePanel.id !== 'hsl') {
       FILTER_CONTROL_DEFS.filter((control) => activePanel.keys.includes(control.key)).forEach((control) => {
       if (isOriginalMode && control.key === 'overlayStrength') return;
+      const controlMax =
+        control.key === 'overlayStrength' && selectedPreset?.overlayStrengthMax
+          ? selectedPreset.overlayStrengthMax
+          : control.max;
       els.filterControls.appendChild(
         makeSlider({
           label: control.label,
           min: control.min,
-          max: control.max,
+          max: controlMax,
           step: control.step,
-	          value: state.filters[control.key],
+	          value: clamp(Number(state.filters[control.key] ?? control.min), control.min, controlMax),
 	          onBegin: () => store.beginStep(),
 	          onPreview: (value) => {
 	            const currentFilters = store.getState().filters;
             sliderPreviewFilters =
               control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original'
-                ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset.filters, value) }
+                ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset, value) }
                 : { ...currentFilters, [control.key]: value };
             applyCanvasCssInteractionPreview(store.getState());
           },
           onInput: (value) => {
             if (control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original') {
-              store.setFilters(blendPresetFiltersByStrength(selectedPreset.filters, value), state.activePresetId ?? 'original', false);
+              store.setFilters(blendPresetFiltersByStrength(selectedPreset, value), state.activePresetId ?? 'original', false);
               return;
             }
             store.setFilters({ [control.key]: value }, state.activePresetId ?? 'original', false);
