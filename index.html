@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Jirai-editor 地雷系编辑器</title>
+    <link rel="icon" type="image/png" href="./assets/logo.png" />
+    <link rel="preload" href="./assets/fonts/mushin.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="./assets/fonts/fusion-pixel-tc.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="./assets/fonts/fusion-pixel-sc.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="./assets/fonts/fusion-pixel-jp.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="./assets/fonts/wafu-pop.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./assets/fonts/darts-font.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./assets/fonts/nagino.otf" as="font" type="font/otf" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="studio-shell">
+      <aside class="SidebarNav panel">
+        <div class="brand-block">
+          <img class="brand-logo" src="./assets/logo.png" alt="logo" />
+          <h1 class="brand-title"><span>地雷系</span><span>编辑器</span></h1>
+          <p class="brand-subtitle">少女量产中...</p>
+        </div>
+
+        <nav class="nav-list" id="sidebarNav">
+          <button class="nav-item active" data-tool="project" type="button"><span class="nav-icon">◈</span><span class="nav-label">导入</span></button>
+          <button class="nav-item" data-tool="filters" type="button"><span class="nav-icon">✶</span><span class="nav-label">滤镜</span></button>
+          <button class="nav-item" data-tool="mosaic" type="button"><span class="nav-icon">▦</span><span class="nav-label">马赛克</span></button>
+          <button class="nav-item" data-tool="stickers" type="button"><span class="nav-icon">♡</span><span class="nav-label">贴纸</span></button>
+          <button class="nav-item" data-tool="text" type="button"><span class="nav-icon">Aa</span><span class="nav-label">文字</span></button>
+          <button class="nav-item" data-tool="export" type="button"><span class="nav-icon">⇩</span><span class="nav-label">导出</span></button>
+        </nav>
+      </aside>
+
+      <aside class="ContentPanel panel">
+        <section class="tool-pane active" data-pane="project">
+          <h2 class="panel-title">导入</h2>
+          <p class="sub-note">素材管理与基础操作</p>
+
+          <div class="card-block import-upload-block">
+            <div class="field-title">图片</div>
+            <input id="imageUpload" type="file" accept="image/*" />
+          </div>
+          <div class="card-block">
+            <div class="field-title">人像腮红</div>
+            <div id="blushControls" class="control-stack"></div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="filters">
+          <h2 class="panel-title">滤镜</h2>
+          <p class="sub-note">低饱和冷调、病弱人偶感</p>
+          <button id="originalFilterBtn" type="button" class="preset-chip">
+            <span class="preset-name">原图</span>
+            <span class="preset-desc">仅基础调节，不使用叠加色层</span>
+          </button>
+          <div class="card-block">
+            <div class="field-title">预设</div>
+            <div id="presetButtons" class="preset-grid"></div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="mosaic">
+          <h2 class="panel-title">马赛克</h2>
+          <p class="sub-note">图案贴纸马赛克</p>
+          <div class="card-block">
+            <div class="field-title">图案风格</div>
+            <div class="inline-actions two-col">
+              <button id="addFrostedMosaicBtn" type="button">雾化模糊</button>
+              <button id="addGridMosaicBtn" type="button">网格玻璃</button>
+            </div>
+            <div class="field-title" style="margin-top:10px">图案贴纸</div>
+            <div class="inline-actions two-col">
+              <button id="mosaicShapeCircleBtn" type="button">添加圆形贴纸</button>
+              <button id="mosaicShapeHeartBtn" type="button">添加爱心贴纸</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="stickers">
+          <h2 class="panel-title">贴纸</h2>
+          <p class="sub-note">病弱甜暗符号包</p>
+          <div class="card-block">
+            <div class="field-title">地雷系像素风贴纸</div>
+            <div id="stickerPackList" class="sticker-pack-list"></div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="text">
+          <h2 class="panel-title">文字</h2>
+          <p class="sub-note">文案预设模板</p>
+          <div class="card-block">
+            <div class="field-title">添加文字</div>
+            <button id="addTextLayerBtn" type="button">添加文字图层</button>
+          </div>
+          <div class="card-block">
+            <div class="field-title">文案预设</div>
+            <div id="textTemplateList" class="text-template-list"></div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="export">
+          <h2 class="panel-title">导出</h2>
+          <p class="sub-note">用于社交平台发布</p>
+          <div class="card-block">
+            <div class="field-title">导出</div>
+            <button id="exportBtn" type="button" class="primary">导出 PNG</button>
+          </div>
+        </section>
+      </aside>
+
+      <main class="CanvasStage panel">
+        <img class="mobile-stage-logo" src="./assets/logo.png" alt="Jirai-editor 地雷系编辑器" />
+        <div class="canvas-toolbar">
+          <button id="undoBtn" type="button" class="toolbar-btn">返回</button>
+          <button id="redoBtn" type="button" class="toolbar-btn">重做</button>
+          <button id="clearCanvasBtn" type="button" class="toolbar-btn">清空画布</button>
+          <button id="restoreOriginalBtn" type="button" class="toolbar-btn">恢复原图</button>
+          <button id="compareBtn" type="button" class="toolbar-btn compare">前后对比</button>
+        </div>
+
+        <div class="canvas-stage">
+          <div class="mobile-layer-dock" id="mobileLayerDock">
+            <button id="mobileLayerToggle" class="mobile-layer-toggle" type="button" aria-expanded="false">图层</button>
+            <div id="mobileLayerMenu" class="mobile-layer-menu" aria-hidden="true"></div>
+          </div>
+          <div class="canvas-frame" id="canvasFrame">
+            <canvas id="editorCanvas" width="1080" height="1350"></canvas>
+            <div id="overlayLayer" class="overlay-layer"></div>
+            <div class="canvas-empty" id="canvasEmpty">点击上传照片♡</div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="PropertyPanel panel">
+        <h2 class="panel-title">属性面板</h2>
+        <p class="sub-note">精细参数与图层控制</p>
+
+        <section class="prop-block" id="propFilterBlock">
+          <h3>滤镜参数</h3>
+          <div id="filterControls" class="control-stack"></div>
+        </section>
+
+        <section class="prop-block" id="propLayerBlock">
+          <h3>当前图层</h3>
+          <div id="layerControls" class="control-stack muted">请选择一个马赛克、贴纸或文字图层。</div>
+        </section>
+
+        <section class="prop-block" id="propListBlock">
+          <h3>图层列表</h3>
+          <div id="layerList" class="layer-list"></div>
+        </section>
+      </aside>
+    </div>
+
+    <div id="exportModal" class="export-modal" aria-hidden="true">
+      <div class="export-modal-panel">
+        <div class="export-modal-head">
+          <strong>导出预览</strong>
+          <button id="exportCloseBtn" type="button">关闭</button>
+        </div>
+        <p class="export-modal-note">请长按图片直接保存到相册。下载 PNG 仅用于文件传输。</p>
+        <div class="export-preview-wrap">
+          <img id="exportPreviewImage" alt="export-preview" />
+        </div>
+        <a id="exportDownloadLink" class="export-download-btn" download="jirai-editor.png">下载 PNG</a>
+      </div>
+    </div>
+
+    <script src="src/vision-skill.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
