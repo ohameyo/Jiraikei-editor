@@ -312,7 +312,7 @@
       id: 'mono',
       name: '黑白',
       description: '高对比黑白灰 + 面部少量粉感',
-      overlayStrengthMax: 0.06,
+      overlayStrengthMax: 0.03,
       filters: {
         brightness: 1,
         contrast: 1.08,
@@ -324,7 +324,7 @@
         blackProtect: 0.92,
         fade: 0.04,
         overlayColor: '#DCDDE3',
-        overlayStrength: 0.02,
+        overlayStrength: 0.01,
         ...buildHslPatch({
           master: { h: 0, s: -52, l: 0 },
           skin: { h: 2, s: 8, l: 10 },
