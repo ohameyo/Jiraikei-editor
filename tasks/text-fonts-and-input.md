@@ -35,15 +35,23 @@ P1。
 - 文案预设替换为日文。
 - 新增文字图层默认字体为 `宅在家麦克笔`。
 - 文案预设默认字体为 `無心`。
-- 页面预加载 7 款本地字体，降低首次切换等待。
+- 页面不再首屏预加载全部本地字体，避免移动端加载被大字体阻塞。
 - 字体 fallback 优先使用日文字体族，减少日文落到中文字体后显示无差异的问题。
 - 字体切换改为先更新图层再后台加载字体，字体加载完成后自动重绘，避免点击字体时卡住。
 - 字体加载改为优先使用 CSS Font Loading API 激活 `@font-face`，超时后回退到 JS `FontFace(url)` 注册，避免 `fetch + FontFace(ArrayBuffer)` 在部分浏览器卡住。
 - 字体加载后使用 `document.fonts.load()` 按实际文案 `今日の私、満点!` 激活字体，修复默认文案无心体未应用的问题。
-- 字体资源请求增加版本号，绕开浏览器或 CDN 中曾经失败的旧字体缓存。
-- 打开字体选择器时会主动热身本地字体，PC 和移动端不再只依赖 CSS 懒加载。
+- JS 字体资源请求在 http/https 下增加版本号，绕开浏览器或 CDN 中曾经失败的旧字体缓存；`file://` 本地预览保持无 query，避免本地字体加载失败。
+- 移除首屏字体 preload，避免移动端被约 46MB 本地字体阻塞加载。
+- 移动端字体面板只保留 `無心`、`宅在家麦克笔`、`缝合像素日文`、`缝合像素简中`，并优先按这 4 款错峰加载预览；PC 端仍保留完整字体列表。
+- 为移动端 4 款字体生成常用预览文字 woff2 子集：`mushin-mobile.woff2`、`zhaizai-marker-mobile.woff2`、`fusion-pixel-jp-mobile.woff2`、`fusion-pixel-sc-mobile.woff2`，移动端优先加载小体积子集，PC 端继续使用完整字体。
+- PC 端仍保留完整字体列表和字体预热体验。
 - 字体按钮示例文案统一为 `今日の私`。
 - 取消字体加载中/未开始时的灰色预览样式，避免所有字体在加载阶段看起来像统一 fallback。
+- 字体按钮预览改用独立 CSS 变量 `--font-preview-family` 设置字体，避免移动端/按钮样式覆盖预览字体。
+- 文案预设列表会主动加载对应 preset 的字体，并使用 `--text-preset-family` 设置预设文字字体，避免被 `.preset-chip` 默认 UI 字体覆盖。
+- 为字体预览和文案预设补充固定 `.text-font-*` CSS 类，并用 `!important` 绑定字体，减少 Safari/按钮继承样式导致的覆盖。
+- `@font-face` 权重保持静态字体最兼容的 `400`，预览文本也用常规字重，避免本地 Safari 因权重 descriptor 或合成粗体显示成系统字体。
+- 移除 `assets/fonts/*` 的 macOS `com.apple.quarantine` 隔离属性，解决 Safari `file://` 本地打开时拒绝加载字体、全部回退系统字体的问题。
 - 文字图层保存 `fontId`，字体控制器不再只依赖 `fontFamily` 字符串反查当前字体。
 - 为本地字体声明 `font-style` 和 `font-weight`，字体示例改用常规字重，降低浏览器合成粗体导致的显示趋同。
 - 新增文字图层的默认文案改为 `>w<`，文案预设仍保留原日文列表。
@@ -69,6 +77,7 @@ P1。
 ## 验证结果
 - `node --check src/app.js` 通过。
 - 已确认 `zhaizai-marker.ttf` 覆盖 `>w<` 和 `今日の私` 所需字形。
+- 已用浏览器打开 `file:///Users/meyo/Documents/Codex/2026-04-23-project-context-jirai-kei-photo-editor/index.html` 验证，文案预设字体已显示为对应字体效果。
 - 已在本地页面创建文字图层，确认文字图层控制框和预览路径可加载；实际有图拖动场景需在移动端继续复测描边显示。
 
 ## 验收标准

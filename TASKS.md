@@ -2,7 +2,7 @@
 
 ## P0 当前最高优先级
 - [x] [移动端滑杆和元素操作丝滑度优化](tasks/performance-mobile-interactions.md)
-- [ ] [图层元素体验调教](tasks/layer-elements-tuning.md)
+- [ ] [图层元素体验调教](tasks/layer-elements-tuning.md)（本轮已补移动端双指缩放）
 
 ## P0 性能与交互
 - [ ] [滤镜渲染性能优化](tasks/filter-render-performance.md)

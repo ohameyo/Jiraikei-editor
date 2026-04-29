@@ -54,6 +54,102 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Mushin Mobile";
+  src: url("./assets/fonts/mushin-mobile.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Zhaizai Marker Mobile";
+  src: url("./assets/fonts/zhaizai-marker-mobile.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fusion Pixel SC Mobile";
+  src: url("./assets/fonts/fusion-pixel-sc-mobile.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fusion Pixel JP Mobile";
+  src: url("./assets/fonts/fusion-pixel-jp-mobile.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.text-font-system {
+  font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-mushin {
+  font-family: "Mushin", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-zhaizai-marker {
+  font-family: "Zhaizai Marker", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-fusion-pixel-sc {
+  font-family: "Fusion Pixel SC", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-fusion-pixel-jp {
+  font-family: "Fusion Pixel JP", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-wafu-pop {
+  font-family: "Wafu Pop", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-darts-font {
+  font-family: "Darts Font", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-nagino {
+  font-family: "Nagino", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+@media (max-width: 760px), (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
+  .text-font-mushin {
+    font-family: "Mushin Mobile", "Mushin", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+  }
+
+  .text-font-zhaizai-marker {
+    font-family: "Zhaizai Marker Mobile", "Zhaizai Marker", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+  }
+
+  .text-font-fusion-pixel-sc {
+    font-family: "Fusion Pixel SC Mobile", "Fusion Pixel SC", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+  }
+
+  .text-font-fusion-pixel-jp {
+    font-family: "Fusion Pixel JP Mobile", "Fusion Pixel JP", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+  }
+}
+
+.font-warmup-probe {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  z-index: -1;
+  width: auto;
+  height: auto;
+  opacity: 0.01;
+  pointer-events: none;
+  font-size: 32px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 :root {
   --bg-0: #f7f2f6;
   --bg-1: #f3e8ee;
@@ -97,6 +193,52 @@ body {
     radial-gradient(circle at 10% 12%, rgba(239, 213, 230, 0.44) 0%, transparent 38%),
     radial-gradient(circle at 84% 18%, rgba(229, 198, 221, 0.38) 0%, transparent 42%),
     linear-gradient(145deg, var(--bg-0) 0%, var(--bg-1) 100%);
+}
+
+html.tablet-landscape-locked,
+html.tablet-landscape-locked body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f7f1f6;
+}
+
+html.tablet-landscape-locked body::before {
+  content: "请将 iPad 旋转为竖屏使用";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  color: #241825;
+  font-size: 20px;
+  font-weight: 760;
+  line-height: 1.45;
+  text-align: center;
+  background:
+    radial-gradient(circle at 28% 26%, rgba(251, 234, 244, 0.86) 0%, transparent 42%),
+    radial-gradient(circle at 74% 76%, rgba(239, 208, 227, 0.72) 0%, transparent 44%),
+    linear-gradient(145deg, #f8f2f6 0%, #f1e4eb 100%);
+}
+
+html.tablet-landscape-locked body::after {
+  content: "当前版本已锁定移动端竖屏布局，避免横屏控制器错位。";
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  top: calc(50% + 42px);
+  z-index: 10000;
+  color: rgba(35, 28, 34, 0.54);
+  font-size: 14px;
+  font-weight: 520;
+  line-height: 1.5;
+  text-align: center;
+}
+
+html.tablet-landscape-locked .studio-shell,
+html.tablet-landscape-locked .export-modal {
+  display: none !important;
 }
 
 button,
@@ -290,6 +432,12 @@ textarea {
 
 .PropertyPanel .control-item {
   gap: 4px;
+}
+
+.control-item.slider-control {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .PropertyPanel .control-item label {
@@ -498,6 +646,7 @@ button.is-active:hover {
 }
 
 .font-picker-sample {
+  font-family: var(--font-preview-family, "Avenir Next", "PingFang SC", sans-serif);
   font-size: 13px;
   font-weight: 400;
 }
@@ -580,11 +729,13 @@ button.is-active:hover {
 
 .text-preset-content {
   display: block;
+  font-family: var(--text-preset-family, "Avenir Next", "PingFang SC", sans-serif);
   font-size: 13px;
   line-height: 1.2;
-  font-weight: 560;
+  font-weight: 400;
+  font-synthesis: none;
   color: #2d2030;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .sticker-pack {
@@ -608,16 +759,35 @@ button.is-active:hover {
 }
 
 .sticker-btn {
+  position: relative;
   min-height: 48px;
   border-radius: 12px;
   padding: 5px;
   background: #fff;
+  overflow: hidden;
+}
+
+.sticker-btn::before {
+  content: "♡";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(74, 47, 69, 0.24);
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .sticker-btn img {
+  position: relative;
+  z-index: 1;
+  display: block;
   width: 100%;
   height: 38px;
   object-fit: contain;
+  opacity: 1;
+  transition: opacity 0.16s ease;
 }
 
 .CanvasStage {
@@ -790,6 +960,8 @@ input[type="range"] {
   appearance: none;
   background: transparent;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
@@ -1337,7 +1509,7 @@ textarea {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
   :root {
     --radius-xl: 18px;
     --radius-lg: 14px;
@@ -1535,8 +1707,8 @@ textarea {
   }
 
   .toolbar-btn.compare {
-    flex: 0 1 23%;
-    margin-left: 12px;
+    flex: 0 0 clamp(104px, 23%, 138px);
+    margin-left: auto;
     padding-inline: 6px;
   }
 
@@ -1969,28 +2141,28 @@ textarea {
 
   input[type="range"] {
     accent-color: #4a2f45;
-    min-height: 30px;
+    min-height: 38px;
     touch-action: none;
   }
 
   input[type="range"]::-webkit-slider-runnable-track {
-    height: 5px;
+    height: 7px;
   }
 
   input[type="range"]::-webkit-slider-thumb {
-    width: 22px;
-    height: 22px;
-    margin-top: -8.5px;
+    width: 28px;
+    height: 28px;
+    margin-top: -10.5px;
   }
 
   input[type="range"]::-moz-range-track,
   input[type="range"]::-moz-range-progress {
-    height: 5px;
+    height: 7px;
   }
 
   input[type="range"]::-moz-range-thumb {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
 
   .sticker-pack {
@@ -2021,6 +2193,38 @@ textarea {
     width: 100%;
     height: 24px;
     object-fit: contain;
+  }
+
+  @media (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
+    .canvas-toolbar {
+      padding-right: 4px;
+    }
+
+    .toolbar-btn.compare {
+      flex-basis: clamp(120px, 22%, 180px);
+      margin-left: auto;
+    }
+
+    .sticker-grid {
+      grid-template-columns: repeat(auto-fill, minmax(88px, 108px));
+      justify-content: start;
+      align-items: start;
+      gap: 8px;
+    }
+
+    .sticker-btn {
+      width: 108px;
+      height: 88px;
+      min-height: 0;
+      aspect-ratio: auto;
+      padding: 5px;
+    }
+
+    .sticker-btn img {
+      height: 40px;
+      max-width: 78px;
+      margin: 0 auto;
+    }
   }
 
   .export-modal-note {

@@ -1,5 +1,7 @@
 (function () {
   const FIXED_CANVAS = { width: 1080, height: 1350 };
+  const EDIT_CANVAS_MAX_SIDE = 2400;
+  const EDIT_CANVAS_MAX_PIXELS = 3200000;
   const ANALYTICS_ENDPOINT = '/analytics';
   const ANALYTICS_EVENT_NAMES = new Set([
     'app_open',
@@ -39,7 +41,7 @@
       path: window.location.pathname || '/',
       viewportWidth: Math.round(window.innerWidth || 0),
       viewportHeight: Math.round(window.innerHeight || 0),
-      isMobile: /iphone|ipad|ipod|android|mobile|micromessenger/i.test(navigator.userAgent) || window.matchMedia('(max-width: 760px)').matches,
+      isMobile: isMobileLayoutViewport(),
       language: (navigator.language || '').slice(0, 16),
     };
   }
@@ -77,8 +79,6 @@
     { key: 'tint', label: '色调偏移', min: -100, max: 100, step: 1 },
     { key: 'skinWhiten', label: '肤色提白', min: 0, max: 1, step: 0.01 },
     { key: 'blushStrength', label: '腮红强度', min: 0, max: 1, step: 0.01 },
-    { key: 'skinProtect', label: '肤色保真', min: 0, max: 1, step: 0.01 },
-    { key: 'redPreserve', label: '红色保真', min: 0, max: 1, step: 0.01 },
     { key: 'blackProtect', label: '黑发保护', min: 0, max: 1, step: 0.01 },
     { key: 'fade', label: '褪色 / 雾感', min: 0, max: 0.5, step: 0.01 },
   ];
@@ -103,6 +103,10 @@
 
   function hslKey(channelId, axis) {
     return `hsl_${channelId}_${axis}`;
+  }
+
+  function hslFilterKeys() {
+    return HSL_CHANNELS.flatMap((channel) => HSL_AXES.map(({ axis }) => hslKey(channel.id, axis)));
   }
 
   function buildHslPatch(config = {}) {
@@ -146,8 +150,6 @@
     blushExtraRightY: 0.45,
     blushExtraRightRX: 0.105,
     blushExtraRightRY: 0.08,
-    skinProtect: 0,
-    redPreserve: 0,
     blackProtect: 0,
     fade: 0,
     overlayColor: '#e7d3ea',
@@ -190,6 +192,24 @@
     return { ...nextFilters, ...preserved };
   }
 
+  function blendPresetFiltersByStrength(presetFilters, strengthValue) {
+    const baseOverlay = Math.abs(Number(presetFilters?.overlayStrength ?? 0)) || 0.0001;
+    const ratio = clamp(Number(strengthValue ?? 0) / baseOverlay, 0, 1.6);
+    const partial = { overlayStrength: Number(strengthValue ?? 0) };
+    const blendKeys = [
+      ...FILTER_CONTROL_DEFS.map((item) => item.key).filter((key) => key !== 'overlayStrength'),
+      ...hslFilterKeys(),
+    ];
+    blendKeys.forEach((key) => {
+      const presetValue = presetFilters?.[key];
+      const defaultValue = DEFAULT_FILTERS[key];
+      if (typeof presetValue === 'number' && typeof defaultValue === 'number') {
+        partial[key] = lerp(defaultValue, presetValue, ratio);
+      }
+    });
+    return partial;
+  }
+
   const FILTER_PRESETS = [
     {
       id: 'original',
@@ -202,29 +222,27 @@
       name: '蕾粉',
       description: '苍白肤感 + 粉色底调 + 梦幻雾感',
       filters: {
-        brightness: 1.05,
-        contrast: 0.93,
-        saturation: 0.67,
-        temperature: -8,
-        tint: 24,
-        skinWhiten: 0.62,
-        blushStrength: 0.74,
-        skinProtect: 0.82,
-        redPreserve: 0.88,
-        blackProtect: 0.82,
+        brightness: 1.07,
+        contrast: 0.92,
+        saturation: 0.82,
+        temperature: 1,
+        tint: 25,
+        skinWhiten: 0.52,
+        blushStrength: 0.57,
+        blackProtect: 0.5,
         fade: 0.14,
-        overlayColor: '#EFD4E6',
+        overlayColor: '#F5B9E4',
         overlayStrength: 0.14,
         ...buildHslPatch({
-          master: { h: 0, s: -10, l: 4 },
-          skin: { h: 4, s: 10, l: 10 },
-          red: { h: 0, s: 8, l: 2 },
-          orange: { h: -2, s: -26, l: 3 },
-          yellow: { h: -6, s: -82, l: 5 },
-          green: { h: 10, s: -90, l: 8 },
-          cyan: { h: 8, s: -34, l: 6 },
-          blue: { h: 6, s: -16, l: 4 },
-          purple: { h: 4, s: -8, l: 3 },
+          master: { h: 1, s: -3, l: 6 },
+          skin: { h: 4, s: 11, l: 8 },
+          red: { h: -3, s: 13, l: 3 },
+          orange: { h: -6, s: -13, l: 4 },
+          yellow: { h: -8, s: -50, l: 6 },
+          green: { h: 13, s: -62, l: 7 },
+          cyan: { h: 10, s: -34, l: 6 },
+          blue: { h: 7, s: -17, l: 4 },
+          purple: { h: -4, s: 10, l: 6 },
         }),
       },
     },
@@ -233,29 +251,27 @@
       name: '水色',
       description: '冰冷清透 + 轻微暗调 + 冷感氛围',
       filters: {
-        brightness: 1.03,
-        contrast: 0.98,
-        saturation: 0.62,
-        temperature: -30,
-        tint: -3,
-        skinWhiten: 0.5,
-        blushStrength: 0.2,
-        skinProtect: 0.74,
-        redPreserve: 0.7,
-        blackProtect: 0.86,
+        brightness: 1.06,
+        contrast: 0.96,
+        saturation: 0.64,
+        temperature: -29,
+        tint: -6,
+        skinWhiten: 0.39,
+        blushStrength: 0.11,
+        blackProtect: 0.63,
         fade: 0.11,
-        overlayColor: '#D6E5F5',
-        overlayStrength: 0.16,
+        overlayColor: '#CDEBFA',
+        overlayStrength: 0.14,
         ...buildHslPatch({
-          master: { h: 0, s: -16, l: 4 },
-          skin: { h: 2, s: -8, l: 8 },
-          red: { h: -2, s: -16, l: 2 },
-          orange: { h: -4, s: -46, l: 2 },
-          yellow: { h: 26, s: -90, l: 10 },
-          green: { h: 28, s: -58, l: 8 },
-          cyan: { h: 8, s: 8, l: 6 },
-          blue: { h: 2, s: 10, l: 8 },
-          purple: { h: -3, s: -10, l: 2 },
+          master: { h: -3, s: -21, l: 6 },
+          skin: { h: -3, s: -17, l: 7 },
+          red: { h: -4, s: -27, l: 2 },
+          orange: { h: -7, s: -43, l: 3 },
+          yellow: { h: 20, s: -67, l: 8 },
+          green: { h: 22, s: -55, l: 7 },
+          cyan: { h: 4, s: 13, l: 7 },
+          blue: { h: 3, s: 11, l: 7 },
+          purple: { h: -6, s: -20, l: 3 },
         }),
       },
     },
@@ -271,8 +287,6 @@
         tint: 6,
         skinWhiten: 0.42,
         blushStrength: 0.34,
-        skinProtect: 0.76,
-        redPreserve: 0.84,
         blackProtect: 0.9,
         fade: 0.08,
         overlayColor: '#E2D7DF',
@@ -302,8 +316,6 @@
         tint: 0,
         skinWhiten: 0.36,
         blushStrength: 0.18,
-        skinProtect: 0.7,
-        redPreserve: 0.68,
         blackProtect: 0.96,
         fade: 0.04,
         overlayColor: '#DCDDE3',
@@ -337,7 +349,7 @@
     'sel_12.png',
     'sel_13.png',
   ];
-  const USER_STICKER_VERSION = '20260426t8';
+  const USER_STICKER_VERSION = '20260429-no-sel02';
 
   const TEXT_PRESETS = [
     '今日の私、満点！',
@@ -390,20 +402,21 @@
   };
 
   const TEXT_FONTS = [
-    { id: 'system', name: '系统默认', family: `"Avenir Next", ${TEXT_FONT_FALLBACK}` },
-    { id: 'mushin', name: '無心', family: `"Mushin", ${TEXT_FONT_FALLBACK}`, face: 'Mushin', src: './assets/fonts/mushin.otf' },
-    { id: 'zhaizai-marker', name: '宅在家麦克笔', family: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, face: 'Zhaizai Marker', src: './assets/fonts/zhaizai-marker.ttf' },
-    { id: 'fusion-pixel-sc', name: '缝合像素简中', family: `"Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel SC', src: './assets/fonts/fusion-pixel-sc.otf' },
-    { id: 'fusion-pixel-jp', name: '缝合像素日文', family: `"Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel JP', src: './assets/fonts/fusion-pixel-jp.otf' },
-    { id: 'wafu-pop', name: '和風ぽっぷ', family: `"Wafu Pop", ${TEXT_FONT_FALLBACK}`, face: 'Wafu Pop', src: './assets/fonts/wafu-pop.ttf' },
-    { id: 'darts-font', name: 'ダーツフォント', family: `"Darts Font", ${TEXT_FONT_FALLBACK}`, face: 'Darts Font', src: './assets/fonts/darts-font.ttf' },
-    { id: 'nagino', name: 'なぎの', family: `"Nagino", ${TEXT_FONT_FALLBACK}`, face: 'Nagino', src: './assets/fonts/nagino.otf' },
+    { id: 'system', name: '系统默认', family: `"Avenir Next", ${TEXT_FONT_FALLBACK}`, className: 'text-font-system' },
+    { id: 'mushin', name: '無心（日文）', family: `"Mushin", ${TEXT_FONT_FALLBACK}`, face: 'Mushin', src: './assets/fonts/mushin.otf', mobileFamily: `"Mushin Mobile", "Mushin", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Mushin Mobile', mobileSrc: './assets/fonts/mushin-mobile.woff2', className: 'text-font-mushin' },
+    { id: 'zhaizai-marker', name: '宅在家麦克笔（中文）', family: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, face: 'Zhaizai Marker', src: './assets/fonts/zhaizai-marker.ttf', mobileFamily: `"Zhaizai Marker Mobile", "Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Zhaizai Marker Mobile', mobileSrc: './assets/fonts/zhaizai-marker-mobile.woff2', className: 'text-font-zhaizai-marker' },
+    { id: 'fusion-pixel-sc', name: '缝合像素（中文）', family: `"Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel SC', src: './assets/fonts/fusion-pixel-sc.otf', mobileFamily: `"Fusion Pixel SC Mobile", "Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel SC Mobile', mobileSrc: './assets/fonts/fusion-pixel-sc-mobile.woff2', className: 'text-font-fusion-pixel-sc' },
+    { id: 'fusion-pixel-jp', name: '缝合像素（日文）', family: `"Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel JP', src: './assets/fonts/fusion-pixel-jp.otf', mobileFamily: `"Fusion Pixel JP Mobile", "Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel JP Mobile', mobileSrc: './assets/fonts/fusion-pixel-jp-mobile.woff2', className: 'text-font-fusion-pixel-jp' },
+    { id: 'wafu-pop', name: '和風ぽっぷ', family: `"Wafu Pop", ${TEXT_FONT_FALLBACK}`, face: 'Wafu Pop', src: './assets/fonts/wafu-pop.ttf', className: 'text-font-wafu-pop' },
+    { id: 'darts-font', name: 'ダーツフォント', family: `"Darts Font", ${TEXT_FONT_FALLBACK}`, face: 'Darts Font', src: './assets/fonts/darts-font.ttf', className: 'text-font-darts-font' },
+    { id: 'nagino', name: 'なぎの', family: `"Nagino", ${TEXT_FONT_FALLBACK}`, face: 'Nagino', src: './assets/fonts/nagino.otf', className: 'text-font-nagino' },
   ];
   const TEXT_FONT_PREVIEW_SAMPLE = '今日の私';
   const TEXT_FONT_ACTIVATION_SAMPLE = '今日の私、満点!';
   const FONT_LOAD_TIMEOUT_MS = 2600;
-  const FONT_ASSET_VERSION = '20260429-textfonts-2';
-  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'fusion-pixel-jp', 'darts-font', 'nagino', 'zhaizai-marker', 'fusion-pixel-sc', 'wafu-pop'];
+  const FONT_ASSET_VERSION = '20260429-textfonts-3';
+  const MOBILE_TEXT_FONT_IDS = new Set(['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc']);
+  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc', 'darts-font', 'nagino', 'wafu-pop'];
 
   const MOSAIC_TOOL_DEFAULTS = {
     variant: 'frosted',
@@ -414,9 +427,10 @@
   };
 
   const STICKER_IMAGE_CACHE = new Map();
-  const MOBILE_SLIDER_COMMIT_MS = 48;
-  const MOBILE_LIGHTWEIGHT_RENDER_MS = 72;
-  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 34;
+  const MOBILE_SLIDER_COMMIT_MS = 64;
+  const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
+  const DESKTOP_SLIDER_COMMIT_MS = 48;
+  const DESKTOP_LIGHTWEIGHT_RENDER_MS = 56;
   const INTERACTIVE_RENDER_BUDGET_MS = 56;
   let stickerPacks = [];
   let isSliderDragging = false;
@@ -425,12 +439,16 @@
   let activeTransformLayerId = null;
   let interactiveRenderPressure = 0;
   let sliderDragStartFilters = null;
+  let sliderPreviewFilters = null;
   let blushPreviewEnabled = false;
   let blushEditMode = false;
   let blushFallbackNoticeShown = false;
   const loadedFontFaces = new Set();
   const loadingFontFaces = new Map();
   const fontFaceStatus = new Map([['system', 'ready']]);
+  const queuedFontPreviewWarmups = new Set();
+  const fontWarmupProbes = new Map();
+  let fontPreviewWarmupChain = Promise.resolve();
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -445,14 +463,50 @@
     });
   }
 
+  function getRuntimeFontFace(font) {
+    return isMobileViewport() ? font?.mobileFace || font?.face : font?.face;
+  }
+
+  function getRuntimeFontFamily(font) {
+    return isMobileViewport() ? font?.mobileFamily || font?.family : font?.family;
+  }
+
+  function getRuntimeFontSrc(font) {
+    return isMobileViewport() ? font?.mobileSrc || font?.src : font?.src;
+  }
+
   function getVersionedFontUrl(font) {
-    const url = new URL(font.src, window.location.href);
-    url.searchParams.set('v', FONT_ASSET_VERSION);
+    const src = getRuntimeFontSrc(font);
+    if (!src) return '';
+    const url = new URL(src, window.location.href);
+    if (url.protocol !== 'file:') url.searchParams.set('v', FONT_ASSET_VERSION);
     return url.href;
   }
 
+  function getFontLoadTimeoutMs() {
+    return isMobileViewport() ? 45000 : FONT_LOAD_TIMEOUT_MS;
+  }
+
+  function shouldApplyFontPreviewClass(font) {
+    if (!font?.className) return false;
+    if (!isMobileViewport()) return true;
+    if (font.id === 'system') return true;
+    return MOBILE_TEXT_FONT_IDS.has(font.id) && fontFaceStatus.get(font.id) !== 'error';
+  }
+
+  function mountFontWarmupProbe(font) {
+    if (!font?.id || !font.className || fontWarmupProbes.has(font.id)) return;
+    const probe = document.createElement('span');
+    probe.className = `font-warmup-probe ${font.className}`;
+    probe.textContent = `${TEXT_FONT_ACTIVATION_SAMPLE} 今日の私 >w<`;
+    document.body.appendChild(probe);
+    fontWarmupProbes.set(font.id, probe);
+  }
+
   async function ensureTextFontLoaded(font) {
-    if (!font || font.id === 'system' || !font.src || !font.face || loadedFontFaces.has(font.id)) {
+    const runtimeFace = getRuntimeFontFace(font);
+    const runtimeSrc = getRuntimeFontSrc(font);
+    if (!font || font.id === 'system' || !runtimeSrc || !runtimeFace || loadedFontFaces.has(font.id)) {
       if (font?.id) fontFaceStatus.set(font.id, 'ready');
       return;
     }
@@ -461,25 +515,27 @@
       return;
     }
     if (loadingFontFaces.has(font.id)) return loadingFontFaces.get(font.id);
-    if (document.fonts.check?.(`400 32px "${font.face}"`, TEXT_FONT_ACTIVATION_SAMPLE)) {
+    if (document.fonts.check?.(`400 32px "${runtimeFace}"`, TEXT_FONT_ACTIVATION_SAMPLE)) {
       loadedFontFaces.add(font.id);
       fontFaceStatus.set(font.id, 'ready');
       return;
     }
     fontFaceStatus.set(font.id, 'loading');
+    mountFontWarmupProbe(font);
     const fontUrl = getVersionedFontUrl(font);
-    const cssLoad = () => document.fonts.load(`400 32px "${font.face}"`, TEXT_FONT_ACTIVATION_SAMPLE);
+    const cssLoad = () => document.fonts.load(`400 32px "${runtimeFace}"`, TEXT_FONT_ACTIVATION_SAMPLE);
     const jsLoad = () => {
       if (!('FontFace' in window) || !document.fonts?.add) return Promise.reject(new Error('FontFace unavailable'));
-      return new FontFace(font.face, `url("${fontUrl}")`, { style: 'normal', weight: '400', display: 'swap' })
+      return new FontFace(runtimeFace, `url("${fontUrl}")`, { style: 'normal', weight: '400', display: 'swap' })
         .load()
         .then((loadedFace) => {
           document.fonts.add(loadedFace);
           return cssLoad();
         });
     };
-    const loadPromise = withTimeout(cssLoad(), FONT_LOAD_TIMEOUT_MS)
-      .catch(() => withTimeout(jsLoad(), FONT_LOAD_TIMEOUT_MS))
+    const timeoutMs = getFontLoadTimeoutMs();
+    const loadPromise = withTimeout(cssLoad(), timeoutMs)
+      .catch(() => withTimeout(jsLoad(), timeoutMs))
       .then((loadedFace) => {
         loadedFontFaces.add(font.id);
         fontFaceStatus.set(font.id, 'ready');
@@ -495,6 +551,42 @@
       });
     loadingFontFaces.set(font.id, loadPromise);
     return loadPromise;
+  }
+
+  function scheduleFontPreviewWarmup(priorityFontId = activeTextFontId) {
+    const orderedIds = [
+      priorityFontId,
+      'mushin',
+      ...(isMobileViewport() ? TEXT_FONT_WARMUP_ORDER.filter((id) => MOBILE_TEXT_FONT_IDS.has(id)) : TEXT_FONT_WARMUP_ORDER),
+    ].filter(Boolean);
+    const uniqueFonts = [];
+    const seenIds = new Set(['system']);
+    orderedIds.forEach((id) => {
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
+      const font = TEXT_FONTS.find((item) => item.id === id);
+      if (font) uniqueFonts.push(font);
+    });
+
+    uniqueFonts.forEach((font, index) => {
+      if (loadedFontFaces.has(font.id) || loadingFontFaces.has(font.id) || queuedFontPreviewWarmups.has(font.id)) return;
+      queuedFontPreviewWarmups.add(font.id);
+      fontPreviewWarmupChain = fontPreviewWarmupChain
+        .then(() => new Promise((resolve) => window.setTimeout(resolve, isMobileViewport() ? (index === 0 ? 0 : 320) : 100)))
+        .then(
+          () =>
+            new Promise((resolve) => {
+              runWhenIdle(() => {
+                ensureTextFontLoaded(font)
+                  .then(() => render(store.getState()))
+                  .finally(() => {
+                    queuedFontPreviewWarmups.delete(font.id);
+                    resolve();
+                  });
+              }, isMobileViewport() ? 1800 : 700);
+            })
+        );
+    });
   }
 
   function hexToRgba(hex, alpha) {
@@ -581,12 +673,14 @@
     const width = channel.width || 36;
     const base = 1 - smoothstep(width * 0.62, width, dist);
     // 低饱和区色相不稳定，避免肤色和手部出现分区色块。
-    const chroma = smoothstep(0.16, 0.42, sat);
+    const chroma = smoothstep(0.05, 0.24, sat);
     return clamp(base * chroma, 0, 1);
   }
 
   function applySelectiveHsl(r, g, b, filters, skinMask, hasFaceContext = true) {
     let [h, s, l] = rgbToHsl(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255));
+    const baseH = h;
+    const baseS = s;
     const hslSafety = 1 - clamp(skinMask * 0.78 + smoothstep(0, 0.22, 0.22 - s) * 0.55, 0, 0.86);
 
     const masterH = clamp(Number(filters[hslKey('master', 'h')] ?? 0), -40, 40);
@@ -599,25 +693,26 @@
 
     HSL_CHANNELS.forEach((channel) => {
       if (channel.id === 'master' || channel.id === 'skin') return;
-      if (s < 0.2) return;
-      const w = getHueChannelWeight(h, s, channel);
+      if (Math.max(s, baseS) < 0.045) return;
+      const channelSat = Math.max(s, baseS * 0.82);
+      const w = getHueChannelWeight(baseH, channelSat, channel);
       if (w <= 0.0001) return;
-      const contextScale = (hasFaceContext ? 0.72 : 0.32) * hslSafety;
+      const contextScale = hasFaceContext ? Math.max(hslSafety, 0.5) : Math.max(hslSafety, 0.32);
       const ch = clamp(Number(filters[hslKey(channel.id, 'h')] ?? 0), -40, 40);
       const cs = clamp(Number(filters[hslKey(channel.id, 's')] ?? 0), -70, 55);
       const cl = clamp(Number(filters[hslKey(channel.id, 'l')] ?? 0), -32, 32);
-      h = (h + ch * 1.12 * w * contextScale + 360) % 360;
-      s = clamp(s * (1 + (cs / 100) * w * contextScale), 0, 1);
-      l = clamp(l + (cl / 100) * 0.25 * w * contextScale, 0, 1);
+      h = (h + ch * 1.2 * w * contextScale + 360) % 360;
+      s = clamp(s * (1 + (cs / 100) * w * contextScale * 1.08), 0, 1);
+      l = clamp(l + (cl / 100) * 0.28 * w * contextScale, 0, 1);
     });
 
     if (skinMask > 0.0001) {
       const sh = clamp(Number(filters[hslKey('skin', 'h')] ?? 0), -24, 24);
       const ss = clamp(Number(filters[hslKey('skin', 's')] ?? 0), -36, 30);
       const sl = clamp(Number(filters[hslKey('skin', 'l')] ?? 0), -18, 18);
-      h = (h + sh * 0.72 * skinMask + 360) % 360;
-      s = clamp(s * (1 + (ss / 100) * skinMask * 0.6), 0, 1);
-      l = clamp(l + (sl / 100) * 0.16 * skinMask, 0, 1);
+      h = (h + sh * 0.95 * skinMask + 360) % 360;
+      s = clamp(s * (1 + (ss / 100) * skinMask * 0.85), 0, 1);
+      l = clamp(l + (sl / 100) * 0.22 * skinMask, 0, 1);
     }
 
     return hslToRgb(h, s, l);
@@ -626,9 +721,12 @@
   function deriveCanvasSizeFromImage(img) {
     const width = Math.max(1, img?.naturalWidth || FIXED_CANVAS.width);
     const height = Math.max(1, img?.naturalHeight || FIXED_CANVAS.height);
+    const bySide = EDIT_CANVAS_MAX_SIDE / Math.max(width, height);
+    const byArea = Math.sqrt(EDIT_CANVAS_MAX_PIXELS / Math.max(1, width * height));
+    const scale = Math.min(1, bySide, byArea);
     return {
-      width,
-      height,
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale)),
     };
   }
 
@@ -739,6 +837,9 @@
       subscribe(listener) {
         listeners.add(listener);
         return () => listeners.delete(listener);
+      },
+      selectLayerSilent(id) {
+        state.selectedLayerId = id;
       },
       canUndo() {
         return state.history.past.length > 0;
@@ -929,6 +1030,7 @@
         notify();
       },
       selectLayer(id) {
+        if (state.selectedLayerId === id) return;
         state.selectedLayerId = id;
         notify();
       },
@@ -1135,8 +1237,13 @@
       const dy = (y - region.cy) / region.ry;
       const leftDist = Math.sqrt(leftDx * leftDx + dy * dy);
       const rightDist = Math.sqrt(rightDx * rightDx + dy * dy);
-      const leftW = Math.pow(1 - smoothstep(0.12, 1.24, leftDist), 1.18);
-      const rightW = Math.pow(1 - smoothstep(0.12, 1.24, rightDist), 1.18);
+      const softBlushWeight = (dist) => {
+        const gaussian = Math.exp(-dist * dist * 1.36);
+        const tail = 1 - smoothstep(1.38, 1.96, dist);
+        return gaussian * tail;
+      };
+      const leftW = softBlushWeight(leftDist);
+      const rightW = softBlushWeight(rightDist);
       best = Math.max(best, leftW, rightW);
     }
     return clamp(best, 0, 1);
@@ -1570,8 +1677,6 @@
     const s = clamp(filters.saturation, 0, 1.8);
     const skinWhiten = clamp(filters.skinWhiten ?? 0, 0, 1);
     const blushStrength = clamp(filters.blushStrength ?? 0, 0, 1);
-    const skinProtect = clamp(filters.skinProtect ?? 0, 0, 0.72);
-    const redPreserve = clamp(filters.redPreserve ?? 0, 0, 1);
     const faceBoxes = vision.faceBoxes || [];
     const personMaskCanvas = null;
     const baseCtx = baseCanvas.getContext('2d');
@@ -1657,47 +1762,8 @@
       const hueScore = Math.max(1 - smoothstep(26, 58, hueDistA), 1 - smoothstep(24, 56, hueDistB));
       const skinProb = clamp(cbScore * crScore * satScore * lumaScore * (0.48 + 0.52 * hueScore), 0, 1);
       const skinMask = skinProb * faceWeight;
-      const skinProtectMask = clamp(skinProb * Math.max(faceWeight, subjectWeight * 0.36), 0, 1);
+      const skinAreaMask = clamp(skinProb * Math.max(faceWeight, subjectWeight * 0.36), 0, 1);
       [r, g, bl] = applySelectiveHsl(r, g, bl, filters, skinMask, hasFaceBoxes);
-
-      // 肤色保真：限制肤色区域的色相漂移与饱和损失，避免“提白后发灰/发脏”。
-      if (skinProtect > 0 && skinProtectMask > 0.0001) {
-        const [oh, os, ol] = rgbToHsl(or, og, ob);
-        let [nh, ns, nl] = rgbToHsl(r, g, bl);
-        const drift = hueDistance(oh, nh) / 180;
-        const satLoss = Math.max(0, os - ns);
-        const protectWeight = clamp(skinProtect * skinProtectMask * (0.45 + drift * 0.8 + satLoss * 1.2), 0, 1);
-        if (protectWeight > 0.001) {
-          const targetH = lerp(nh, oh, 0.78);
-          const targetS = Math.max(ns, os * (0.68 + 0.26 * skinProtect));
-          const targetL = nl * 0.74 + ol * 0.26;
-          const [pr, pg, pb] = hslToRgb(targetH, clamp(targetS, 0, 1), clamp(targetL, 0, 1));
-          r = lerp(r, pr, protectWeight);
-          g = lerp(g, pg, protectWeight);
-          bl = lerp(bl, pb, protectWeight);
-        }
-      }
-
-      // 红色保真：锁定红/粉色区域，防止被全局去饱和与冷调压脏。
-      if (redPreserve > 0) {
-        const [oh, os, ol] = rgbToHsl(or, og, ob);
-        const redBand = 1 - smoothstep(22, 58, hueDistance(oh, 0));
-        const pinkBand = 1 - smoothstep(26, 62, hueDistance(oh, 332));
-        const hueBand = Math.max(redBand, pinkBand);
-        const chromaBand = smoothstep(0.06, 0.42, os);
-        const redMask = clamp(hueBand * chromaBand * (0.58 + 0.42 * faceWeight), 0, 1);
-        if (redMask > 0.001) {
-          const [nh, ns, nl] = rgbToHsl(r, g, bl);
-          const targetH = lerp(nh, oh, 0.62);
-          const targetS = Math.max(ns, os * (0.74 + 0.22 * redPreserve));
-          const targetL = Math.max(nl, ol * (0.9 + 0.08 * redPreserve));
-          const [rr, rg2, rb2] = hslToRgb(targetH, clamp(targetS, 0, 1), clamp(targetL, 0, 1));
-          const t = clamp(redPreserve * redMask, 0, 1);
-          r = lerp(r, rr, t);
-          g = lerp(g, rg2, t);
-          bl = lerp(bl, rb2, t);
-        }
-      }
 
       const [nhAfterProtect, nsAfterProtect, nlAfterProtect] = rgbToHsl(r, g, bl);
       const greenSpeckHue = Math.max(
@@ -1705,7 +1771,7 @@
         1 - smoothstep(24, 62, hueDistance(nhAfterProtect, 172))
       );
       const originalSkinOrLip = clamp(
-        skinProtectMask + smoothstep(0.04, 0.24, oSat) * Math.max(
+        skinAreaMask + smoothstep(0.04, 0.24, oSat) * Math.max(
           1 - smoothstep(34, 74, hueDistance(oHue, 12)),
           1 - smoothstep(36, 78, hueDistance(oHue, 346))
         ) * 0.72,
@@ -1713,7 +1779,7 @@
         1
       );
       const lowChromaSpeck = 1 - smoothstep(0.16, 0.34, nsAfterProtect);
-      const greenSpeckFix = clamp(greenSpeckHue * originalSkinOrLip * lowChromaSpeck * (skinProtect + 0.28), 0, 1);
+      const greenSpeckFix = clamp(greenSpeckHue * originalSkinOrLip * lowChromaSpeck * 0.5, 0, 1);
       if (greenSpeckFix > 0.001) {
         const targetH = oSat > 0.08 ? oHue : 8;
         const targetS = Math.max(nsAfterProtect * 0.82, Math.min(0.34, oSat * 0.82 + 0.04));
@@ -1898,14 +1964,14 @@
     ctx.globalCompositeOperation = 'source-over';
     blushRegions.forEach((region) => {
       const paint = (cx) => {
-        const grad = ctx.createRadialGradient(cx, region.cy, region.rx * 0.06, cx, region.cy, region.rx * 1.28);
-        grad.addColorStop(0, 'rgba(255, 130, 190, 0.3)');
-        grad.addColorStop(0.42, 'rgba(250, 150, 205, 0.16)');
-        grad.addColorStop(0.72, 'rgba(250, 160, 214, 0.07)');
+        const grad = ctx.createRadialGradient(cx, region.cy, region.rx * 0.04, cx, region.cy, region.rx * 1.72);
+        grad.addColorStop(0, 'rgba(255, 130, 190, 0.24)');
+        grad.addColorStop(0.34, 'rgba(250, 150, 205, 0.14)');
+        grad.addColorStop(0.68, 'rgba(250, 160, 214, 0.045)');
         grad.addColorStop(1, 'rgba(250, 170, 220, 0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.ellipse(cx, region.cy, region.rx, region.ry, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, region.cy, region.rx * 1.62, region.ry * 1.62, 0, 0, Math.PI * 2);
         ctx.fill();
       };
       paint(region.leftX);
@@ -2173,11 +2239,11 @@
 
   function getPreviewScaleForState(state) {
     if (!state.image.loaded || !state.canvas.width || !state.canvas.height) return 1;
-    const mobilePreview = window.matchMedia('(max-width: 760px)').matches;
+    const mobilePreview = isMobileLayoutViewport();
     const lightweight = isDirectManipulating || isTextEditing;
-    const pressureScale = lightweight ? clamp(1 - interactiveRenderPressure * 0.1, 0.72, 1) : 1;
-    const maxSide = (lightweight ? (mobilePreview ? 460 : 820) : (mobilePreview ? 1100 : 1700)) * pressureScale;
-    const maxPixels = (lightweight ? (mobilePreview ? 180000 : 420000) : (mobilePreview ? 1100000 : 2200000)) * pressureScale;
+    const pressureScale = lightweight ? clamp(1 - interactiveRenderPressure * 0.08, 0.78, 1) : 1;
+    const maxSide = (lightweight ? (mobilePreview ? 720 : 980) : (mobilePreview ? 1100 : 1700)) * pressureScale;
+    const maxPixels = (lightweight ? (mobilePreview ? 420000 : 760000) : (mobilePreview ? 1100000 : 2200000)) * pressureScale;
     const bySide = maxSide / Math.max(state.canvas.width, state.canvas.height);
     const byArea = Math.sqrt(maxPixels / Math.max(1, state.canvas.width * state.canvas.height));
     return clamp(Math.min(1, bySide, byArea), 0.12, 1);
@@ -2189,12 +2255,23 @@
       els.canvas.style.filter = '';
       return;
     }
-    const current = state.filters || {};
+    const current = sliderPreviewFilters || state.filters || {};
     const start = sliderDragStartFilters;
     const brightness = clamp((current.brightness ?? 1) / Math.max(0.01, start.brightness ?? 1), 0.72, 1.32);
     const contrast = clamp((current.contrast ?? 1) / Math.max(0.01, start.contrast ?? 1), 0.72, 1.42);
     const saturation = clamp((current.saturation ?? 1) / Math.max(0.01, start.saturation ?? 1), 0.45, 1.7);
     els.canvas.style.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
+  }
+
+  function cancelQueuedRenderWork() {
+    if (pendingRenderFrame) {
+      window.cancelAnimationFrame(pendingRenderFrame);
+      pendingRenderFrame = 0;
+    }
+    if (pendingRenderTimer) {
+      window.clearTimeout(pendingRenderTimer);
+      pendingRenderTimer = 0;
+    }
   }
 
   function scaleLayerForPreview(layer, scale) {
@@ -2254,10 +2331,15 @@
       return { canvas, renderState };
     }
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = options.usePreviewScale ? 'medium' : 'high';
+
     const baseCanvas = document.createElement('canvas');
     baseCanvas.width = canvas.width;
     baseCanvas.height = canvas.height;
     const baseCtx = baseCanvas.getContext('2d');
+    baseCtx.imageSmoothingEnabled = true;
+    baseCtx.imageSmoothingQuality = options.usePreviewScale ? 'medium' : 'high';
     // 画布尺寸与原图像素一致，基底始终 1:1 覆盖，禁止自动补边/扩展。
     baseCtx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
 
@@ -2369,6 +2451,8 @@
     canvas.height = renderState.canvas.height;
     const ctx = canvas.getContext('2d');
     if (renderState.image.loaded && renderState.image.element) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = options.usePreviewScale ? 'medium' : 'high';
       ctx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
     }
     return canvas;
@@ -2424,7 +2508,7 @@
 
     const ensureCache = () => {
       const hiddenLayerId = activeTransformLayerId || null;
-      const interactivePreview = isTextEditing;
+      const interactivePreview = isSliderDragging || isTextEditing;
       if (
         previewRenderCache.renderToken === state.renderToken &&
         previewRenderCache.toneToken === state.toneToken &&
@@ -2467,7 +2551,7 @@
         if (!previewRenderCache.toneBase) {
           previewRenderCache.toneBase = renderToneBaseCanvas(state, false, {
             usePreviewScale: true,
-            interactivePreview: isTextEditing,
+            interactivePreview: isSliderDragging || isTextEditing,
           }).canvas;
         }
         const edited = document.createElement('canvas');
@@ -2547,9 +2631,9 @@
     commitOutput();
   }
 
-  function makeSlider({ label, min, max, step, value, onInput, onBegin, onEnd, rangeClass = '', trackGradient = '' }) {
+  function makeSlider({ label, min, max, step, value, onInput, onPreview, onBegin, onEnd, rangeClass = '', trackGradient = '' }) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'control-item';
+    wrapper.className = 'control-item slider-control';
 
     const title = document.createElement('label');
     title.textContent = label;
@@ -2578,10 +2662,16 @@
     let lastSliderCommitAt = 0;
     let latestSliderValue = Number(input.value);
     let pointerId = null;
+    let lastSliderRect = null;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let sliderIntent = 'pending';
+    const commitOnEndOnly = true;
     const startOnce = () => {
       if (started) return;
       started = true;
       isSliderDragging = true;
+      cancelQueuedRenderWork();
       sliderDragStartFilters = { ...store.getState().filters };
       onBegin?.();
     };
@@ -2598,11 +2688,13 @@
     const queueSliderInput = (v) => {
       latestSliderValue = v;
       syncRangeProgress();
+      onPreview?.(v);
+      if (commitOnEndOnly) return;
       const now = performance.now();
-      const commitMs = isMobileViewport() ? MOBILE_SLIDER_COMMIT_MS : 34;
+      const commitMs = isMobileViewport() ? MOBILE_SLIDER_COMMIT_MS : DESKTOP_SLIDER_COMMIT_MS;
       const gap = now - lastSliderCommitAt;
       if (gap >= commitMs) {
-        if (!pendingSliderFrame) pendingSliderFrame = window.requestAnimationFrame(flushSliderInput);
+        flushSliderInput();
       } else if (!pendingSliderTimer) {
         pendingSliderTimer = window.setTimeout(() => {
           pendingSliderTimer = 0;
@@ -2621,7 +2713,7 @@
     };
 
     const setValueFromClientX = (clientX) => {
-      const rect = input.getBoundingClientRect();
+      const rect = lastSliderRect || input.getBoundingClientRect();
       const pct = clamp((clientX - rect.left) / Math.max(1, rect.width), 0, 1);
       const next = snapToStep(Number(input.min) + pct * (Number(input.max) - Number(input.min)));
       input.value = String(next);
@@ -2629,12 +2721,16 @@
     };
 
     input.oninput = () => {
+      if (pointerId !== null) return;
       startOnce();
       queueSliderInput(Number(input.value));
     };
     const finishDrag = () => {
-      if (!isSliderDragging && !started) return;
+      if (!isSliderDragging && !started && pointerId === null) return;
+      const shouldCommit = started && sliderIntent === 'horizontal';
       pointerId = null;
+      lastSliderRect = null;
+      sliderIntent = 'pending';
       if (pendingSliderFrame) {
         window.cancelAnimationFrame(pendingSliderFrame);
         pendingSliderFrame = 0;
@@ -2643,30 +2739,63 @@
         window.clearTimeout(pendingSliderTimer);
         pendingSliderTimer = 0;
       }
-      onInput(latestSliderValue);
+      if (shouldCommit) onInput(latestSliderValue);
       isSliderDragging = false;
       started = false;
-      onEnd?.();
+      if (shouldCommit) onEnd?.();
       if (pendingRenderTimer) {
         window.clearTimeout(pendingRenderTimer);
         pendingRenderTimer = 0;
       }
+      if (pendingRenderFrame) {
+        window.cancelAnimationFrame(pendingRenderFrame);
+        pendingRenderFrame = 0;
+      }
       sliderDragStartFilters = null;
+      sliderPreviewFilters = null;
       if (els?.canvas) els.canvas.style.filter = '';
-      render(store.getState());
+      if (shouldCommit) {
+        window.setTimeout(() => {
+          runWhenIdle(() => render(store.getState()), 120);
+        }, 32);
+      }
     };
-    input.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
+    const beginPointerDrag = (event) => {
       pointerId = event.pointerId;
+      pointerStartX = event.clientX;
+      pointerStartY = event.clientY;
+      sliderIntent = 'pending';
+      lastSliderRect = input.getBoundingClientRect();
+      event.currentTarget?.setPointerCapture?.(event.pointerId);
       input.setPointerCapture?.(event.pointerId);
-      startOnce();
-      setValueFromClientX(event.clientX);
-    });
-    input.addEventListener('pointermove', (event) => {
+    };
+    const movePointerDrag = (event) => {
       if (pointerId !== event.pointerId) return;
+      if (sliderIntent === 'pending') {
+        const dx = Math.abs(event.clientX - pointerStartX);
+        const dy = Math.abs(event.clientY - pointerStartY);
+        if (dy > 8 && dy > dx * 1.15) {
+          finishDrag();
+          return;
+        }
+        if (dx < 6 && dy < 6) return;
+        if (dx < dy * 1.15) return;
+        sliderIntent = 'horizontal';
+        startOnce();
+      }
+      if (sliderIntent !== 'horizontal') return;
       event.preventDefault();
       setValueFromClientX(event.clientX);
+    };
+    input.addEventListener('pointerdown', beginPointerDrag);
+    input.addEventListener('pointermove', movePointerDrag);
+    wrapper.addEventListener('pointerdown', (event) => {
+      if (event.target === input) return;
+      beginPointerDrag(event);
     });
+    wrapper.addEventListener('pointermove', movePointerDrag);
+    wrapper.addEventListener('pointerup', finishDrag);
+    wrapper.addEventListener('pointercancel', finishDrag);
     input.addEventListener('pointerup', finishDrag);
     input.addEventListener('pointercancel', finishDrag);
     input.addEventListener('blur', finishDrag);
@@ -2804,10 +2933,9 @@
 
     const grid = document.createElement('div');
     grid.className = 'font-picker-grid';
-    TEXT_FONTS.forEach((font) => {
-      if (font.id !== 'system') ensureTextFontLoaded(font);
-    });
-    TEXT_FONTS.forEach((font) => {
+    const visibleFonts = isMobileViewport() ? TEXT_FONTS.filter((font) => MOBILE_TEXT_FONT_IDS.has(font.id)) : TEXT_FONTS;
+    if (isMobileViewport()) visibleFonts.forEach((font) => mountFontWarmupProbe(font));
+    visibleFonts.forEach((font) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'font-picker-btn';
@@ -2819,8 +2947,9 @@
       name.className = 'font-picker-name';
       name.textContent = font.name;
       const sample = document.createElement('span');
-      sample.className = 'font-picker-sample';
-      sample.style.fontFamily = font.family;
+      const useFontPreview = shouldApplyFontPreviewClass(font);
+      sample.className = `font-picker-sample ${useFontPreview ? font.className : ''}`.trim();
+      sample.style.setProperty('--font-preview-family', useFontPreview ? getRuntimeFontFamily(font) : TEXT_FONTS[0].family);
       sample.textContent = TEXT_FONT_PREVIEW_SAMPLE;
       btn.append(name, sample);
       btn.onclick = () => {
@@ -2829,6 +2958,7 @@
       };
       grid.appendChild(btn);
     });
+    scheduleFontPreviewWarmup(value);
 
     wrapper.append(title, grid);
     return wrapper;
@@ -3015,6 +3145,7 @@
       event.currentTarget?.setPointerCapture?.(event.pointerId);
       store.beginStep();
       isDirectManipulating = true;
+      cancelQueuedRenderWork();
       const cx = (layer.x ?? 0.5) * frameRect.width;
       const cy = (layer.y ?? 0.5) * frameRect.height;
       const dx = event.clientX - frameRect.left - cx;
@@ -3040,9 +3171,64 @@
         startLayer: { ...layer },
         startDisplay: sizePx(layer, frameRect),
         element: event.currentTarget?.closest?.('.overlay-item') || event.currentTarget,
+        pointers: new Map([[event.pointerId, { clientX: event.clientX, clientY: event.clientY }]]),
         pendingPatch: null,
         previewStarted: false,
       };
+    }
+
+    function getPinchPoints(currentInteraction = interaction) {
+      if (!currentInteraction?.pointers || currentInteraction.pointers.size < 2) return null;
+      const points = Array.from(currentInteraction.pointers.values()).slice(0, 2);
+      const [a, b] = points;
+      const centerX = (a.clientX + b.clientX) / 2;
+      const centerY = (a.clientY + b.clientY) / 2;
+      return {
+        centerX,
+        centerY,
+        distance: Math.max(1, Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)),
+      };
+    }
+
+    function startPinchInteraction() {
+      if (!interaction || interaction.kind !== 'layer') return;
+      const pinch = getPinchPoints();
+      if (!pinch) return;
+      const currentPatch = interaction.pendingPatch || {};
+      interaction.mode = 'pinch';
+      interaction.pinchStartDistance = pinch.distance;
+      interaction.pinchStartCenterX = pinch.centerX;
+      interaction.pinchStartCenterY = pinch.centerY;
+      interaction.pinchStartLayerX = currentPatch.x ?? interaction.startLayerX;
+      interaction.pinchStartLayerY = currentPatch.y ?? interaction.startLayerY;
+      interaction.pinchStartWidth = currentPatch.width ?? interaction.startWidth;
+      interaction.pinchStartHeight = currentPatch.height ?? interaction.startHeight;
+      interaction.pinchStartFontSize = currentPatch.fontSize ?? interaction.startFontSize;
+    }
+
+    function addInteractionPointer(event) {
+      if (!interaction?.pointers || interaction.pointers.has(event.pointerId)) return;
+      try {
+        interaction.element?.setPointerCapture?.(event.pointerId);
+      } catch {}
+      interaction.pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      if (interaction.kind === 'layer' && interaction.pointers.size >= 2) {
+        startPinchInteraction();
+      }
+    }
+
+    function addCanvasPinchPointer(event) {
+      if (!interaction?.pointers || interaction.kind !== 'layer' || interaction.mode === 'rotate') return;
+      if (interaction.pointers.has(event.pointerId)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      addInteractionPointer(event);
+    }
+
+    function updateInteractionPointer(event) {
+      if (!interaction?.pointers?.has(event.pointerId)) return false;
+      interaction.pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      return true;
     }
 
     function applyInteractionPreview(patch) {
@@ -3053,15 +3239,7 @@
       if (!element) return;
       if (!interaction.previewStarted) {
         interaction.previewStarted = true;
-        activeTransformLayerId = interaction.id;
         element.classList.add('is-transforming');
-        if (!pendingTransformCanvasFrame) {
-          pendingTransformCanvasFrame = window.requestAnimationFrame(() => {
-            pendingTransformCanvasFrame = 0;
-            if (!interaction || interaction.kind !== 'layer' || activeTransformLayerId !== interaction.id) return;
-            renderCanvas(ctx, store.getState());
-          });
-        }
       }
       const dx = ((layer.x ?? interaction.startLayerX) - interaction.startLayerX) * interaction.frameRect.width;
       const dy = ((layer.y ?? interaction.startLayerY) - interaction.startLayerY) * interaction.frameRect.height;
@@ -3106,8 +3284,12 @@
       interaction.element?.classList.add('is-transforming');
     }
 
-    function finishInteraction() {
+    function finishInteraction(event) {
       if (!interaction && !isDirectManipulating) return;
+      if (event?.pointerId !== undefined && interaction?.kind === 'layer' && interaction.pointers?.has(event.pointerId)) {
+        interaction.pointers.delete(event.pointerId);
+        if (interaction.pointers.size > 0) return;
+      }
       if (pendingInteractionPreviewFrame) {
         window.cancelAnimationFrame(pendingInteractionPreviewFrame);
         pendingInteractionPreviewFrame = 0;
@@ -3128,7 +3310,12 @@
       if (current?.kind === 'layer' && current.pendingPatch) {
         store.updateLayer(current.id, current.pendingPatch);
       }
+      current?.pointers?.clear?.();
       interaction = null;
+      const selectedLayer = store.getState().layers.find((layer) => layer.id === store.getState().selectedLayerId);
+      if (selectedLayer && isMobileViewport()) {
+        mobileLayerControlsExpanded = true;
+      }
       render(store.getState());
     }
 
@@ -3174,9 +3361,18 @@
       el.onpointerdown = (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (interaction?.kind === 'layer' && interaction.mode !== 'rotate') {
+          addInteractionPointer(event);
+          return;
+        }
         startInteraction(event, 'move', layer, frameRect);
-        store.selectLayer(layer.id);
-        revealLayerControlsFor(layer);
+        if (isMobileViewport()) {
+          store.selectLayerSilent(layer.id);
+          revealLayerControlsFor(layer);
+        } else {
+          store.selectLayer(layer.id);
+          revealLayerControlsFor(layer);
+        }
       };
     }
 
@@ -3210,8 +3406,13 @@
         event.preventDefault();
         event.stopPropagation();
         startInteraction(event, type, layer, frameRect);
-        store.selectLayer(layer.id);
-        revealLayerControlsFor(layer);
+        if (isMobileViewport()) {
+          store.selectLayerSilent(layer.id);
+          revealLayerControlsFor(layer);
+        } else {
+          store.selectLayer(layer.id);
+          revealLayerControlsFor(layer);
+        }
       };
       return handle;
     }
@@ -3424,8 +3625,13 @@
       }
     }
 
+    overlayEl.onpointerdown = (event) => {
+      addCanvasPinchPointer(event);
+    };
+
     overlayEl.onpointermove = (event) => {
       if (!interaction) return;
+      updateInteractionPointer(event);
       if (interaction.kind === 'blush') {
         if (interaction.mode === 'move') {
           const dx = (event.clientX - interaction.startX) / interaction.frameRect.width;
@@ -3449,6 +3655,31 @@
           });
           return;
         }
+      }
+
+      if (interaction.mode === 'pinch') {
+        const pinch = getPinchPoints();
+        if (!pinch) return;
+        const ratio = clamp(pinch.distance / Math.max(1, interaction.pinchStartDistance || pinch.distance), 0.2, 6);
+        const centerDx = (pinch.centerX - (interaction.pinchStartCenterX ?? pinch.centerX)) / interaction.frameRect.width;
+        const centerDy = (pinch.centerY - (interaction.pinchStartCenterY ?? pinch.centerY)) / interaction.frameRect.height;
+        const patch = {
+          x: clamp((interaction.pinchStartLayerX ?? interaction.startLayerX) + centerDx, 0, 1),
+          y: clamp((interaction.pinchStartLayerY ?? interaction.startLayerY) + centerDy, 0, 1),
+        };
+        if (interaction.layerType === 'text') {
+          const nextFontSize = clamp(Math.round((interaction.pinchStartFontSize ?? interaction.startFontSize ?? 56) * ratio), 12, 260);
+          patch.fontSize = nextFontSize;
+          patch.width = clamp((interaction.pinchStartWidth ?? interaction.startWidth) * ratio, 0.04, 0.95);
+          patch.height = clamp((interaction.pinchStartHeight ?? interaction.startHeight) * ratio, 0.04, 0.95);
+        } else if (interaction.layerType === 'sticker') {
+          patch.width = clamp((interaction.pinchStartWidth ?? interaction.startWidth) * ratio, 0.04, 0.95);
+        } else {
+          patch.width = clamp((interaction.pinchStartWidth ?? interaction.startWidth) * ratio, 0.04, 0.95);
+          patch.height = clamp((interaction.pinchStartHeight ?? interaction.startHeight) * ratio, 0.04, 0.95);
+        }
+        queueInteractionPreview(patch);
+        return;
       }
 
       if (interaction.mode === 'move') {
@@ -3521,12 +3752,12 @@
       }
     };
 
-    overlayEl.onpointerup = () => {
-      finishInteraction();
+    overlayEl.onpointerup = (event) => {
+      finishInteraction(event);
     };
 
-    overlayEl.onpointercancel = () => {
-      finishInteraction();
+    overlayEl.onpointercancel = (event) => {
+      finishInteraction(event);
     };
 
     overlayEl.onclick = () => {
@@ -3537,7 +3768,7 @@
     return { render, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
   }
 
-  function canvasToBlob(canvas) {
+  function canvasToBlob(canvas, type = 'image/png', quality) {
     return new Promise((resolve, reject) => {
       try {
         canvas.toBlob((blob) => {
@@ -3546,7 +3777,7 @@
             return;
           }
           resolve(blob);
-        }, 'image/png');
+        }, type, quality);
       } catch (error) {
         reject(error);
       }
@@ -3598,7 +3829,7 @@
   }
 
   function isMobileLikeBrowser() {
-    return /iphone|ipad|ipod|android|mobile|micromessenger/i.test(navigator.userAgent) || window.matchMedia('(max-width: 760px)').matches;
+    return isMobileLayoutViewport();
   }
 
   function showExportPreview(dataUrl, fileName) {
@@ -3625,16 +3856,38 @@
     els.exportModal.setAttribute('aria-hidden', 'true');
   }
 
+  function cloneCanvasAtMaxSide(sourceCanvas, maxSide = 1800, fill = '#ffffff') {
+    if (!sourceCanvas?.width || !sourceCanvas?.height) return null;
+    const scale = Math.min(1, maxSide / Math.max(sourceCanvas.width, sourceCanvas.height));
+    const width = Math.max(1, Math.round(sourceCanvas.width * scale));
+    const height = Math.max(1, Math.round(sourceCanvas.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fillRect(0, 0, width, height);
+    }
+    ctx.drawImage(sourceCanvas, 0, 0, width, height);
+    return canvas;
+  }
+
   function exportPng(state) {
-    const fileName = `jirai-editor-${Date.now()}.png`;
-    const triggerDownload = (href) => {
+    const timestamp = Date.now();
+    const pngFileName = `jirai-editor-${timestamp}.png`;
+    const jpgFileName = `jirai-editor-${timestamp}.jpg`;
+    const triggerDownload = (href, downloadName = pngFileName) => {
       trackEvent('download_png', {
         source: isMobileLikeBrowser() ? 'mobile_fallback' : 'desktop_direct',
         compareMode: Boolean(state.compareMode),
         layerCount: state.layers.length,
       });
       const link = document.createElement('a');
-      link.download = fileName;
+      link.download = downloadName;
       link.href = href;
       document.body.appendChild(link);
       link.click();
@@ -3650,12 +3903,22 @@
       }, 1800);
     };
 
-    const deliverExport = (href) => {
+    const deliverExport = (href, downloadName = pngFileName) => {
       if (isMobileLikeBrowser()) {
-        if (!showExportPreview(href, fileName)) triggerDownload(href);
+        if (!showExportPreview(href, downloadName)) triggerDownload(href, downloadName);
       } else {
-        triggerDownload(href);
+        triggerDownload(href, downloadName);
       }
+    };
+
+    const deliverBlob = (blob, downloadName = pngFileName) => {
+      const url = URL.createObjectURL(blob);
+      if (isMobileLikeBrowser()) {
+        if (!showExportPreview(url, downloadName)) triggerDownload(url, downloadName);
+      } else {
+        triggerDownload(url, downloadName);
+      }
+      if (!isMobileLikeBrowser()) setTimeout(() => URL.revokeObjectURL(url), 10000);
     };
 
     // 优先同步 dataURL 导出，避免异步导致用户手势丢失而被浏览器拦截下载。
@@ -3687,43 +3950,64 @@
       return;
     } catch {}
 
+    try {
+      const visibleCanvas = els.canvas;
+      if (visibleCanvas?.width && visibleCanvas?.height) {
+        const dataUrl = visibleCanvas.toDataURL('image/png');
+        deliverExport(dataUrl);
+        return;
+      }
+    } catch {}
+
+    try {
+      const compactVisibleCanvas = cloneCanvasAtMaxSide(els.canvas, isMobileLikeBrowser() ? 1400 : 1800);
+      if (compactVisibleCanvas) {
+        const dataUrl = compactVisibleCanvas.toDataURL('image/png');
+        deliverExport(dataUrl);
+        return;
+      }
+    } catch {}
+
+    try {
+      const compactVisibleCanvas = cloneCanvasAtMaxSide(els.canvas, isMobileLikeBrowser() ? 1400 : 1800);
+      if (compactVisibleCanvas) {
+        const dataUrl = compactVisibleCanvas.toDataURL('image/jpeg', 0.92);
+        deliverExport(dataUrl, jpgFileName);
+        return;
+      }
+    } catch {}
+
     // 异步 blob 作为兜底
     const tryAsyncBlob = async () => {
       try {
-        const canvas = buildExportCanvas(state, false);
+        const canvas = buildExportCanvas(state, true, true);
         const blob = await canvasToBlob(canvas);
-        const file = new File([blob], fileName, { type: 'image/png' });
+        const file = new File([blob], pngFileName, { type: 'image/png' });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file], title: '导出图片' });
           return true;
         }
-        const url = URL.createObjectURL(file);
-        if (isMobileLikeBrowser()) {
-          if (!showExportPreview(url, fileName)) triggerDownload(url);
-        } else {
-          triggerDownload(url);
-        }
-        if (!isMobileLikeBrowser()) setTimeout(() => URL.revokeObjectURL(url), 1000);
+        deliverBlob(file);
         return true;
       } catch {
         try {
-          const fallbackCanvas = buildExportCanvas(state, true, true);
-          const fallbackBlob = await canvasToBlob(fallbackCanvas);
-          const fallbackFile = new File([fallbackBlob], fileName, { type: 'image/png' });
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [fallbackFile] })) {
-            await navigator.share({ files: [fallbackFile], title: '导出图片' });
-            return true;
-          }
-          const fallbackUrl = URL.createObjectURL(fallbackFile);
-          if (isMobileLikeBrowser()) {
-            if (!showExportPreview(fallbackUrl, fileName)) triggerDownload(fallbackUrl);
-          } else {
-            triggerDownload(fallbackUrl);
-          }
-          if (!isMobileLikeBrowser()) setTimeout(() => URL.revokeObjectURL(fallbackUrl), 1000);
+          const compactVisibleCanvas = cloneCanvasAtMaxSide(els.canvas, isMobileLikeBrowser() ? 1400 : 1800);
+          if (!compactVisibleCanvas) return false;
+          const compactBlob = await canvasToBlob(compactVisibleCanvas);
+          const fallbackFile = new File([compactBlob], pngFileName, { type: 'image/png' });
+          deliverBlob(fallbackFile);
           return true;
         } catch {
-          return false;
+          try {
+            const compactVisibleCanvas = cloneCanvasAtMaxSide(els.canvas, isMobileLikeBrowser() ? 1400 : 1800);
+            if (!compactVisibleCanvas) return false;
+            const jpgBlob = await canvasToBlob(compactVisibleCanvas, 'image/jpeg', 0.92);
+            const jpgFile = new File([jpgBlob], jpgFileName, { type: 'image/jpeg' });
+            deliverBlob(jpgFile, jpgFileName);
+            return true;
+          } catch {
+            return false;
+          }
         }
       }
     };
@@ -3837,9 +4121,34 @@
   let lastLayerControlsKey = '';
   let lastCanvasFrameWidth = 0;
   let lastCanvasFrameHeight = 0;
+  let stickerPanelRendered = false;
+  let textTemplatesRendered = false;
+
+  function isTouchTabletViewport() {
+    const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+    const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+    const longSide = Math.max(window.innerWidth || 0, window.innerHeight || 0);
+    const tabletSize = shortSide >= 761 && shortSide <= 1180 && longSide <= 1400;
+    const ipadDesktopUa = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    const ipadUa = /ipad/i.test(navigator.userAgent);
+    return coarsePointer && tabletSize && (ipadDesktopUa || ipadUa || navigator.maxTouchPoints > 1);
+  }
+
+  function isMobileLayoutViewport() {
+    return window.matchMedia('(max-width: 760px)').matches || (isTouchTabletViewport() && window.matchMedia('(orientation: portrait)').matches);
+  }
+
+  function isBlockedTabletLandscape() {
+    return isTouchTabletViewport() && window.matchMedia('(orientation: landscape)').matches;
+  }
+
+  function syncViewportMode() {
+    document.documentElement.classList.toggle('force-mobile-layout', isMobileLayoutViewport());
+    document.documentElement.classList.toggle('tablet-landscape-locked', isBlockedTabletLandscape());
+  }
 
   function isMobileViewport() {
-    return window.matchMedia('(max-width: 760px)').matches;
+    return isMobileLayoutViewport();
   }
 
   function syncCanvasFrameSize() {
@@ -3878,11 +4187,18 @@
     });
   }
 
-  async function buildPixelStickerPack() {
+  function resolveAssetUrl(path, version = '') {
+    const url = new URL(path, window.location.href);
+    if (version) url.searchParams.set('v', version);
+    return url.href;
+  }
+
+  function buildPixelStickerPack() {
     const stickers = USER_STICKER_FILES.map((fileName, index) => ({
       id: `user-${index + 1}`,
       name: `贴纸 ${index + 1}`,
-      src: `./assets/user_stickers/${fileName}?v=${USER_STICKER_VERSION}`,
+      src: resolveAssetUrl(`./assets/user_stickers/${fileName}`, USER_STICKER_VERSION),
+      fallbackSrc: resolveAssetUrl(`./assets/user_stickers/${fileName}`),
     }));
     stickerPacks = stickers.length
       ? [{ id: 'user-pack', name: '地雷系像素风贴纸', stickers }]
@@ -3894,8 +4210,15 @@
       pack.stickers.forEach((sticker) => {
         if (STICKER_IMAGE_CACHE.has(sticker.src)) return;
         const img = new Image();
+        img.onload = () => {
+          STICKER_IMAGE_CACHE.set(sticker.src, img);
+          if (sticker.fallbackSrc) STICKER_IMAGE_CACHE.set(sticker.fallbackSrc, img);
+        };
+        img.onerror = () => {
+          if (!sticker.fallbackSrc || img.src === sticker.fallbackSrc) return;
+          img.src = sticker.fallbackSrc;
+        };
         img.src = sticker.src;
-        STICKER_IMAGE_CACHE.set(sticker.src, img);
       });
     });
   }
@@ -3977,7 +4300,7 @@
       y: 0.82,
       ...DEFAULT_TEXT_STYLE,
       ...selectedPreset.style,
-      fontFamily: selectedFont.family,
+      fontFamily: getRuntimeFontFamily(selectedFont),
       fontId: selectedFont.id,
       content: selectedPreset.content,
     });
@@ -4020,8 +4343,6 @@
       Math.abs(filters.tint) < 0.001 &&
       Math.abs(filters.skinWhiten ?? 0) < 0.001 &&
       Math.abs(filters.blushStrength ?? 0) < 0.001 &&
-      Math.abs(filters.skinProtect ?? 0) < 0.001 &&
-      Math.abs(filters.redPreserve ?? 0) < 0.001 &&
       Math.abs(filters.blackProtect ?? 0) < 0.001 &&
       Math.abs(filters.fade) < 0.001 &&
       Math.abs(filters.overlayStrength) < 0.001
@@ -4070,13 +4391,19 @@
         btn.title = sticker.name;
 
         const img = document.createElement('img');
-        img.src = sticker.src;
         img.alt = sticker.name;
-        img.loading = 'lazy';
+        img.loading = 'eager';
         img.decoding = 'async';
+        img.setAttribute('fetchpriority', 'high');
         img.onload = () => {
           if (!STICKER_IMAGE_CACHE.has(sticker.src)) STICKER_IMAGE_CACHE.set(sticker.src, img);
+          if (sticker.fallbackSrc && !STICKER_IMAGE_CACHE.has(sticker.fallbackSrc)) STICKER_IMAGE_CACHE.set(sticker.fallbackSrc, img);
         };
+        img.onerror = () => {
+          if (!sticker.fallbackSrc || img.src === sticker.fallbackSrc) return;
+          img.src = sticker.fallbackSrc;
+        };
+        img.src = sticker.src;
 
         btn.appendChild(img);
         btn.onclick = () => addSticker(sticker);
@@ -4088,6 +4415,12 @@
     });
   }
 
+  function ensureStickerPanelRendered() {
+    if (stickerPanelRendered) return;
+    renderStickerPanel();
+    stickerPanelRendered = true;
+  }
+
   function renderTextTemplates() {
     els.textTemplateList.innerHTML = '';
 
@@ -4095,14 +4428,24 @@
       const btn = document.createElement('button');
       btn.className = 'preset-chip text-preset-chip';
       const content = document.createElement('span');
-      content.className = 'text-preset-content';
-      content.textContent = preset.content;
       const font = TEXT_FONTS.find((item) => item.id === (preset.fontId || activeTextFontId));
-      content.style.fontFamily = font?.family || DEFAULT_TEXT_STYLE.fontFamily;
+      const useFontPreview = shouldApplyFontPreviewClass(font);
+      content.className = `text-preset-content ${useFontPreview ? font.className : ''}`.trim();
+      content.textContent = preset.content;
+      const presetFontFamily = useFontPreview ? getRuntimeFontFamily(font) || DEFAULT_TEXT_STYLE.fontFamily : TEXT_FONTS[0].family;
+      btn.style.setProperty('--text-preset-family', presetFontFamily);
+      content.style.setProperty('--text-preset-family', presetFontFamily);
       btn.append(content);
       btn.onclick = () => addText(preset);
       els.textTemplateList.appendChild(btn);
     });
+    scheduleFontPreviewWarmup('mushin');
+  }
+
+  function ensureTextTemplatesRendered() {
+    if (textTemplatesRendered) return;
+    renderTextTemplates();
+    textTemplatesRendered = true;
   }
 
   function preloadTextFonts() {
@@ -4188,7 +4531,7 @@
 
     const filterPanels = [
       { id: 'basic', label: '基础', keys: ['overlayStrength', 'brightness', 'contrast', 'saturation', 'temperature', 'tint', 'fade'] },
-      { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'skinProtect', 'redPreserve', 'blackProtect'] },
+      { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'blackProtect'] },
       { id: 'hsl', label: 'HSL', keys: [] },
     ];
 
@@ -4219,21 +4562,19 @@
           min: control.min,
           max: control.max,
           step: control.step,
-          value: state.filters[control.key],
-          onBegin: () => store.beginStep(),
+	          value: state.filters[control.key],
+	          onBegin: () => store.beginStep(),
+	          onPreview: (value) => {
+	            const currentFilters = store.getState().filters;
+            sliderPreviewFilters =
+              control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original'
+                ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset.filters, value) }
+                : { ...currentFilters, [control.key]: value };
+            applyCanvasCssInteractionPreview(store.getState());
+          },
           onInput: (value) => {
             if (control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original') {
-              const baseOverlay = selectedPreset.filters.overlayStrength || 0.0001;
-              const ratio = clamp(value / baseOverlay, 0, 1.6);
-              const partial = { overlayStrength: value };
-              FILTER_CONTROL_DEFS.filter((item) => item.key !== 'overlayStrength').forEach((item) => {
-                const p = selectedPreset.filters[item.key];
-                const d = DEFAULT_FILTERS[item.key];
-                if (typeof p === 'number' && typeof d === 'number') {
-                  partial[item.key] = lerp(d, p, ratio);
-                }
-              });
-              store.setFilters(partial, state.activePresetId ?? 'original', false);
+              store.setFilters(blendPresetFiltersByStrength(selectedPreset.filters, value), state.activePresetId ?? 'original', false);
               return;
             }
             store.setFilters({ [control.key]: value }, state.activePresetId ?? 'original', false);
@@ -4512,11 +4853,11 @@
       els.layerControls.appendChild(
         makeFontPicker({
           label: '字体',
-          value: selected.fontId || TEXT_FONTS.find((font) => font.family === selected.fontFamily)?.id || activeTextFontId,
+          value: selected.fontId || TEXT_FONTS.find((font) => font.family === selected.fontFamily || font.mobileFamily === selected.fontFamily)?.id || activeTextFontId,
           onInput: (fontId) => {
             activeTextFontId = fontId;
             const font = TEXT_FONTS.find((item) => item.id === fontId) || TEXT_FONTS[0];
-            store.updateLayer(selected.id, { fontFamily: font.family, fontId: font.id }, true);
+            store.updateLayer(selected.id, { fontFamily: getRuntimeFontFamily(font), fontId: font.id }, true);
           },
         })
       );
@@ -4652,6 +4993,10 @@
   function revealLayerControlsFor(layer) {
     if (!layer) return;
     setActiveTool(toolForLayer(layer));
+    if (activeTool !== 'project') {
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+    }
     mobileLayerControlsExpanded = true;
     renderLayerControls(store.getState());
     if (els.propLayerBlock) els.propLayerBlock.style.display = '';
@@ -4678,6 +5023,11 @@
     document.querySelectorAll('.tool-pane').forEach((pane) => {
       pane.classList.toggle('active', pane.dataset.pane === tool);
     });
+    if (tool === 'stickers') {
+      ensureStickerPanelRendered();
+      preloadStickerImages();
+    }
+    if (tool === 'text') ensureTextTemplatesRendered();
   }
 
   function enterManualBlushFallback() {
@@ -4778,7 +5128,7 @@
     els.redoBtn.disabled = !store.canRedo();
     if (isMobileViewport()) {
       if (els.clearCanvasBtn) els.clearCanvasBtn.textContent = '清空';
-      if (els.restoreOriginalBtn) els.restoreOriginalBtn.textContent = '恢复';
+      if (els.restoreOriginalBtn) els.restoreOriginalBtn.textContent = '原图';
     } else {
       if (els.clearCanvasBtn) els.clearCanvasBtn.textContent = '清空画布';
       if (els.restoreOriginalBtn) els.restoreOriginalBtn.textContent = '恢复原图';
@@ -4858,8 +5208,13 @@
       const renderedState = pendingRenderState || store.getState();
       render(renderedState);
       if (isSliderDragging) {
-        sliderDragStartFilters = { ...renderedState.filters };
-        if (els?.canvas) els.canvas.style.filter = '';
+        const renderCost = performance.now() - renderStartedAt;
+        if (renderCost <= INTERACTIVE_RENDER_BUDGET_MS * 0.75) {
+          sliderDragStartFilters = { ...renderedState.filters };
+          if (els?.canvas) els.canvas.style.filter = '';
+        } else {
+          applyCanvasCssInteractionPreview(renderedState);
+        }
       }
       if (renderingLightweight) {
         const renderCost = performance.now() - renderStartedAt;
@@ -4876,8 +5231,8 @@
   }
 
   function bindEvents() {
-    const finishDirectInteraction = () => {
-      overlayController.finishInteraction?.();
+    const finishDirectInteraction = (event) => {
+      overlayController.finishInteraction?.(event);
     };
     window.addEventListener('pointerup', finishDirectInteraction);
     window.addEventListener('pointercancel', finishDirectInteraction);
@@ -5112,6 +5467,11 @@
           pane.classList.toggle('active', pane.dataset.pane === tool);
         });
         activeTool = tool;
+        if (tool === 'stickers') {
+          ensureStickerPanelRendered();
+          preloadStickerImages();
+        }
+        if (tool === 'text') ensureTextTemplatesRendered();
         trackEvent('tool_select', { tool });
         mobileLayerMenuOpen = false;
         mobileLayerControlsExpanded = false;
@@ -5124,8 +5484,17 @@
     }
 
     window.addEventListener('resize', () => {
+      syncViewportMode();
       syncCanvasFrameSize();
       render(store.getState());
+    });
+
+    window.addEventListener('orientationchange', () => {
+      window.setTimeout(() => {
+        syncViewportMode();
+        syncCanvasFrameSize();
+        render(store.getState());
+      }, 120);
     });
   }
 
@@ -5160,20 +5529,25 @@
 
   async function init() {
     trackEvent('app_open', { referrerType: document.referrer ? 'external_or_internal' : 'direct' });
+    syncViewportMode();
     setupBrandSubtitleTyping();
     bindEvents();
     store.subscribe(scheduleRender);
-    renderStickerPanel();
-    renderTextTemplates();
+    buildPixelStickerPack();
+    if (isMobileViewport()) {
+      if (activeTool === 'stickers') ensureStickerPanelRendered();
+      if (activeTool === 'text') ensureTextTemplatesRendered();
+    } else {
+      ensureStickerPanelRendered();
+      ensureTextTemplatesRendered();
+    }
     render(store.getState());
 
     runWhenIdle(() => {
-      ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
+      if (!isMobileViewport()) ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
     });
     runWhenIdle(() => {
-      buildPixelStickerPack().then(() => {
-        renderStickerPanel();
-      });
+      if (!isMobileViewport() || activeTool === 'stickers') preloadStickerImages();
     }, 1200);
     runWhenIdle(() => {
       if (!isMobileViewport()) preloadTextFonts().then(() => render(store.getState()));
