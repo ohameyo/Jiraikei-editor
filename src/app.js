@@ -282,25 +282,25 @@
       filters: {
         brightness: 1.01,
         contrast: 1.03,
-        saturation: 0.38,
+        saturation: 0.48,
         temperature: -8,
         tint: 6,
-        skinWhiten: 0.42,
-        blushStrength: 0.34,
+        skinWhiten: 0.48,
+        blushStrength: 0.48,
         blackProtect: 0.9,
         fade: 0.08,
         overlayColor: '#E2D7DF',
         overlayStrength: 0.06,
         ...buildHslPatch({
-          master: { h: 0, s: -42, l: 2 },
-          skin: { h: 4, s: -10, l: 10 },
-          red: { h: 0, s: -30, l: 1 },
-          orange: { h: 0, s: -82, l: 3 },
+          master: { h: 0, s: -34, l: 2 },
+          skin: { h: 4, s: 6, l: 11 },
+          red: { h: 0, s: -10, l: 2 },
+          orange: { h: 0, s: -64, l: 3 },
           yellow: { h: 0, s: -94, l: 4 },
           green: { h: 0, s: -96, l: 6 },
           cyan: { h: 0, s: -88, l: 4 },
           blue: { h: 0, s: -82, l: 3 },
-          purple: { h: 0, s: -74, l: 2 },
+          purple: { h: 0, s: -54, l: 2 },
         }),
       },
     },
@@ -311,25 +311,25 @@
       filters: {
         brightness: 0.98,
         contrast: 1.12,
-        saturation: 0.12,
+        saturation: 0.22,
         temperature: -4,
         tint: 0,
-        skinWhiten: 0.36,
-        blushStrength: 0.18,
+        skinWhiten: 0.42,
+        blushStrength: 0.34,
         blackProtect: 0.96,
         fade: 0.04,
         overlayColor: '#DCDDE3',
         overlayStrength: 0.03,
         ...buildHslPatch({
-          master: { h: 0, s: -88, l: 0 },
-          skin: { h: 2, s: -40, l: 8 },
-          red: { h: 0, s: -86, l: 0 },
-          orange: { h: 0, s: -94, l: 1 },
+          master: { h: 0, s: -68, l: 0 },
+          skin: { h: 2, s: -12, l: 9 },
+          red: { h: 0, s: -44, l: 1 },
+          orange: { h: 0, s: -82, l: 2 },
           yellow: { h: 0, s: -98, l: 2 },
           green: { h: 0, s: -99, l: 4 },
           cyan: { h: 0, s: -98, l: 2 },
           blue: { h: 0, s: -95, l: 1 },
-          purple: { h: 0, s: -92, l: 0 },
+          purple: { h: 0, s: -76, l: 1 },
         }),
       },
     },
@@ -1257,6 +1257,8 @@
     const imageData = targetCtx.getImageData(0, 0, canvasWidth, targetCtx.canvas.height);
     const data = imageData.data;
     const strengthCurve = Math.pow(blushStrength, 0.82);
+    const masterDesat = Math.max(0, -Number(filters[hslKey('master', 's')] ?? 0)) / 100;
+    const lowSaturationBoost = clamp((1 - clamp(Number(filters.saturation ?? 1), 0, 1)) * 0.42 + masterDesat * 0.26, 0, 0.62);
     const hasFaceBoxes = Array.isArray(faceBoxes) && faceBoxes.length > 0;
 
     for (let i = 0; i < data.length; i += 4) {
@@ -1269,7 +1271,7 @@
 
       const faceWeight = hasFaceBoxes ? getFaceRegionWeight(px, py, faceBoxes) : 0.72;
       const placementGuard = hasFaceBoxes ? clamp(0.42 + faceWeight * 0.58, 0, 1) : 0.72;
-      const blush = regionWeight * placementGuard * strengthCurve;
+      const blush = regionWeight * placementGuard * strengthCurve * (1 + lowSaturationBoost);
       if (blush <= 0.001) continue;
 
       const r = data[i];
@@ -1279,8 +1281,8 @@
       const targetR = lerp(230, 255, luma);
       const targetG = lerp(112, 174, luma);
       const targetB = lerp(172, 226, luma);
-      const tint = clamp(0.08 + blushStrength * 0.24, 0, 0.34) * blush;
-      const lift = clamp(0.03 + blushStrength * 0.08, 0, 0.12) * blush;
+      const tint = clamp(0.08 + blushStrength * 0.24 + lowSaturationBoost * 0.08, 0, 0.42) * blush;
+      const lift = clamp(0.03 + blushStrength * 0.08 + lowSaturationBoost * 0.035, 0, 0.15) * blush;
 
       data[i] = clamp(lerp(r, targetR, tint) + (255 - r) * lift, 0, 255);
       data[i + 1] = clamp(lerp(g, targetG, tint * 0.82) + (244 - g) * lift * 0.44, 0, 255);
