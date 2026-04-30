@@ -437,6 +437,9 @@
   const DESKTOP_SLIDER_COMMIT_MS = 16;
   const DESKTOP_LIGHTWEIGHT_RENDER_MS = 24;
   const INTERACTIVE_RENDER_BUDGET_MS = 56;
+  const PROCESSING_RENDER_COST_MS = 90;
+  const PROCESSING_BADGE_VISIBLE_MS = 520;
+  const PROCESSING_BADGE_PRIMED_VISIBLE_MS = 180;
   let stickerPacks = [];
   let isSliderDragging = false;
   let isTextEditing = false;
@@ -2322,6 +2325,41 @@
       window.clearTimeout(pendingRenderTimer);
       pendingRenderTimer = 0;
     }
+    hideProcessingBadge();
+  }
+
+  function hideProcessingBadge() {
+    if (processingBadgeTimer) window.clearTimeout(processingBadgeTimer);
+    processingBadgeTimer = 0;
+    processingBadgePrimed = false;
+    els?.canvasFrame?.classList.remove('is-processing');
+  }
+
+  function primeProcessingBadgeForRender() {
+    if (!els?.canvasFrame || !store.getState().image.loaded || isDirectManipulating) return false;
+    if (processingBadgeTimer) window.clearTimeout(processingBadgeTimer);
+    processingBadgeTimer = 0;
+    processingBadgePrimed = true;
+    els.canvasFrame.classList.add('is-processing');
+    return true;
+  }
+
+  function showProcessingBadgeForSlowRender(renderCost) {
+    if (!els?.canvasFrame || !store.getState().image.loaded) return;
+    if (isDirectManipulating) {
+      hideProcessingBadge();
+      return;
+    }
+    const wasPrimed = processingBadgePrimed;
+    processingBadgePrimed = false;
+    if (renderCost < PROCESSING_RENDER_COST_MS && !wasPrimed) return;
+    els.canvasFrame.classList.add('is-processing');
+    if (processingBadgeTimer) window.clearTimeout(processingBadgeTimer);
+    const visibleMs = renderCost < PROCESSING_RENDER_COST_MS ? PROCESSING_BADGE_PRIMED_VISIBLE_MS : PROCESSING_BADGE_VISIBLE_MS;
+    processingBadgeTimer = window.setTimeout(() => {
+      processingBadgeTimer = 0;
+      els.canvasFrame?.classList.remove('is-processing');
+    }, visibleMs);
   }
 
   function scaleLayerForPreview(layer, scale) {
@@ -2808,7 +2846,7 @@
       if (shouldCommit) {
         if (commitOnEndOnly) {
           window.setTimeout(() => {
-            runWhenIdle(() => render(store.getState()), 120);
+            runWhenIdle(() => requestRenderWithProcessingLead(store.getState()), 120);
           }, 32);
         } else {
           render(store.getState());
@@ -2959,7 +2997,7 @@
         window.clearTimeout(pendingRenderTimer);
         pendingRenderTimer = 0;
       }
-      render(store.getState());
+      requestRenderWithProcessingLead(store.getState());
     };
 
     wrapper.append(title, input);
@@ -4117,6 +4155,7 @@
   const els = {
     canvas: document.getElementById('editorCanvas'),
     canvasFrame: document.getElementById('canvasFrame'),
+    canvasProcessingBadge: document.getElementById('canvasProcessingBadge'),
     canvasEmpty: document.getElementById('canvasEmpty'),
     overlayLayer: document.getElementById('overlayLayer'),
 
@@ -4182,6 +4221,8 @@
   let pendingRenderFrame = 0;
   let pendingRenderTimer = 0;
   let pendingRenderState = null;
+  let processingBadgeTimer = 0;
+  let processingBadgePrimed = false;
   let lastInteractiveRenderAt = 0;
   let mobileLayerMenuOpen = false;
   let mobileLayerControlsExpanded = false;
@@ -5171,6 +5212,7 @@
   }
 
   function render(state) {
+    const renderStartedAt = performance.now();
     syncCanvasFrameSize();
     try {
       renderCanvas(ctx, state);
@@ -5257,6 +5299,18 @@
       const mobileLayerPanelOpen = onLayerTool && showLayer;
       els.studioShell.dataset.mobileLayerPanel = mobileLayerPanelOpen ? 'open' : 'collapsed';
     }
+    showProcessingBadgeForSlowRender(performance.now() - renderStartedAt);
+  }
+
+  function requestRenderWithProcessingLead(state) {
+    const shouldWaitForBadgePaint = primeProcessingBadgeForRender();
+    if (!shouldWaitForBadgePaint) {
+      render(state);
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => render(state));
+    });
   }
 
   function scheduleRender(state) {
@@ -5280,8 +5334,8 @@
       window.clearTimeout(pendingRenderTimer);
       pendingRenderTimer = 0;
     }
-    pendingRenderFrame = window.requestAnimationFrame(() => {
-      pendingRenderFrame = 0;
+    const waitForBadgePaint = !lightweight && primeProcessingBadgeForRender();
+    const runScheduledRender = () => {
       if (isDirectManipulating) return;
       lastInteractiveRenderAt = performance.now();
       const renderingLightweight = isSliderDragging || isTextEditing;
@@ -5308,6 +5362,17 @@
         interactiveRenderPressure = clamp(interactiveRenderPressure - 0.2, 0, 3);
       }
       pendingRenderState = null;
+    };
+    pendingRenderFrame = window.requestAnimationFrame(() => {
+      if (!waitForBadgePaint) {
+        pendingRenderFrame = 0;
+        runScheduledRender();
+        return;
+      }
+      pendingRenderFrame = window.requestAnimationFrame(() => {
+        pendingRenderFrame = 0;
+        runScheduledRender();
+      });
     });
   }
 
