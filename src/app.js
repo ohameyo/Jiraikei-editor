@@ -4599,10 +4599,10 @@
     const isOriginalMode = (state.activePresetId ?? 'original') === 'original';
 
     const filterPanels = [
-      { id: 'basic', label: '基础', keys: ['overlayStrength', 'brightness', 'contrast', 'saturation', 'temperature', 'tint', 'fade'] },
+      { id: 'basic', label: '基础', keys: ['overlayStrength', 'brightness', 'saturation', 'fade'] },
       { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'blackProtect'] },
-      { id: 'hsl', label: 'HSL', keys: [] },
     ];
+    if (!filterPanels.some((panel) => panel.id === activeFilterPanel)) activeFilterPanel = 'basic';
 
     const panelTabs = document.createElement('div');
     panelTabs.className = 'filter-panel-tabs';
@@ -4820,36 +4820,39 @@
     }
 
     if (selected.type === 'mosaic') {
-      els.layerControls.appendChild(
+      const makeMosaicSlider = (config) =>
         makeSlider({
+          ...config,
+          commitOnEnd: true,
+          onBegin: () => store.beginStep(),
+        });
+      els.layerControls.appendChild(
+        makeMosaicSlider({
           label: '羽化',
           min: 0,
           max: 0.8,
           step: 0.01,
           value: selected.feather ?? 0.1,
-          onBegin: () => store.beginStep(),
           onInput: (v) => store.updateLayer(selected.id, { feather: v }),
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeMosaicSlider({
           label: '羽化范围',
           min: 0,
           max: 2.5,
           step: 0.01,
           value: selected.featherRange ?? 1,
-          onBegin: () => store.beginStep(),
           onInput: (v) => store.updateLayer(selected.id, { featherRange: v }),
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeMosaicSlider({
           label: '白色覆盖(透明→不透明)',
           min: 0,
           max: 1,
           step: 0.01,
           value: selected.whiteOpacity ?? 0.34,
-          onBegin: () => store.beginStep(),
           onInput: (v) => store.updateLayer(selected.id, { whiteOpacity: v }),
         })
       );
@@ -4858,24 +4861,22 @@
         // 雾化模糊强度固定，避免与风格预设冲突
       } else {
         els.layerControls.appendChild(
-          makeSlider({
+          makeMosaicSlider({
             label: '网格大小',
             min: 4,
             max: 24,
             step: 1,
             value: selected.cellSize ?? 8,
-            onBegin: () => store.beginStep(),
             onInput: (v) => store.updateLayer(selected.id, { cellSize: v }),
           })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeMosaicSlider({
             label: '网格透明度',
             min: 0.05,
             max: 0.7,
             step: 0.01,
             value: selected.gridAlpha ?? 0.3,
-            onBegin: () => store.beginStep(),
             onInput: (v) => store.updateLayer(selected.id, { gridAlpha: v }),
           })
         );
