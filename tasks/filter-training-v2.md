@@ -55,12 +55,12 @@ P0。
 
 ### 灰粉 `gray-pink`
 - 风格定义：去色清透、保留粉感、黑白灰氛围；应接近灰阶但保留妆面和少女感。
-- 基础参数：`brightness 1.01`、`contrast 1.03`、`saturation 0.48`、`temperature -8`、`tint 6`、`skinWhiten 0.48`、`blushStrength 0.48`、`blackProtect 0.9`、`fade 0.08`、`overlayColor #E2D7DF`、`overlayStrength 0.04`、`overlayStrengthMax 0.1`。
+- 基础参数：`brightness 1.31`、`contrast 1.03`、`saturation 0.48`、`temperature -8`、`tint 6`、`skinWhiten 0.48`、`blushStrength 0.48`、`blackProtect 0.9`、`fade 0.08`、`overlayColor #E2D7DF`、`overlayStrength 0.04`、`overlayStrengthMax 0.1`。
 - HSL：`master h0 s-34 l2`、`skin h4 s6 l11`、`red h0 s-10 l2`、`orange h0 s-64 l3`、`yellow h0 s-94 l4`、`green h0 s-96 l6`、`cyan h0 s-88 l4`、`blue h0 s-82 l3`、`purple h0 s-54 l2`。
 
 ### 黑白 `mono`
 - 风格定义：高明度黑白灰、苍白肤感、深黑头发与服饰、暗红唇妆残色；接近参考图的干净黑白，而不是柔灰微粉。
-- 基础参数：`brightness 1.04`、`contrast 1.14`、`saturation 0.18`、`temperature -4`、`tint 0`、`skinWhiten 0.54`、`blushStrength 0.26`、`blackProtect 0.94`、`fade 0.025`、`overlayColor #DCDDE3`、`overlayStrength 0.006`、`overlayStrengthMax 0.03`。
+- 基础参数：`brightness 1.35`、`contrast 1.14`、`saturation 0.18`、`temperature -4`、`tint 0`、`skinWhiten 0.54`、`blushStrength 0.26`、`blackProtect 0.94`、`fade 0.025`、`overlayColor #DCDDE3`、`overlayStrength 0.006`、`overlayStrengthMax 0.03`。
 - HSL：`master h0 s-72 l2`、`skin h1 s-8 l12`、`red h0 s-42 l1`、`orange h0 s-76 l2`、`yellow h0 s-96 l3`、`green h0 s-98 l4`、`cyan h0 s-96 l2`、`blue h0 s-94 l1`、`purple h0 s-78 l1`。
 
 ## 当前问题
@@ -114,10 +114,21 @@ P0。
 - 决策：候选合入；需要下一轮 AB 对比确认是否过亮或唇色被压太低。
 - 验证：`node --check src/app.js` 通过。
 
+### 2026-04-30 / 灰粉与黑白 / 亮度拉高 30%
+- 样张：用户要求黑白和灰粉亮度统一拉高 30%，承接上一轮黑白参考图方向。
+- 修改前目标：灰粉 `brightness 1.01`、黑白 `brightness 1.04`；旧亮度滑杆上限为 `1.3`，无法完整表达黑白 30% 提亮后的数值。
+- 修改字段：亮度滑杆上限 `1.3 -> 1.6`；灰粉 `brightness 1.01 -> 1.31`；黑白 `brightness 1.04 -> 1.35`。
+- 修改后结果：灰粉和黑白整体白场显著抬高，目标是更接近高明度棚拍/自拍参考；后续需重点检查脸部高光、白衣和白墙是否过曝。
+- 通过样张：待用真实导入照片复测。
+- 失败样张：待记录。
+- 决策：候选合入；若白场过曝，优先微降亮度或用对比度/肤色提白分担，而不是回退整套黑白方向。
+- 验证：`node --check src/app.js` 通过。
+
 ## 已完成
 - 创建滤镜调色训练 v2 任务文档。
 - 梳理当前实际滤镜代码入口、预设参数、已知问题、训练方法和验收标准。
 - 按用户提供的 3 张参考图调整黑白 `mono` 预设为更干净的高明度黑白灰方向。
+- 将灰粉和黑白预设亮度按当前值拉高约 30%，并把亮度滑杆上限提高到 `1.6` 以覆盖新预设值。
 
 ## 修改文件
 - `src/app.js`
