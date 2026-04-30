@@ -682,6 +682,18 @@
     return clamp(base * chroma, 0, 1);
   }
 
+  function getLipColorWeight(hue, sat, light, faceWeight, subjectWeight, hasFaceContext) {
+    const redHue = Math.max(
+      1 - smoothstep(18, 54, hueDistance(hue, 352)),
+      1 - smoothstep(20, 58, hueDistance(hue, 8)),
+      1 - smoothstep(24, 62, hueDistance(hue, 338))
+    );
+    const lipChroma = smoothstep(0.08, 0.22, sat) * (1 - smoothstep(0.78, 0.94, sat));
+    const lipLight = smoothstep(0.12, 0.24, light) * (1 - smoothstep(0.68, 0.84, light));
+    const context = hasFaceContext ? smoothstep(0.08, 0.5, faceWeight) : subjectWeight * 0.28;
+    return clamp(redHue * lipChroma * lipLight * context, 0, 1);
+  }
+
   function applySelectiveHsl(r, g, b, filters, skinMask, hasFaceContext = true) {
     let [h, s, l] = rgbToHsl(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255));
     const baseH = h;
@@ -1795,6 +1807,23 @@
         r = lerp(r, sr2, greenSpeckFix);
         g = lerp(g, sg2, greenSpeckFix);
         bl = lerp(bl, sb2, greenSpeckFix);
+      }
+
+      const lipWeight = getLipColorWeight(oHue, oSat, oLight, faceWeight, subjectWeight, hasFaceBoxes);
+      if (lipWeight > 0.001) {
+        const [, lipS, lipL] = rgbToHsl(r, g, bl);
+        const masterDesat = Math.max(0, -Number(filters[hslKey('master', 's')] ?? 0)) / 70;
+        const globalDesat = 1 - clamp(Number(filters.saturation ?? 1), 0, 1);
+        const lostChroma = smoothstep(0.02, 0.18, oSat - lipS);
+        const restore = lipWeight * clamp(0.12 + globalDesat * 0.18 + masterDesat * 0.14 + lostChroma * 0.12, 0.08, 0.42);
+        if (restore > 0.001) {
+          const targetS = clamp(Math.max(lipS, Math.min(0.5, oSat * 0.72 + 0.035)), 0, 1);
+          const targetL = clamp(lipL * 0.7 + oLight * 0.3, 0, 1);
+          const [lr, lg, lb] = hslToRgb(oHue, targetS, targetL);
+          r = lerp(r, lr, restore);
+          g = lerp(g, lg, restore);
+          bl = lerp(bl, lb, restore);
+        }
       }
 
       if (skinWhiten > 0 || blushStrength > 0) {
