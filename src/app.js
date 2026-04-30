@@ -3099,11 +3099,7 @@
 
     function ensureManualBlushSetup() {
       const state = store.getState();
-      if ((state.filters.blushManual ?? 0) > 0.5) {
-        const existingControls = getBlushControlsFromFilters(state.filters, state.canvas.width, state.canvas.height);
-        const hasEnabledControl = ['left', 'right', 'extraLeft', 'extraRight'].some((side) => existingControls?.[side]?.enabled);
-        if (hasEnabledControl) return true;
-      }
+      if ((state.filters.blushManual ?? 0) > 0.5) return true;
       const controls = state.image.autoBlushDetected
         ? getAutoBlushControls(
             state.image.faceBoxes || [],
@@ -3150,8 +3146,16 @@
       Object.entries(patch).forEach(([key, value]) => {
         partial[`${prefix}${key}`] = value;
       });
-      if ((side === 'extraLeft' || side === 'extraRight') && Number(patch.Enabled ?? 1) <= 0.5) {
-        partial.blushExtraEnabled = 0;
+      if (side === 'extraLeft' || side === 'extraRight') {
+        const nextExtraLeftEnabled =
+          side === 'extraLeft' && patch.Enabled !== undefined
+            ? Number(patch.Enabled) > 0.5
+            : Number(store.getState().filters.blushExtraLeftEnabled ?? 1) > 0.5;
+        const nextExtraRightEnabled =
+          side === 'extraRight' && patch.Enabled !== undefined
+            ? Number(patch.Enabled) > 0.5
+            : Number(store.getState().filters.blushExtraRightEnabled ?? 1) > 0.5;
+        partial.blushExtraEnabled = nextExtraLeftEnabled || nextExtraRightEnabled ? 1 : 0;
       }
       partial.blushManual = 1;
       store.setFilters(partial, store.getState().activePresetId ?? 'original', recordHistory);

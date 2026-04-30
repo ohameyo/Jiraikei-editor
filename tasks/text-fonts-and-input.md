@@ -67,6 +67,7 @@ P1。
 - 文本框范围按文字实际宽高、描边、阴影和开启后的背景留白计算；未开启背景时不再用背景留白撑大控制框。
 - 画布预览文字对齐状态同步到 overlay 文字预览。
 - 文字图层移动预览增加多方向 `text-shadow` 描边兜底，避免移动端 transform 过程中 `-webkit-text-stroke` 失效后描边消失。
+- 文字选中框从 `outline + outline-offset` 改为内部 `::after` 虚线边框，修复移动端 Safari transform 渲染时左侧边线消失的问题。
 
 ## 修改文件
 - `index.html`

@@ -1159,8 +1159,19 @@ textarea {
 }
 
 .overlay-item.selected {
-  outline: 2px dashed rgba(64, 43, 61, 0.66);
-  outline-offset: 4px;
+  outline: none;
+}
+
+.overlay-item.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(64, 43, 61, 0.66);
+  border-radius: 2px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 3;
+  transform: translateZ(0);
 }
 
 .overlay-preview {
@@ -1169,6 +1180,7 @@ textarea {
   pointer-events: none;
   overflow: hidden;
   opacity: 0;
+  z-index: 1;
 }
 
 .overlay-item.is-transforming .overlay-preview {
@@ -1233,8 +1245,13 @@ textarea {
   outline: none;
 }
 
+.overlay-item.overlay-mosaic.selected::after {
+  display: none;
+}
+
 .overlay-handle {
   position: absolute;
+  z-index: 4;
   --handle-size: 20px;
   width: var(--handle-size);
   height: var(--handle-size);
