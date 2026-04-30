@@ -520,7 +520,7 @@ input[type="file"].native-file-picker-proxy {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: -1;
+  z-index: 1;
   width: 1px;
   height: 1px;
   min-height: 1px;
@@ -930,6 +930,7 @@ button.is-active:hover {
 .canvas-empty {
   position: absolute;
   inset: 0;
+  z-index: 7;
   display: grid;
   place-items: center;
   text-align: center;
@@ -937,6 +938,24 @@ button.is-active:hover {
   font-size: var(--fs-md);
   color: var(--muted);
   cursor: pointer;
+}
+
+.canvas-upload-input {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  opacity: 0.01;
+  cursor: pointer;
+}
+
+.canvas-frame.interactive .canvas-upload-input {
+  display: none;
 }
 
 .control-stack.muted {

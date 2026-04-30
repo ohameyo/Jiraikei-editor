@@ -4157,6 +4157,7 @@
     canvasFrame: document.getElementById('canvasFrame'),
     canvasProcessingBadge: document.getElementById('canvasProcessingBadge'),
     canvasEmpty: document.getElementById('canvasEmpty'),
+    canvasImageUpload: document.getElementById('canvasImageUpload'),
     overlayLayer: document.getElementById('overlayLayer'),
 
     imageUpload: document.getElementById('imageUpload'),
@@ -4223,6 +4224,7 @@
   let pendingRenderState = null;
   let processingBadgeTimer = 0;
   let processingBadgePrimed = false;
+  let imageImportToken = 0;
   let lastInteractiveRenderAt = 0;
   let mobileLayerMenuOpen = false;
   let mobileLayerControlsExpanded = false;
@@ -4583,12 +4585,12 @@
         alert('请先上传图片。');
         return;
       }
-      if (!blushEditMode) {
-        blushPreviewEnabled = true;
-        overlayController.ensureManualBlushSetup();
+      if (blushEditMode) {
+        blushEditMode = false;
+        render(store.getState());
+        return;
       }
-      blushEditMode = !blushEditMode;
-      render(store.getState());
+      enterBlushEditMode();
     };
 
     const resetBtn = document.createElement('button');
@@ -5152,16 +5154,29 @@
     if (tool === 'text') ensureTextTemplatesRendered();
   }
 
-  function enterManualBlushFallback() {
+  function enterBlushEditMode() {
+    const state = store.getState();
+    if (!state.image.loaded) {
+      alert('请先上传图片。');
+      return;
+    }
+    overlayController.finishInteraction?.();
     setActiveTool('project');
     blushPreviewEnabled = true;
-    blushEditMode = true;
     overlayController.ensureManualBlushSetup();
+    blushEditMode = true;
+    render(store.getState());
+    window.requestAnimationFrame(() => {
+      if (isBlushEditActive(store.getState())) overlayController.render();
+    });
+  }
+
+  function enterManualBlushFallback() {
+    enterBlushEditMode();
     if (!blushFallbackNoticeShown) {
       blushFallbackNoticeShown = true;
       window.alert('无法自动识别腮红位置，请拖动画面上的腮红选区手动调整。');
     }
-    render(store.getState());
   }
 
   function renderMobileLayerDock(state) {
@@ -5239,9 +5254,12 @@
     }
 
     els.canvasEmpty.style.display = state.image.loaded ? 'none' : 'grid';
+    if (els.canvasImageUpload) {
+      els.canvasImageUpload.style.display = state.image.loaded ? 'none' : 'block';
+    }
     els.canvasFrame.classList.toggle('interactive', state.image.loaded);
     els.canvasFrame.classList.toggle('compare-on', state.compareMode);
-    els.overlayLayer.style.display = state.compareMode || state.comparePeekOriginal ? 'none' : 'block';
+    els.overlayLayer.style.display = !state.image.loaded || state.compareMode || state.comparePeekOriginal ? 'none' : 'block';
     els.compareBtn.classList.toggle('is-active', state.compareMode);
     if (els.originalFilterBtn) {
       els.originalFilterBtn.classList.toggle('is-active', (state.activePresetId ?? 'original') === 'original');
@@ -5384,13 +5402,26 @@
     window.addEventListener('pointercancel', finishDirectInteraction);
 
     const openImagePicker = () => {
-      if (!els.imageUpload) return;
-      if (!els.imageUpload.getClientRects().length) {
-        els.imageUpload.classList.add('native-file-picker-proxy');
-        document.body.appendChild(els.imageUpload);
-      }
-      els.imageUpload.value = '';
-      els.imageUpload.click();
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.className = 'native-file-picker-proxy';
+      const cleanupInput = () => {
+        window.setTimeout(() => input.remove(), 800);
+      };
+      input.addEventListener(
+        'change',
+        (event) => {
+          handleImageUpload(event);
+          cleanupInput();
+        },
+        { once: true }
+      );
+      document.body.appendChild(input);
+      input.click();
+      window.setTimeout(() => {
+        if (input.isConnected && !input.files?.length) input.remove();
+      }, 60000);
     };
 
     const handleImageUpload = async (event) => {
@@ -5401,6 +5432,8 @@
         overlayController.finishInteraction?.();
         blushEditMode = false;
         blushPreviewEnabled = false;
+        imageImportToken += 1;
+        const currentImportToken = imageImportToken;
         store.setImage(image);
         blushFallbackNoticeShown = false;
         resetFiltersToOriginal({ preserveBlush: false });
@@ -5412,6 +5445,7 @@
           fileType: file.type || 'unknown',
         });
         detectPortraitData(image).then((portrait) => {
+          if (currentImportToken !== imageImportToken) return;
           if (store.getState().image.element !== image) return;
           store.setVisionData(portrait);
           if (!portrait.autoBlushDetected) enterManualBlushFallback();
@@ -5422,15 +5456,25 @@
     };
 
     els.imageUpload.addEventListener('change', handleImageUpload);
+    if (els.canvasImageUpload) {
+      els.canvasImageUpload.addEventListener('click', (event) => {
+        event.stopPropagation();
+        els.canvasImageUpload.value = '';
+      });
+      els.canvasImageUpload.addEventListener('change', handleImageUpload);
+    }
 
     els.clearCanvasBtn.onclick = () => {
       overlayController.finishInteraction?.();
+      imageImportToken += 1;
       store.clearCanvas();
       blushEditMode = false;
       blushPreviewEnabled = false;
       blushFallbackNoticeShown = false;
       mobileLayerControlsExpanded = false;
       els.imageUpload.value = '';
+      if (els.canvasImageUpload) els.canvasImageUpload.value = '';
+      if (els.overlayLayer) els.overlayLayer.innerHTML = '';
       render(store.getState());
     };
 
