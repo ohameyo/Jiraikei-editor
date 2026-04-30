@@ -1951,6 +1951,13 @@ textarea {
     max-height: none;
   }
 
+  .studio-shell[data-mobile-layer-panel="collapsed"][data-active-tool="text"] .ContentPanel {
+    bottom: max(0px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
   .PropertyPanel > .panel-title,
   .PropertyPanel > .sub-note {
     display: none;

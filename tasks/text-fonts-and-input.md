@@ -68,6 +68,7 @@ P1。
 - 画布预览文字对齐状态同步到 overlay 文字预览。
 - 文字图层移动预览增加多方向 `text-shadow` 描边兜底，避免移动端 transform 过程中 `-webkit-text-stroke` 失效后描边消失。
 - 文字选中框从 `outline + outline-offset` 改为内部 `::after` 虚线边框，修复移动端 Safari transform 渲染时左侧边线消失的问题。
+- 移动端文字工具在图层属性折叠时，`ContentPanel` 改为从工具栏下方延伸到安全区底部并开启纵向滚动，修复小屏幕文案预设列表显示不完整且无法滑动的问题。
 
 ## 修改文件
 - `index.html`
