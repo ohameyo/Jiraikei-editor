@@ -3070,7 +3070,11 @@
 
     function ensureManualBlushSetup() {
       const state = store.getState();
-      if ((state.filters.blushManual ?? 0) > 0.5) return true;
+      if ((state.filters.blushManual ?? 0) > 0.5) {
+        const existingControls = getBlushControlsFromFilters(state.filters, state.canvas.width, state.canvas.height);
+        const hasEnabledControl = ['left', 'right', 'extraLeft', 'extraRight'].some((side) => existingControls?.[side]?.enabled);
+        if (hasEnabledControl) return true;
+      }
       const controls = state.image.autoBlushDetected
         ? getAutoBlushControls(
             state.image.faceBoxes || [],
@@ -4348,8 +4352,9 @@
     trackEvent('filter_preset_apply', { presetId: 'original' });
   }
 
-  function resetFiltersToOriginal() {
-    store.setFilters(preserveManualBlushRegion(store.getState().filters, DEFAULT_FILTERS), 'original');
+  function resetFiltersToOriginal({ preserveBlush = true } = {}) {
+    const currentFilters = store.getState().filters;
+    store.setFilters(preserveBlush ? preserveManualBlushRegion(currentFilters, DEFAULT_FILTERS) : { ...DEFAULT_FILTERS }, 'original');
   }
 
   function formatRatio(width, height) {
@@ -5294,9 +5299,12 @@
       if (!file) return;
       try {
         const image = await loadLocalImage(file);
+        overlayController.finishInteraction?.();
+        blushEditMode = false;
+        blushPreviewEnabled = false;
         store.setImage(image);
         blushFallbackNoticeShown = false;
-        resetFiltersToOriginal();
+        resetFiltersToOriginal({ preserveBlush: false });
         trackEvent('image_upload_success', {
           imageWidth: image.naturalWidth,
           imageHeight: image.naturalHeight,
@@ -5317,13 +5325,21 @@
     els.imageUpload.addEventListener('change', handleImageUpload);
 
     els.clearCanvasBtn.onclick = () => {
+      overlayController.finishInteraction?.();
       store.clearCanvas();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      blushFallbackNoticeShown = false;
       mobileLayerControlsExpanded = false;
       els.imageUpload.value = '';
+      render(store.getState());
     };
 
     els.restoreOriginalBtn.onclick = () => {
+      overlayController.finishInteraction?.();
       store.resetEdits();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
       mobileLayerControlsExpanded = false;
     };
 
