@@ -55,12 +55,12 @@ P0。
 
 ### 灰粉 `gray-pink`
 - 风格定义：去色清透、保留粉感、黑白灰氛围；应接近灰阶但保留妆面和少女感。
-- 基础参数：`brightness 1.31`、`contrast 1.03`、`saturation 0.48`、`temperature -8`、`tint 6`、`skinWhiten 0.48`、`blushStrength 0.48`、`blackProtect 0.9`、`fade 0.08`、`overlayColor #E2D7DF`、`overlayStrength 0.04`、`overlayStrengthMax 0.1`。
+- 基础参数：`brightness 1.16`、`contrast 1.03`、`saturation 0.48`、`temperature -8`、`tint 6`、`skinWhiten 0.48`、`blushStrength 0.48`、`blackProtect 0.9`、`fade 0.08`、`overlayColor #E2D7DF`、`overlayStrength 0.04`、`overlayStrengthMax 0.1`。
 - HSL：`master h0 s-34 l2`、`skin h4 s6 l11`、`red h0 s-10 l2`、`orange h0 s-64 l3`、`yellow h0 s-94 l4`、`green h0 s-96 l6`、`cyan h0 s-88 l4`、`blue h0 s-82 l3`、`purple h0 s-54 l2`。
 
 ### 黑白 `mono`
 - 风格定义：高明度黑白灰、苍白肤感、深黑头发与服饰、暗红唇妆残色；接近参考图的干净黑白，而不是柔灰微粉。
-- 基础参数：`brightness 1.35`、`contrast 1.14`、`saturation 0.18`、`temperature -4`、`tint 0`、`skinWhiten 0.54`、`blushStrength 0.26`、`blackProtect 0.94`、`fade 0.025`、`overlayColor #DCDDE3`、`overlayStrength 0.006`、`overlayStrengthMax 0.03`。
+- 基础参数：`brightness 1.2`、`contrast 1.14`、`saturation 0.18`、`temperature -4`、`tint 0`、`skinWhiten 0.54`、`blushStrength 0.26`、`blackProtect 0.94`、`fade 0.025`、`overlayColor #DCDDE3`、`overlayStrength 0.006`、`overlayStrengthMax 0.03`。
 - HSL：`master h0 s-72 l2`、`skin h1 s-8 l12`、`red h0 s-42 l1`、`orange h0 s-76 l2`、`yellow h0 s-96 l3`、`green h0 s-98 l4`、`cyan h0 s-96 l2`、`blue h0 s-94 l1`、`purple h0 s-78 l1`。
 
 ## 当前问题
@@ -124,11 +124,22 @@ P0。
 - 决策：候选合入；若白场过曝，优先微降亮度或用对比度/肤色提白分担，而不是回退整套黑白方向。
 - 验证：`node --check src/app.js` 通过。
 
+### 2026-04-30 / 灰粉与黑白 / 提亮过强回拉一半
+- 样张：用户反馈上一轮灰粉和黑白整体太亮。
+- 修改前目标：灰粉 `brightness 1.31`、黑白 `brightness 1.35`，白场和肤色高光风险过高。
+- 修改字段：亮度滑杆上限 `1.6 -> 1.3`；灰粉 `brightness 1.31 -> 1.16`；黑白 `brightness 1.35 -> 1.2`。
+- 修改后结果：保留上一轮“更亮”的方向，但只保留约一半提亮增量，降低白衣、白墙、脸部高光过曝风险。
+- 通过样张：待用真实导入照片复测。
+- 失败样张：待记录。
+- 决策：候选合入；下一轮优先看白场是否仍过曝，以及黑发暗部是否被亮度抬灰。
+- 验证：`node --check src/app.js` 通过。
+
 ## 已完成
 - 创建滤镜调色训练 v2 任务文档。
 - 梳理当前实际滤镜代码入口、预设参数、已知问题、训练方法和验收标准。
 - 按用户提供的 3 张参考图调整黑白 `mono` 预设为更干净的高明度黑白灰方向。
 - 将灰粉和黑白预设亮度按当前值拉高约 30%，并把亮度滑杆上限提高到 `1.6` 以覆盖新预设值。
+- 根据用户反馈将灰粉和黑白提亮增量回拉一半，并恢复亮度滑杆上限到 `1.3`。
 
 ## 修改文件
 - `src/app.js`

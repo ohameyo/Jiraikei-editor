@@ -72,7 +72,7 @@
 
   const FILTER_CONTROL_DEFS = [
     { key: 'overlayStrength', label: '叠加强度', min: 0, max: 0.45, step: 0.01 },
-    { key: 'brightness', label: '亮度', min: 0.6, max: 1.6, step: 0.01 },
+    { key: 'brightness', label: '亮度', min: 0.6, max: 1.3, step: 0.01 },
     { key: 'contrast', label: '对比度', min: 0.7, max: 1.4, step: 0.01 },
     { key: 'saturation', label: '饱和度', min: 0.3, max: 1.2, step: 0.01 },
     { key: 'temperature', label: '色温', min: -100, max: 100, step: 1 },
@@ -284,7 +284,7 @@
       description: '去色清透 + 保留粉感 + 黑白灰氛围',
       overlayStrengthMax: 0.1,
       filters: {
-        brightness: 1.31,
+        brightness: 1.16,
         contrast: 1.03,
         saturation: 0.48,
         temperature: -8,
@@ -314,7 +314,7 @@
       description: '高明度黑白灰 + 苍白肤感 + 暗红唇妆',
       overlayStrengthMax: 0.03,
       filters: {
-        brightness: 1.35,
+        brightness: 1.2,
         contrast: 1.14,
         saturation: 0.18,
         temperature: -4,
