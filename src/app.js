@@ -2266,8 +2266,22 @@
     const start = sliderDragStartFilters;
     const brightness = clamp((current.brightness ?? 1) / Math.max(0.01, start.brightness ?? 1), 0.72, 1.32);
     const contrast = clamp((current.contrast ?? 1) / Math.max(0.01, start.contrast ?? 1), 0.72, 1.42);
-    const saturation = clamp((current.saturation ?? 1) / Math.max(0.01, start.saturation ?? 1), 0.45, 1.7);
-    els.canvas.style.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
+    let saturation = clamp((current.saturation ?? 1) / Math.max(0.01, start.saturation ?? 1), 0.45, 1.7);
+    const temperatureDelta = clamp(((current.temperature ?? 0) - (start.temperature ?? 0)) / 100, -1, 1);
+    const tintDelta = clamp(((current.tint ?? 0) - (start.tint ?? 0)) / 100, -1, 1);
+    const fadeDelta = clamp((current.fade ?? 0) - (start.fade ?? 0), -0.5, 0.5);
+    const sepia = clamp(Math.max(temperatureDelta, 0) * 0.18 + Math.abs(tintDelta) * 0.08 + Math.max(fadeDelta, 0) * 0.16, 0, 0.34);
+    let hueRotate = tintDelta * 10 - temperatureDelta * 8;
+    let previewBrightness = brightness + Math.max(temperatureDelta, 0) * 0.03 + Math.max(fadeDelta, 0) * 0.08;
+    HSL_CHANNELS.forEach((channel) => {
+      hueRotate += ((current[hslKey(channel.id, 'h')] ?? 0) - (start[hslKey(channel.id, 'h')] ?? 0)) * 0.35;
+      saturation *= 1 + (((current[hslKey(channel.id, 's')] ?? 0) - (start[hslKey(channel.id, 's')] ?? 0)) / 100) * 0.45;
+      previewBrightness += (((current[hslKey(channel.id, 'l')] ?? 0) - (start[hslKey(channel.id, 'l')] ?? 0)) / 100) * 0.18;
+    });
+    hueRotate = clamp(hueRotate, -28, 28);
+    saturation = clamp(saturation, 0.35, 1.9);
+    previewBrightness = clamp(previewBrightness, 0.72, 1.42);
+    els.canvas.style.filter = `brightness(${previewBrightness}) contrast(${contrast}) saturate(${saturation}) sepia(${sepia}) hue-rotate(${hueRotate}deg)`;
   }
 
   function cancelQueuedRenderWork() {
@@ -2638,7 +2652,7 @@
     commitOutput();
   }
 
-  function makeSlider({ label, min, max, step, value, onInput, onPreview, onBegin, onEnd, rangeClass = '', trackGradient = '' }) {
+  function makeSlider({ label, min, max, step, value, onInput, onPreview, onBegin, onEnd, commitOnEnd, rangeClass = '', trackGradient = '' }) {
     const wrapper = document.createElement('div');
     wrapper.className = 'control-item slider-control';
 
@@ -2674,7 +2688,7 @@
     let pointerStartY = 0;
     let sliderIntent = 'pending';
     const useIntentLock = isMobileLayoutViewport();
-    const commitOnEndOnly = useIntentLock;
+    const commitOnEndOnly = commitOnEnd ?? useIntentLock;
     const startOnce = () => {
       if (started) return;
       started = true;
@@ -4577,16 +4591,18 @@
         control.key === 'overlayStrength' && selectedPreset?.overlayStrengthMax
           ? selectedPreset.overlayStrengthMax
           : control.max;
+      const controlStep = control.key === 'overlayStrength' && controlMax <= 0.1 ? Math.max(0.0005, controlMax / 80) : control.step;
       els.filterControls.appendChild(
         makeSlider({
           label: control.label,
           min: control.min,
           max: controlMax,
-          step: control.step,
-	          value: clamp(Number(state.filters[control.key] ?? control.min), control.min, controlMax),
-	          onBegin: () => store.beginStep(),
-	          onPreview: (value) => {
-	            const currentFilters = store.getState().filters;
+          step: controlStep,
+          value: clamp(Number(state.filters[control.key] ?? control.min), control.min, controlMax),
+          commitOnEnd: true,
+          onBegin: () => store.beginStep(),
+          onPreview: (value) => {
+            const currentFilters = store.getState().filters;
             sliderPreviewFilters =
               control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original'
                 ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset.filters, value) }
@@ -4681,7 +4697,12 @@
           value: sliderValue,
           rangeClass: 'hsl-range',
           trackGradient: axisTrack,
+          commitOnEnd: true,
           onBegin: () => store.beginStep(),
+          onPreview: (value) => {
+            sliderPreviewFilters = { ...store.getState().filters, [key]: value };
+            applyCanvasCssInteractionPreview(store.getState());
+          },
           onInput: (value) => store.setFilters({ [key]: value }, state.activePresetId ?? 'original', false),
           onEnd: () => {
             trackEvent('filter_adjust', {
