@@ -367,6 +367,16 @@
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
   const STICKER_PREVIEW_VERSION = '20260514-preview-thumbs-1';
   const POLAROID_FRAME_PREVIEW_VERSION = '20260514-preview-thumbs-1';
+  const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
+  const HAND_DRAWN_STICKER_COLORS = [
+    { id: 'pink', label: '粉', color: '#f15ac6', title: '粉色' },
+    { id: 'blue', label: '蓝', color: '#5aa7ff', title: '蓝色' },
+    { id: 'black', label: '黑', color: '#000000', title: '黑色' },
+    { id: 'red', label: '红', color: '#f0445f', title: '红色' },
+    { id: 'purple', label: '紫', color: '#8d5cff', title: '紫色' },
+  ];
+  const DEFAULT_HAND_DRAWN_STICKER_COLOR_ID = 'pink';
+  const HAND_DRAWN_RECOLOR_VERSION = 'v1';
   const HAND_DRAWN_STICKERS = [
     { id: 'pink-frame', name: '粉色线框', fileName: 'hand-drawn-01.png' },
     { id: 'pink-ribbon', name: '粉色蝴蝶结', fileName: 'hand-drawn-02.png' },
@@ -509,6 +519,7 @@
 
   const STICKER_IMAGE_CACHE = new Map();
   const STICKER_PREVIEW_CACHE = new Map();
+  const HAND_DRAWN_RECOLOR_CACHE = new Map();
   const POLAROID_FRAME_CACHE = new Map();
   const MOBILE_SLIDER_COMMIT_MS = 64;
   const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
@@ -686,6 +697,16 @@
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
+  function hexToRgb(hex) {
+    const clean = String(hex || '').replace('#', '');
+    if (clean.length !== 6) return { r: 241, g: 90, b: 198 };
+    return {
+      r: Number.parseInt(clean.slice(0, 2), 16),
+      g: Number.parseInt(clean.slice(2, 4), 16),
+      b: Number.parseInt(clean.slice(4, 6), 16),
+    };
+  }
+
   function lerp(a, b, t) {
     return a + (b - a) * t;
   }
@@ -850,6 +871,7 @@
       layers: state.layers.map((layer) => ({ ...layer })),
       selectedLayerId: state.selectedLayerId,
       activePresetId: state.activePresetId,
+      stickerPackColors: { ...(state.stickerPackColors || {}) },
       imageTransform: { ...state.image.transform },
       polaroid: state.polaroid
         ? {
@@ -892,6 +914,9 @@
       layers: [],
       selectedLayerId: null,
       activePresetId: 'original',
+      stickerPackColors: {
+        [HAND_DRAWN_PACK_ID]: DEFAULT_HAND_DRAWN_STICKER_COLOR_ID,
+      },
       polaroid: {
         enabled: false,
         frameId: null,
@@ -938,6 +963,10 @@
       state.layers = snapshot.layers.map((layer) => ({ ...layer }));
       state.selectedLayerId = snapshot.selectedLayerId;
       state.activePresetId = snapshot.activePresetId;
+      state.stickerPackColors = {
+        [HAND_DRAWN_PACK_ID]: DEFAULT_HAND_DRAWN_STICKER_COLOR_ID,
+        ...(snapshot.stickerPackColors || {}),
+      };
       state.image.transform = { ...snapshot.imageTransform };
       state.polaroid = snapshot.polaroid
         ? {
@@ -1046,6 +1075,9 @@
         state.layers = [];
         state.selectedLayerId = null;
         state.activePresetId = 'original';
+        state.stickerPackColors = {
+          [HAND_DRAWN_PACK_ID]: DEFAULT_HAND_DRAWN_STICKER_COLOR_ID,
+        };
         state.polaroid = {
           enabled: false,
           frameId: null,
@@ -1124,6 +1156,9 @@
         state.activePresetId = 'original';
         state.layers = [];
         state.selectedLayerId = null;
+        state.stickerPackColors = {
+          [HAND_DRAWN_PACK_ID]: DEFAULT_HAND_DRAWN_STICKER_COLOR_ID,
+        };
         state.polaroid = {
           enabled: false,
           frameId: null,
@@ -1153,6 +1188,19 @@
         };
         state.layers.push(next);
         state.selectedLayerId = id;
+        bumpRenderToken();
+        notify();
+      },
+      setStickerPackColor(packId, colorId, recordHistory = true) {
+        const validColor = HAND_DRAWN_STICKER_COLORS.some((item) => item.id === colorId)
+          ? colorId
+          : DEFAULT_HAND_DRAWN_STICKER_COLOR_ID;
+        if ((state.stickerPackColors?.[packId] || DEFAULT_HAND_DRAWN_STICKER_COLOR_ID) === validColor) return;
+        if (recordHistory) pushHistory();
+        state.stickerPackColors = {
+          ...(state.stickerPackColors || {}),
+          [packId]: validColor,
+        };
         bumpRenderToken();
         notify();
       },
@@ -2814,8 +2862,8 @@
         const h = metrics.h;
         const x = (layer.x ?? 0.5) * ctx.canvas.width;
         const y = (layer.y ?? 0.5) * ctx.canvas.height;
-        const img = STICKER_IMAGE_CACHE.get(layer.src);
-        if (!img || !img.complete) return;
+        const img = getStickerRenderImage(layer, renderState);
+        if (!isDrawableImage(img)) return;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(((layer.rotation ?? 0) * Math.PI) / 180);
@@ -3981,7 +4029,7 @@
         const preview = document.createElement('div');
         preview.className = 'overlay-preview sticker-preview';
         const img = document.createElement('img');
-        img.src = layer.src;
+        img.src = getStickerOverlaySrc(layer, store.getState());
         img.alt = '';
         preview.appendChild(img);
         item.appendChild(preview);
@@ -4046,7 +4094,7 @@
       return visibleRatio >= 0.32;
     }
 
-    function render() {
+    function renderOverlay() {
       const state = store.getState();
       overlayEl.innerHTML = '';
 
@@ -4099,7 +4147,7 @@
           event.stopPropagation();
           store.selectLayer(layer.id);
           revealLayerControlsFor(layer);
-          render(store.getState());
+          renderOverlay();
         };
 
         attachMoveHandler(item, layer, frameRect);
@@ -4360,10 +4408,10 @@
       resetPreviewRenderCache();
       store.selectLayer(null);
       mobileLayerControlsExpanded = false;
-      render(store.getState());
+      renderOverlay();
     };
 
-    return { render, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
+    return { render: renderOverlay, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
   }
 
   function canvasToBlob(canvas, type = 'image/png', quality) {
@@ -4879,6 +4927,7 @@
   let lastCanvasFrameWidth = 0;
   let lastCanvasFrameHeight = 0;
   let stickerPanelRendered = false;
+  let stickerPanelColorSignature = '';
   let polaroidPanelRendered = false;
   let textTemplatesRendered = false;
 
@@ -4955,6 +5004,133 @@
     return url.href;
   }
 
+  function getHandDrawnStickerColor(colorId) {
+    return HAND_DRAWN_STICKER_COLORS.find((item) => item.id === colorId) || HAND_DRAWN_STICKER_COLORS[0];
+  }
+
+  function getHandDrawnStickerColorId(state = store.getState()) {
+    return state.stickerPackColors?.[HAND_DRAWN_PACK_ID] || DEFAULT_HAND_DRAWN_STICKER_COLOR_ID;
+  }
+
+  function isHandDrawnStickerSource(src = '') {
+    return String(src).includes('/assets/hand_drawn_stickers/') || String(src).includes('/assets/sticker_previews/hand_drawn/');
+  }
+
+  function isHandDrawnStickerLayer(layer) {
+    return layer?.packId === HAND_DRAWN_PACK_ID || isHandDrawnStickerSource(layer?.src);
+  }
+
+  function getImageNaturalSize(image) {
+    return {
+      width: Math.max(1, image?.naturalWidth || image?.width || 1),
+      height: Math.max(1, image?.naturalHeight || image?.height || 1),
+    };
+  }
+
+  function isDrawableImage(image) {
+    if (!image) return false;
+    if (image instanceof HTMLCanvasElement) return image.width > 0 && image.height > 0;
+    return image.complete !== false;
+  }
+
+  function recolorHandDrawnStickerImage(image, colorConfig) {
+    const { width, height } = getImageNaturalSize(image);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(image, 0, 0, width, height);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const target = hexToRgb(colorConfig.color);
+    const [targetHue, targetSat, targetLight] = rgbToHsl(target.r, target.g, target.b);
+    const isBlack = colorConfig.id === 'black';
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      if (a <= 8) continue;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const [h, s, l] = rgbToHsl(r, g, b);
+      const isNearWhite = r > 225 && g > 225 && b > 225;
+      const isLowSaturation = s < 0.16 || max - min < 18;
+      const hueScore = Math.max(1 - smoothstep(24, 72, hueDistance(h, 318)), 1 - smoothstep(28, 80, hueDistance(h, 340)));
+      const saturationScore = smoothstep(0.16, 0.48, s);
+      const pinkBias = smoothstep(4, 34, r - g) * smoothstep(-8, 24, r - b);
+      const mask = clamp(hueScore * saturationScore * pinkBias, 0, 1);
+      if (isNearWhite || isLowSaturation || mask <= 0.02) continue;
+
+      let nextR;
+      let nextG;
+      let nextB;
+      if (isBlack) {
+        const targetL = clamp(l * 0.48 + 0.08, 0.08, 0.42);
+        [nextR, nextG, nextB] = hslToRgb(0, 0, targetL);
+      } else {
+        const targetL = clamp(l * 0.7 + targetLight * 0.34, 0.24, 0.86);
+        [nextR, nextG, nextB] = hslToRgb(targetHue, clamp(targetSat, 0.36, 0.92), targetL);
+      }
+
+      const softMask = smoothstep(0.04, 0.92, mask);
+      data[i] = clamp(lerp(r, nextR, softMask), 0, 255);
+      data[i + 1] = clamp(lerp(g, nextG, softMask), 0, 255);
+      data[i + 2] = clamp(lerp(b, nextB, softMask), 0, 255);
+      data[i + 3] = a;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  function getHandDrawnRecoloredImage(sourceUrl, sourceImage, colorId, outputKind = 'full') {
+    const color = getHandDrawnStickerColor(colorId);
+    if (!sourceImage || (sourceImage instanceof HTMLImageElement && !sourceImage.complete)) return sourceImage || null;
+    if (color.id === DEFAULT_HAND_DRAWN_STICKER_COLOR_ID) return sourceImage;
+    const key = `${HAND_DRAWN_RECOLOR_VERSION}:${outputKind}:${sourceUrl}:${color.id}`;
+    if (HAND_DRAWN_RECOLOR_CACHE.has(key)) return HAND_DRAWN_RECOLOR_CACHE.get(key);
+    const canvas = recolorHandDrawnStickerImage(sourceImage, color);
+    HAND_DRAWN_RECOLOR_CACHE.set(key, canvas);
+    return canvas;
+  }
+
+  function getStickerRenderImage(layer, state = store.getState()) {
+    const sourceImage = STICKER_IMAGE_CACHE.get(layer.src);
+    if (!isHandDrawnStickerLayer(layer)) return sourceImage;
+    return getHandDrawnRecoloredImage(layer.src, sourceImage, getHandDrawnStickerColorId(state), 'full');
+  }
+
+  function getStickerOverlaySrc(layer, state = store.getState()) {
+    if (!isHandDrawnStickerLayer(layer)) return layer.src;
+    const image = getStickerRenderImage(layer, state);
+    if (image instanceof HTMLCanvasElement) return image.toDataURL('image/png');
+    return layer.src;
+  }
+
+  function getStickerPreviewDisplaySrc(sticker, state = store.getState()) {
+    const previewSrc = sticker.previewSrc || sticker.src;
+    if (sticker.packId !== HAND_DRAWN_PACK_ID) return previewSrc;
+    const sourceImage = STICKER_PREVIEW_CACHE.get(previewSrc);
+    const image = getHandDrawnRecoloredImage(previewSrc, sourceImage, getHandDrawnStickerColorId(state), 'preview');
+    if (image instanceof HTMLCanvasElement) return image.toDataURL('image/png');
+    return previewSrc;
+  }
+
+  function getStickerLayerName(sticker, state = store.getState()) {
+    if (sticker.packId !== HAND_DRAWN_PACK_ID) return sticker.name;
+    const color = getHandDrawnStickerColor(getHandDrawnStickerColorId(state));
+    return String(sticker.name || '').replace(/^粉色/, color.title);
+  }
+
+  function getLayerDisplayName(layer, state = store.getState()) {
+    if (!isHandDrawnStickerLayer(layer)) return layer?.name || '';
+    const color = getHandDrawnStickerColor(getHandDrawnStickerColorId(state));
+    return String(layer?.name || '').replace(/^贴纸：(粉色|蓝色|黑色|红色|紫色)/, `贴纸：${color.title}`);
+  }
+
   function buildPixelStickerPack() {
     const stickers = USER_STICKER_FILES.map((fileName, index) => ({
       id: `user-${index + 1}`,
@@ -4972,12 +5148,12 @@
       fallbackSrc: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`),
       previewSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`, STICKER_PREVIEW_VERSION),
       previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`),
-      packId: 'hand-drawn-pack',
+      packId: HAND_DRAWN_PACK_ID,
       previewCrop: Boolean(sticker.previewCrop),
     }));
     stickerPacks = [
       ...(stickers.length ? [{ id: 'user-pack', name: '地雷系装饰贴纸', stickers }] : []),
-      { id: 'hand-drawn-pack', name: '手绘风格贴纸', stickers: handDrawnStickers },
+      { id: HAND_DRAWN_PACK_ID, name: '手绘风格贴纸', stickers: handDrawnStickers },
     ];
   }
 
@@ -5067,8 +5243,11 @@
     }
     store.addLayer({
       type: 'sticker',
-      name: `贴纸：${sticker.name}`,
+      name: `贴纸：${getStickerLayerName(sticker, state)}`,
       src: sticker.src,
+      stickerId: sticker.id || null,
+      packId: sticker.packId || 'user-pack',
+      source: sticker.packId === HAND_DRAWN_PACK_ID ? 'hand-drawn' : 'user',
       width: clamp(widthNorm, 0.04, 0.95),
       height: clamp(heightNorm, 0.04, 0.95),
       aspectRatio: ratio,
@@ -5422,7 +5601,32 @@
 
       const title = document.createElement('div');
       title.className = 'field-title sticker-pack-title';
-      title.textContent = pack.name;
+      const titleText = document.createElement('span');
+      titleText.textContent = pack.name;
+      title.appendChild(titleText);
+      if (pack.id === HAND_DRAWN_PACK_ID) {
+        const colorPicker = document.createElement('div');
+        colorPicker.className = 'hand-drawn-color-picker';
+        colorPicker.setAttribute('aria-label', '手绘贴纸颜色');
+        const activeColorId = getHandDrawnStickerColorId(store.getState());
+        HAND_DRAWN_STICKER_COLORS.forEach((color) => {
+          const colorBtn = document.createElement('button');
+          colorBtn.type = 'button';
+          colorBtn.className = 'hand-drawn-color-btn';
+          colorBtn.classList.toggle('is-active', color.id === activeColorId);
+          colorBtn.style.setProperty('--swatch-color', color.color);
+          colorBtn.title = `${color.title}手绘贴纸`;
+          colorBtn.setAttribute('aria-label', `${color.title}手绘贴纸`);
+          colorBtn.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            store.setStickerPackColor(HAND_DRAWN_PACK_ID, color.id, true);
+            renderStickerPanel();
+          };
+          colorPicker.appendChild(colorBtn);
+        });
+        title.appendChild(colorPicker);
+      }
       packEl.appendChild(title);
 
       const grid = document.createElement('div');
@@ -5440,16 +5644,26 @@
         img.loading = 'eager';
         img.decoding = 'async';
         img.setAttribute('fetchpriority', 'high');
+        const previewSrc = sticker.previewSrc || sticker.src;
+        const displaySrc = getStickerPreviewDisplaySrc(sticker, store.getState());
         img.onload = () => {
-          const previewSrc = sticker.previewSrc || sticker.src;
-          if (!STICKER_PREVIEW_CACHE.has(previewSrc)) STICKER_PREVIEW_CACHE.set(previewSrc, img);
-          if (sticker.previewFallbackSrc && !STICKER_PREVIEW_CACHE.has(sticker.previewFallbackSrc)) STICKER_PREVIEW_CACHE.set(sticker.previewFallbackSrc, img);
+          if (img.dataset.recolored === '1') return;
+          const loadedPreviewSrc = sticker.previewSrc || sticker.src;
+          if (img.src === loadedPreviewSrc && !STICKER_PREVIEW_CACHE.has(loadedPreviewSrc)) STICKER_PREVIEW_CACHE.set(loadedPreviewSrc, img);
+          if (img.src === loadedPreviewSrc && sticker.previewFallbackSrc && !STICKER_PREVIEW_CACHE.has(sticker.previewFallbackSrc)) STICKER_PREVIEW_CACHE.set(sticker.previewFallbackSrc, img);
+          if (sticker.packId === HAND_DRAWN_PACK_ID && getHandDrawnStickerColorId(store.getState()) !== DEFAULT_HAND_DRAWN_STICKER_COLOR_ID) {
+            const recolored = getStickerPreviewDisplaySrc(sticker, store.getState());
+            if (recolored !== loadedPreviewSrc) {
+              img.dataset.recolored = '1';
+              img.src = recolored;
+            }
+          }
         };
         img.onerror = () => {
           if (!sticker.previewFallbackSrc || img.src === sticker.previewFallbackSrc) return;
           img.src = sticker.previewFallbackSrc;
         };
-        img.src = sticker.previewSrc || sticker.src;
+        img.src = displaySrc;
 
         btn.appendChild(img);
         btn.onclick = () => addSticker(sticker);
@@ -5459,6 +5673,13 @@
       packEl.append(grid);
       els.stickerPackList.appendChild(packEl);
     });
+    stickerPanelColorSignature = getHandDrawnStickerColorId(store.getState());
+  }
+
+  function syncStickerPanelColor(state) {
+    const nextSignature = getHandDrawnStickerColorId(state);
+    if (!stickerPanelRendered || nextSignature === stickerPanelColorSignature) return;
+    renderStickerPanel();
   }
 
   function ensureStickerPanelRendered() {
@@ -5783,7 +6004,7 @@
 
     const title = document.createElement('div');
     title.className = 'layer-control-title';
-    title.textContent = selected.name;
+    title.textContent = getLayerDisplayName(selected, state);
     els.layerControls.appendChild(title);
 
     if (selected.type !== 'mosaic') {
@@ -6066,7 +6287,7 @@
       if (state.selectedLayerId === layer.id) row.classList.add('selected');
 
       const titleBtn = document.createElement('button');
-      titleBtn.textContent = `${layer.visible ? '●' : '○'} ${layer.name}`;
+      titleBtn.textContent = `${layer.visible ? '●' : '○'} ${getLayerDisplayName(layer, state)}`;
       titleBtn.style.textAlign = 'left';
       titleBtn.onclick = () => {
         setActiveTool(toolForLayer(layer));
@@ -6188,7 +6409,7 @@
       const selectBtn = document.createElement('button');
       selectBtn.type = 'button';
       selectBtn.className = 'mobile-layer-select';
-      selectBtn.textContent = `${layer.visible ? '●' : '○'} ${layer.name}`;
+      selectBtn.textContent = `${layer.visible ? '●' : '○'} ${getLayerDisplayName(layer, state)}`;
       selectBtn.onclick = () => {
         store.selectLayer(layer.id);
         setActiveTool(toolForLayer(layer));
@@ -6322,6 +6543,7 @@
 
   function scheduleRender(state) {
     pendingRenderState = state;
+    syncStickerPanelColor(state);
     applyCanvasCssInteractionPreview(state);
     if (isDirectManipulating) return;
     const lightweight = isSliderDragging || isTextEditing;

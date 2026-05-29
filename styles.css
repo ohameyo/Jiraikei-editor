@@ -887,10 +887,93 @@ button.is-active:hover {
 }
 
 .sticker-pack-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0 0 7px;
   font-size: var(--fs-xs);
   letter-spacing: 0.04em;
   color: rgba(33, 23, 34, 0.76);
+}
+
+.hand-drawn-color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.hand-drawn-color-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  filter: none;
+  touch-action: manipulation;
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+.hand-drawn-color-btn::before {
+  content: "";
+  position: absolute;
+  inset: 4px 3px 6px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 48%),
+    var(--swatch-color, #f15ac6);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 29'%3E%3Cpath d='M16 28C10 22.7 4.9 18.4 2.4 14.4C-1.4 8.3 2.1 1 8.7 1C12.2 1 14.5 2.9 16 5.1C17.5 2.9 19.8 1 23.3 1C29.9 1 33.4 8.3 29.6 14.4C27.1 18.4 22 22.7 16 28Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 29'%3E%3Cpath d='M16 28C10 22.7 4.9 18.4 2.4 14.4C-1.4 8.3 2.1 1 8.7 1C12.2 1 14.5 2.9 16 5.1C17.5 2.9 19.8 1 23.3 1C29.9 1 33.4 8.3 29.6 14.4C27.1 18.4 22 22.7 16 28Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 160ms ease;
+}
+
+.hand-drawn-color-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #f15ac6;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.5);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.hand-drawn-color-btn.is-active {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.hand-drawn-color-btn.is-active:hover {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+}
+
+.hand-drawn-color-btn.is-active::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.hand-drawn-color-btn.is-active::before {
+  transform: scale(1);
+}
+
+.hand-drawn-color-btn:focus-visible {
+  border-radius: 999px;
+  outline: 2px solid rgba(241, 90, 198, 0.64);
+  outline-offset: 2px;
 }
 
 .sticker-grid {
