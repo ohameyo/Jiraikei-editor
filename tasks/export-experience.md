@@ -17,8 +17,9 @@ P2。
 - `styles.css`
 
 ## 关键代码/变量
-- `renderExportImage()`
-- `downloadCanvas()`
+- `buildExportCanvas()`
+- `cropPolaroidExportCanvas()`
+- `exportPng()`
 - `getCompareLabelStyle()`
 - `compareMode`
 - `exportModal`
@@ -28,10 +29,15 @@ P2。
 - 下载 PNG 按钮弱化。
 - 导出预览按钮间距做过修复。
 - BEFORE/AFTER 字号做过统一。
+- 拍立得启用后导出会裁出拍立得边框区域，并输出为拍立得素材自身尺寸，避免导出文件仍是原图尺寸。
+
+## 验证结果
+- `node --check src/app.js` 通过。
+- 已静态复核非前后对比导出路径：`buildExportCanvas()` 在拍立得启用时调用 `cropPolaroidExportCanvas()`，竖版输出 `705x1111`，横版输出 `1111x705`。
 
 ## 验收标准
 - PC 可以正常导出 PNG。
 - 移动端可以打开导出预览并长按保存图片。
 - 下载 PNG 不抢主视觉。
 - 预览图和画布中的 BEFORE/AFTER 视觉大小一致。
-
+- 拍立得模式导出的图片尺寸等于拍立得边框尺寸。

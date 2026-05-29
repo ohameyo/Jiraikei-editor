@@ -87,6 +87,26 @@ P0，当前最高优先级。
 - 移动端 Safari、微信/内嵌浏览器对 pointer capture、range、touch-action 行为差异大，需要真机或 in-app browser 重点验证。
 - `resize` 和 `orientationchange` 直接触发完整 render，旋转屏幕和键盘弹出路径可能造成突发卡顿。
 
+## UX Lab 复盘
+用户确认曾在 `jirai-editor-ux-lab` 中做过丝滑性实验，但效果没有达到质变。
+
+已读 lab 路径：
+`/Users/meyo/Documents/Codex/2026-04-26/codex-threads-019db920-9107-7bb2-97fb/jirai-editor-ux-lab`
+
+lab 已尝试：
+- CSS filter 近似预览。
+- 松手后 debounce 真实渲染。
+- fast/fine 两级预览。
+- 拖动期间阻断全局 render。
+- 移动端进一步降低预览尺寸。
+- 图层滑杆拖动只更新 overlay 轻量预览。
+- 腮红选区拖动只更新 overlay transform，松手后延迟滤镜渲染。
+
+结论：
+- 常规节流、降采样、延迟渲染和 CSS 近似预览已经被验证过，不能再把 P0 的主要希望押在继续调参数上。
+- P0 后续应分成“修可见卡点”和“渲染架构 spike”两条线。
+- 新增任务：[Canvas 渲染架构 spike](canvas-render-architecture-spike.md)。
+
 ## 本轮已完成
 - 创建本任务记录 `tasks/smoothness-v2.md`。
 - 在 `TASKS.md` 增加 P0 任务入口。
@@ -101,7 +121,7 @@ P0，当前最高优先级。
 ## 下一步建议
 - 先复查 `activeTransformLayerId` 的设置时机，确认拖动中是否真正隐藏 Canvas 内原元素，优先解决残影和释放瞬间旧位置闪回。
 - 梳理 `finishDrag()` 松手路径，让 CSS 近似预览、store 提交、清晰渲染之间不出现空窗或跳变。
-- 对 `applyTonePipeline()` 做交互预览分层：滑动中明确跳过或降采样最重的后处理，松手后只执行一次清晰渲染。
+- 对 `applyTonePipeline()` 做架构级 spike：优先验证 Worker/OffscreenCanvas、双画布合成、预览/导出双质量，而不是继续单纯调 debounce。
 - 将高频临时 canvas 尽量复用或集中缓存，降低低端手机 GC 抖动。
 - 为 overlay 释放后增加“保持最后 DOM 预览直到真实 Canvas 完成”的策略，避免元素消失或旧位置残影。
 - 复测 PC 端滑杆，确认桌面端拖动不因移动端 commit-on-end 策略退化。

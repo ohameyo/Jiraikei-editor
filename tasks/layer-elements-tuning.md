@@ -138,6 +138,13 @@ P0，本窗口专门推进。
 - 手动腮红初始化尊重 `blushManual` 状态：已进入手动编辑后，即使所有腮红选区都被删除，也不自动生成新的左右选区。
 - 第二组腮红删除逻辑改为只在第二组左右都关闭时才关闭整组，避免删除一侧误隐藏另一侧。
 - PC/移动端马赛克图层参数滑杆改为拖动中只更新滑杆 UI，松手后一次性提交最终值并重绘画布，避免高频马赛克重算阻塞滑杆。
+- 线上测试反馈后补修：选中图层与腮红选区的 overlay preview 在选中态保持可见，避免松手后只剩选框、内容要再次点击画布才显示。
+- 图层交互松手提交前先解除 `activeTransformLayerId` 隐藏状态，再写入最终图层数据，避免提交期间真实 canvas 继续跳过当前图层。
+- 贴纸 tab 首开不再提前批量预加载所有贴纸图片；缩略图曾改为首屏 16 张 eager/high priority、其余 lazy/low priority，后续线上反馈移动端仍会长时间空白。
+- 根据线上反馈回调：移动端也在空闲 250ms 后预热贴纸资源，贴纸 tab 内所有缩略图改为 `eager` + `fetchpriority=high`，优先保证进入 tab 时立即有预览图。
+- 根据线上反馈再次回调：新增独立轻量贴纸预览资源 `assets/sticker_previews/user/*` 与 `assets/sticker_previews/hand_drawn/*`，贴纸 tab 只加载 4-16KB 级缩略图；添加贴纸和画布渲染仍使用原始贴纸资源。
+- 贴纸预览资源在初始化后立即预热，正式贴纸原图延后到空闲阶段加载，避免原图阻塞缩略图显示。
+- 腮红选区的预览在选中态保持显示，缩放时可以直接看到大小变化。
 
 ## 下一步
 - 系统梳理图层命中测试，保证贴纸、文字、马赛克、腮红选区在 PC 和移动端都能稳定点选。
@@ -176,6 +183,7 @@ P0，本窗口专门推进。
 ## 修改文件
 - `src/app.js`
 - `styles.css`
+- `assets/sticker_previews/*`
 - `TASKS.md`
 - `tasks/layer-elements-tuning.md`
 
@@ -186,8 +194,16 @@ node --check src/app.js
 
 验证结果：通过。
 
+补充验证：
+- 已用本地服务 `http://127.0.0.1:4181/` 打开页面，首屏无控制台 error。
+- 已验证贴纸 tab 可渲染 30 个缩略图，且缩略图均为 `loading="lazy"`，无 eager/high priority 缩略图。
+- 已验证 `node --check src/app.js` 通过；贴纸缩略图加载策略已改为首屏优先、后续懒加载。
+- 已验证 `node --check src/app.js` 通过；贴纸缩略图加载策略已按线上反馈再次改为全部 eager/high priority，并恢复移动端空闲预热。
+- 已验证 `node --check src/app.js` 通过；贴纸预览缩略图总量已压到约 292KB，单张约 4-16KB。
+
 ## 遗留风险
 - 移动端 Safari/内嵌浏览器对 pointer capture、range 控件和 `touch-action` 行为差异较大，需要实机反复验证。
 - 图层拖动开始的极短瞬间可能仍会同时看到 canvas 旧位置和 overlay preview，需在真机上确认观感是否可接受。
 - 控制器展开、active layer、active tool 三者状态如果继续分散，后续新增元素类型时容易回归。
 - 最小可操作选框会让极小元素的选中框大于真实视觉内容，需在真机上继续确认是否符合预期。
+- 本地浏览器自动化未走系统相册上传，因此腮红真实图片场景和图层松手视觉仍需在 Cloudflare 测试地址/真机复测。

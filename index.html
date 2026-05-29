@@ -5,13 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Jirai-editor 地雷系编辑器</title>
     <link rel="icon" type="image/png" href="./assets/logo.png" />
+    <link rel="preload" as="image" href="./assets/profile-avatar.png" />
+    <link rel="preload" as="image" href="./assets/polaroid_frame_previews/portrait-clean.png" />
+    <link rel="preload" as="image" href="./assets/polaroid_frame_previews/landscape-clean.png" />
+    <script>
+      document.documentElement.classList.toggle("is-lab-build", window.location.hostname.includes("jirai-editor-ux-lab"));
+    </script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="studio-shell">
       <aside class="SidebarNav panel">
         <div class="brand-block">
-          <img class="brand-logo" src="./assets/logo.png" alt="logo" />
+          <button id="brandProfileBtn" class="brand-logo-btn" type="button" aria-label="打开 meyo酱 的简介卡片">
+            <img class="brand-logo" src="./assets/logo.png" alt="meyo酱" />
+          </button>
           <h1 class="brand-title"><span>地雷系</span><span>编辑器</span></h1>
           <p class="brand-subtitle">少女量产中...</p>
         </div>
@@ -21,6 +29,7 @@
           <button class="nav-item" data-tool="filters" type="button"><span class="nav-icon">✶</span><span class="nav-label">滤镜</span></button>
           <button class="nav-item" data-tool="mosaic" type="button"><span class="nav-icon">▦</span><span class="nav-label">马赛克</span></button>
           <button class="nav-item" data-tool="stickers" type="button"><span class="nav-icon">♡</span><span class="nav-label">贴纸</span></button>
+          <button class="nav-item" data-tool="polaroid" type="button"><span class="nav-icon">▣</span><span class="nav-label">拍立得</span></button>
           <button class="nav-item" data-tool="text" type="button"><span class="nav-icon">Aa</span><span class="nav-label">文字</span></button>
           <button class="nav-item" data-tool="export" type="button"><span class="nav-icon">⇩</span><span class="nav-label">导出</span></button>
         </nav>
@@ -75,8 +84,16 @@
           <h2 class="panel-title">贴纸</h2>
           <p class="sub-note">蕾系装饰贴纸</p>
           <div class="card-block">
-            <div class="field-title">地雷系像素风贴纸</div>
             <div id="stickerPackList" class="sticker-pack-list"></div>
+          </div>
+        </section>
+
+        <section class="tool-pane" data-pane="polaroid">
+          <h2 class="panel-title">拍立得</h2>
+          <p class="sub-note">拍立得加工</p>
+          <div class="card-block">
+            <div class="field-title">拍立得边框</div>
+            <div id="polaroidFrameList" class="polaroid-frame-list"></div>
           </div>
         </section>
 
@@ -104,7 +121,9 @@
       </aside>
 
       <main class="CanvasStage panel">
-        <img class="mobile-stage-logo" src="./assets/logo.png" alt="Jirai-editor 地雷系编辑器" />
+        <button id="mobileProfileBtn" class="mobile-stage-logo" type="button" aria-label="打开 meyo酱 的简介卡片">
+          <img src="./assets/logo.png" alt="meyo酱" />
+        </button>
         <div class="canvas-toolbar">
           <button id="undoBtn" type="button" class="toolbar-btn">返回</button>
           <button id="redoBtn" type="button" class="toolbar-btn">重做</button>
@@ -125,6 +144,7 @@
             <div class="canvas-empty" id="canvasEmpty">点击上传照片♡</div>
             <input id="canvasImageUpload" class="canvas-upload-input" type="file" accept="image/*" aria-label="上传照片" />
           </div>
+          <div class="lab-footnote" aria-hidden="true">LAB</div>
         </div>
       </main>
 
@@ -160,6 +180,38 @@
           <img id="exportPreviewImage" alt="export-preview" />
         </div>
         <a id="exportDownloadLink" class="export-download-btn" download="jirai-editor.png">下载 PNG</a>
+      </div>
+    </div>
+
+    <div id="polaroidModal" class="polaroid-modal" aria-hidden="true">
+      <div class="polaroid-modal-panel">
+        <div class="polaroid-modal-head">
+          <strong>调整拍立得照片</strong>
+          <button id="polaroidCancelBtn" type="button">取消</button>
+        </div>
+        <div class="polaroid-editor-wrap">
+          <canvas id="polaroidPreviewCanvas" width="720" height="900"></canvas>
+        </div>
+        <div class="polaroid-controls">
+          <label>
+            <span>照片大小</span>
+            <input id="polaroidScaleInput" type="range" min="1" max="2.4" step="0.01" value="1" />
+          </label>
+          <div class="inline-actions two-col">
+            <button id="polaroidResetBtn" type="button">重置适配</button>
+            <button id="polaroidConfirmBtn" type="button" class="primary">确认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileModal" class="profile-modal" aria-hidden="true">
+      <div class="profile-card" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+        <button id="profileCloseBtn" class="profile-close-btn" type="button" aria-label="关闭简介卡片">×</button>
+        <img class="profile-avatar" src="./assets/profile-avatar.png" alt="meyo酱头像" loading="eager" decoding="async" />
+        <div class="profile-name" id="profileTitle">meyo酱の碎碎念</div>
+        <p class="profile-bio">兴趣使然的vibecoding产物，感谢老婆们使用，欢迎来小红书找我玩，你的任何反馈都将成为我前进的动力！</p>
+        <a class="profile-link" href="https://xhslink.com/m/14CmyHZ06uD" target="_blank" rel="noopener noreferrer">进入我的主页</a>
       </div>
     </div>
 

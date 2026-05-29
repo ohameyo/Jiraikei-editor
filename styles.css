@@ -55,6 +55,38 @@
 }
 
 @font-face {
+  font-family: "Nonbiri_2";
+  src: url("./assets/fonts/nonbiri-2.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "harutegakifont";
+  src: url("./assets/fonts/haru-tegaki-12.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Shigoto Memogaki";
+  src: url("./assets/fonts/shigoto-memogaki.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kyouryuno Guratan";
+  src: url("./assets/fonts/kyouryuno-guratan.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Mushin Mobile";
   src: url("./assets/fonts/mushin-mobile.woff2") format("woff2");
   font-style: normal;
@@ -118,7 +150,23 @@
   font-family: "Nagino", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
 }
 
-@media (max-width: 760px), (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
+.text-font-nonbiri-2 {
+  font-family: "Nonbiri_2", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-haru-tegaki-12 {
+  font-family: "harutegakifont", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-shigoto-memogaki {
+  font-family: "Shigoto Memogaki", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+.text-font-kyouryuno-guratan {
+  font-family: "Kyouryuno Guratan", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
+}
+
+@media (pointer: coarse) {
   .text-font-mushin {
     font-family: "Mushin Mobile", "Mushin", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif !important;
   }
@@ -186,7 +234,7 @@ body {
 
 body {
   min-height: 100dvh;
-  overflow: hidden;
+  overflow: auto hidden;
   color: var(--text);
   font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
   background:
@@ -250,6 +298,7 @@ textarea {
 
 .studio-shell {
   height: 100dvh;
+  min-width: 1280px;
   padding: 14px;
   display: grid;
   gap: 12px;
@@ -288,12 +337,31 @@ textarea {
   container-type: inline-size;
 }
 
+.brand-logo-btn {
+  width: 50px;
+  height: 48px;
+  margin: -4px auto 1px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.brand-logo-btn:focus-visible,
+.mobile-stage-logo:focus-visible,
+.profile-close-btn:focus-visible,
+.profile-link:focus-visible {
+  outline: 2px solid rgba(225, 112, 199, 0.55);
+  outline-offset: 3px;
+}
+
 .brand-logo {
   width: 42px;
   height: 42px;
   object-fit: contain;
   display: block;
-  margin: -2px auto 2px;
   animation: logoFloat 2.6s ease-in-out infinite;
 }
 
@@ -482,6 +550,14 @@ textarea {
   background: var(--panel-strong);
 }
 
+.tool-pane[data-pane="stickers"] > .card-block {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
 .prop-block h3,
 .field-title {
   margin: 0 0 6px;
@@ -624,7 +700,7 @@ button.is-active:hover {
   display: grid;
   align-content: center;
   gap: 2px;
-  min-height: 34px;
+  min-height: 42px;
   padding: 5px 8px;
   border-radius: 999px;
   line-height: 1;
@@ -641,14 +717,20 @@ button.is-active:hover {
 }
 
 .font-picker-name {
-  font-family: "Avenir Next", "PingFang SC", sans-serif;
-  font-size: 11px;
+  font-family: "Avenir Next", "PingFang SC", "Hiragino Sans", sans-serif;
+  font-size: 10.5px;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.18;
+  opacity: 0.72;
 }
 
 .font-picker-sample {
   font-family: var(--font-preview-family, "Avenir Next", "PingFang SC", sans-serif);
   font-size: 13px;
   font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.18;
 }
 
 .font-picker-btn.is-active {
@@ -668,6 +750,65 @@ button.is-active:hover {
 .layer-list {
   display: grid;
   gap: 6px;
+}
+
+.polaroid-frame-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.polaroid-frame-btn {
+  min-height: 94px;
+  padding: 10px;
+  border: 1px solid rgba(82, 58, 78, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 251, 254, 0.82);
+  color: #382a36;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.polaroid-frame-btn.is-active {
+  color: #fff;
+  background: #211620;
+}
+
+.polaroid-frame-thumb {
+  width: min(76px, 100%);
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(45, 32, 43, 0.16));
+}
+
+.polaroid-action-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.polaroid-action-btn {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.polaroid-edit-btn {
+  color: #2d1d2d;
+  background: rgba(255, 251, 254, 0.96);
+  border-color: rgba(82, 58, 78, 0.2);
+}
+
+.polaroid-close-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-style: dashed;
 }
 
 .preset-chip {
@@ -745,7 +886,7 @@ button.is-active:hover {
   background: #fffafe;
 }
 
-.sticker-pack h4 {
+.sticker-pack-title {
   margin: 0 0 7px;
   font-size: var(--fs-xs);
   letter-spacing: 0.04em;
@@ -790,6 +931,11 @@ button.is-active:hover {
   transition: opacity 0.16s ease;
 }
 
+.sticker-btn.is-preview-cropped img {
+  object-fit: cover;
+  object-position: center;
+}
+
 .CanvasStage {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -800,6 +946,13 @@ button.is-active:hover {
 
 .mobile-stage-logo {
   display: none;
+}
+
+.mobile-stage-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .mobile-layer-dock {
@@ -840,6 +993,7 @@ button.is-active:hover {
 }
 
 .canvas-stage {
+  position: relative;
   min-height: 0;
   display: grid;
   place-items: center;
@@ -1245,6 +1399,11 @@ textarea {
   opacity: 1;
 }
 
+.overlay-item.selected .overlay-preview,
+.blush-control.selected .overlay-preview {
+  opacity: 1;
+}
+
 .overlay-preview img {
   width: 100%;
   height: 100%;
@@ -1253,10 +1412,9 @@ textarea {
 }
 
 .overlay-preview.text-preview {
-  display: grid;
-  place-items: center;
+  display: block;
   white-space: pre;
-  text-align: center;
+  text-align: left;
   line-height: 1.18;
   overflow: visible;
 }
@@ -1284,6 +1442,7 @@ textarea {
   width: 100%;
   height: 100%;
   display: block;
+  overflow: visible;
   filter: drop-shadow(0 1px 4px rgba(32, 21, 31, 0.16));
 }
 
@@ -1294,9 +1453,16 @@ textarea {
   vector-effect: non-scaling-stroke;
 }
 
+.overlay-preview.mosaic-preview.mosaic-shape-heart .mosaic-heart-feather {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke: rgba(74, 47, 69, 0.2);
+  stroke-width: 1.4;
+}
+
 .overlay-preview.blush-preview {
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 130, 190, 0.34) 0%, rgba(250, 150, 205, 0.18) 55%, rgba(250, 170, 220, 0) 100%);
+  border: 1.5px solid rgba(225, 112, 199, 0.58);
+  background: rgba(255, 130, 190, 0.08);
 }
 
 .overlay-item.overlay-mosaic.selected {
@@ -1450,6 +1616,191 @@ textarea {
   place-items: center;
 }
 
+.polaroid-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(26, 18, 26, 0.42);
+}
+
+.profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(26, 18, 26, 0.38);
+}
+
+.profile-modal.show {
+  display: flex;
+}
+
+.profile-card {
+  position: relative;
+  width: min(340px, 100%);
+  border: var(--border-1) solid rgba(225, 112, 199, 0.26);
+  border-radius: 20px;
+  background: rgba(255, 248, 252, 0.98);
+  box-shadow: var(--shadow-soft);
+  padding: 22px 18px 18px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.profile-close-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: var(--border-1) solid var(--line);
+  background: #fff9fd;
+  color: rgba(34, 22, 34, 0.75);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+
+.profile-avatar {
+  width: 82px;
+  height: 82px;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: center 38%;
+  background: #fff;
+  border: var(--border-1) solid rgba(225, 112, 199, 0.24);
+  box-shadow: 0 8px 24px rgba(58, 34, 52, 0.12);
+}
+
+.profile-name {
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  font-weight: 760;
+  color: #241923;
+}
+
+.profile-bio {
+  margin: 0;
+  color: rgba(36, 25, 35, 0.72);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+}
+
+.profile-link {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  border: var(--border-1) solid rgba(225, 112, 199, 0.38);
+  background: linear-gradient(150deg, #fff9fd, #ffe9f7);
+  color: #2d1f2a;
+  font-size: var(--fs-xs);
+  font-weight: 720;
+}
+
+.lab-footnote {
+  display: none;
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 8;
+  pointer-events: none;
+  padding: 4px 7px;
+  border: 1px solid rgba(80, 52, 74, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 250, 253, 0.78);
+  color: rgba(45, 31, 42, 0.52);
+  box-shadow: 0 6px 18px rgba(56, 36, 54, 0.06);
+  backdrop-filter: blur(10px);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+html.is-lab-build .lab-footnote {
+  display: block;
+}
+
+.polaroid-modal.show {
+  display: flex;
+}
+
+.polaroid-modal-panel {
+  width: min(520px, 100%);
+  max-height: min(92dvh, 860px);
+  overflow: auto;
+  border: var(--border-1) solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 248, 252, 0.97);
+  padding: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.polaroid-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.polaroid-modal-head button {
+  min-width: 74px;
+}
+
+.polaroid-editor-wrap {
+  margin-top: 12px;
+  display: grid;
+  place-items: center;
+  border: var(--border-1) solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 10px;
+  overflow: hidden;
+}
+
+#polaroidPreviewCanvas {
+  width: 100%;
+  max-height: 58dvh;
+  object-fit: contain;
+  border-radius: 12px;
+  display: block;
+  background: #f6eef2;
+  cursor: grab;
+  touch-action: none;
+}
+
+#polaroidPreviewCanvas:active {
+  cursor: grabbing;
+}
+
+.polaroid-controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.polaroid-controls label {
+  display: grid;
+  gap: 7px;
+  color: rgba(33, 23, 34, 0.76);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+
 @keyframes logoFloat {
   0%,
   100% {
@@ -1486,6 +1837,20 @@ textarea {
   cursor: ns-resize;
 }
 
+.overlay-handle.text-width-left {
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%) scale(var(--handle-scale-x, 1), var(--handle-scale-y, 1));
+  cursor: ew-resize;
+}
+
+.overlay-handle.text-width-right {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%) scale(var(--handle-scale-x, 1), var(--handle-scale-y, 1));
+  cursor: ew-resize;
+}
+
 .blush-control.blush-left .overlay-handle.delete {
   right: -12px;
   left: auto;
@@ -1508,19 +1873,21 @@ textarea {
   cursor: nwse-resize;
 }
 
-@media (max-width: 1360px) {
-  .studio-shell {
-    grid-template-columns: 88px 290px minmax(440px, 1fr) 310px;
-  }
-}
-
-@media (max-width: 1180px) {
+@media (pointer: coarse), (max-width: 760px) and (max-aspect-ratio: 25 / 32) {
   body {
     overflow: auto;
   }
 
+  .lab-footnote {
+    right: 12px;
+    bottom: 12px;
+    font-size: 9px;
+    opacity: 0.82;
+  }
+
   .studio-shell {
     height: auto;
+    min-width: 0;
     min-height: 100dvh;
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -1584,7 +1951,7 @@ textarea {
   }
 }
 
-@media (max-width: 760px), (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
+@media (pointer: coarse), (max-width: 760px) and (max-aspect-ratio: 25 / 32) {
   :root {
     --radius-xl: 18px;
     --radius-lg: 14px;
@@ -1866,7 +2233,7 @@ textarea {
     height: 100%;
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
     overflow: hidden;
   }
@@ -1905,11 +2272,11 @@ textarea {
   }
 
   .nav-icon {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .nav-label {
-    font-size: 10px;
+    font-size: 9.5px;
     letter-spacing: 0;
     white-space: nowrap;
   }
@@ -1968,7 +2335,8 @@ textarea {
     height: 94px;
   }
 
-  .studio-shell[data-active-tool="stickers"] .ContentPanel {
+  .studio-shell[data-active-tool="stickers"] .ContentPanel,
+  .studio-shell[data-active-tool="polaroid"] .ContentPanel {
     bottom: auto;
     height: 126px;
   }
@@ -2007,6 +2375,16 @@ textarea {
     bottom: auto;
     height: auto;
     max-height: none;
+  }
+
+  .studio-shell[data-mobile-layer-panel="collapsed"][data-active-tool="stickers"] .ContentPanel,
+  .studio-shell[data-mobile-layer-panel="collapsed"][data-active-tool="polaroid"] .ContentPanel {
+    bottom: max(0px, env(safe-area-inset-bottom));
+    height: auto;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
   .studio-shell[data-mobile-layer-panel="collapsed"][data-active-tool="text"] .ContentPanel {
@@ -2167,16 +2545,18 @@ textarea {
   }
 
   .font-picker-btn {
-    min-height: 29px;
+    min-height: 42px;
     padding: 4px 7px;
   }
 
   .font-picker-name {
     font-size: 10px;
+    line-height: 1.18;
   }
 
   .font-picker-sample {
     font-size: 11px;
+    line-height: 1.18;
   }
 
   .hsl-channel-row {
@@ -2278,7 +2658,7 @@ textarea {
     object-fit: contain;
   }
 
-  @media (min-width: 761px) and (max-width: 1180px) and (orientation: portrait) {
+  @media (pointer: coarse) and (min-width: 761px) {
     .canvas-toolbar {
       padding-right: 4px;
     }
@@ -2332,6 +2712,7 @@ textarea {
   .text-template-list .text-preset-chip {
     min-height: 30px;
     padding: 4px 8px;
+    opacity: 1;
   }
 
   .text-preset-content {
@@ -2393,7 +2774,7 @@ textarea {
   }
 }
 
-@media (max-width: 390px) {
+@media (pointer: coarse) and (max-width: 390px), (max-width: 390px) and (max-aspect-ratio: 25 / 32) {
   .nav-label {
     font-size: 9.5px;
   }

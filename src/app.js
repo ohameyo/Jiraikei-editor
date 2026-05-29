@@ -14,6 +14,7 @@
     'compare_toggle',
     'export_preview_open',
     'download_png',
+    'profile_open',
   ]);
 
   function sanitizeAnalyticsPayload(payload = {}) {
@@ -343,18 +344,41 @@
   const USER_STICKER_FILES = [
     'sel_01.png',
     'sel_03.png',
-    'sel_04.png',
-    'sel_05.png',
-    'sel_06.png',
-    'sel_07.png',
     'sel_08.png',
     'sel_09.png',
-    'sel_10.png',
-    'sel_11.png',
     'sel_12.png',
     'sel_13.png',
+    'deco_02.png',
+    'deco_08.png',
+    'sel_05.png',
+    'sel_06.png',
+    'sel_04.png',
+    'sel_07.png',
+    'sel_10.png',
+    'sel_11.png',
+    'deco_01.png',
+    'deco_03.png',
+    'deco_04.png',
+    'deco_05.png',
+    'deco_06.png',
+    'deco_07.png',
   ];
-  const USER_STICKER_VERSION = '20260429-no-sel02';
+  const USER_STICKER_VERSION = '20260512-color-sort-1';
+  const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
+  const STICKER_PREVIEW_VERSION = '20260514-preview-thumbs-1';
+  const POLAROID_FRAME_PREVIEW_VERSION = '20260514-preview-thumbs-1';
+  const HAND_DRAWN_STICKERS = [
+    { id: 'pink-frame', name: '粉色线框', fileName: 'hand-drawn-01.png' },
+    { id: 'pink-ribbon', name: '粉色蝴蝶结', fileName: 'hand-drawn-02.png' },
+    { id: 'pink-arrow', name: '粉色箭头', fileName: 'hand-drawn-03.png' },
+    { id: 'pink-bandage', name: '粉色绑带', fileName: 'hand-drawn-04.png' },
+    { id: 'pink-heart-wings', name: '粉色爱心翅膀', fileName: 'hand-drawn-05.png' },
+    { id: 'pink-glow-heart', name: '粉色发光爱心', fileName: 'hand-drawn-06.png' },
+    { id: 'pink-double-heart', name: '粉色双爱心', fileName: 'hand-drawn-07.png' },
+    { id: 'pink-angel-text', name: '粉色天使字', fileName: 'hand-drawn-08.png' },
+    { id: 'pink-sparkle-cross', name: '粉色星星十字', fileName: 'hand-drawn-09.png' },
+    { id: 'pink-suki', name: '粉色スキ', fileName: 'hand-drawn-10.png' },
+  ];
 
   const TEXT_PRESETS = [
     '今日の私、満点！',
@@ -375,7 +399,7 @@
     fontId: 'mushin',
     style: {
       color: '#ffffff',
-      strokeColor: '#FF40FF',
+      strokeColor: '#e170c7',
       shadowColor: '#000000',
       fontSize: 62,
       strokeWidth: 6,
@@ -389,13 +413,18 @@
   }));
 
   const TEXT_FONT_FALLBACK = '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif';
+  const TEXT_NO_STROKE_DEFAULT_COLOR = '#F168CB';
 
   const DEFAULT_TEXT_STYLE = {
     content: '>w<',
     color: '#ffffff',
-    strokeColor: '#FF40FF',
+    strokeColor: '#e170c7',
     shadowColor: '#000000',
+    width: 0.44,
     fontSize: 56,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 1.22,
     strokeWidth: 6,
     shadowBlur: 0,
     bgColor: '#2a1d2a',
@@ -407,21 +436,47 @@
   };
 
   const TEXT_FONTS = [
-    { id: 'system', name: '系统默认', family: `"Avenir Next", ${TEXT_FONT_FALLBACK}`, className: 'text-font-system' },
-    { id: 'mushin', name: '無心（日文）', family: `"Mushin", ${TEXT_FONT_FALLBACK}`, face: 'Mushin', src: './assets/fonts/mushin.otf', mobileFamily: `"Mushin Mobile", "Mushin", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Mushin Mobile', mobileSrc: './assets/fonts/mushin-mobile.woff2', className: 'text-font-mushin' },
-    { id: 'zhaizai-marker', name: '宅在家麦克笔（中文）', family: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, face: 'Zhaizai Marker', src: './assets/fonts/zhaizai-marker.ttf', mobileFamily: `"Zhaizai Marker Mobile", "Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Zhaizai Marker Mobile', mobileSrc: './assets/fonts/zhaizai-marker-mobile.woff2', className: 'text-font-zhaizai-marker' },
-    { id: 'fusion-pixel-sc', name: '缝合像素（中文）', family: `"Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel SC', src: './assets/fonts/fusion-pixel-sc.otf', mobileFamily: `"Fusion Pixel SC Mobile", "Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel SC Mobile', mobileSrc: './assets/fonts/fusion-pixel-sc-mobile.woff2', className: 'text-font-fusion-pixel-sc' },
-    { id: 'fusion-pixel-jp', name: '缝合像素（日文）', family: `"Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel JP', src: './assets/fonts/fusion-pixel-jp.otf', mobileFamily: `"Fusion Pixel JP Mobile", "Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel JP Mobile', mobileSrc: './assets/fonts/fusion-pixel-jp-mobile.woff2', className: 'text-font-fusion-pixel-jp' },
-    { id: 'wafu-pop', name: '和風ぽっぷ', family: `"Wafu Pop", ${TEXT_FONT_FALLBACK}`, face: 'Wafu Pop', src: './assets/fonts/wafu-pop.ttf', className: 'text-font-wafu-pop' },
-    { id: 'darts-font', name: 'ダーツフォント', family: `"Darts Font", ${TEXT_FONT_FALLBACK}`, face: 'Darts Font', src: './assets/fonts/darts-font.ttf', className: 'text-font-darts-font' },
-    { id: 'nagino', name: 'なぎの', family: `"Nagino", ${TEXT_FONT_FALLBACK}`, face: 'Nagino', src: './assets/fonts/nagino.otf', className: 'text-font-nagino' },
+    { id: 'system', name: '系统默认', family: `"Avenir Next", ${TEXT_FONT_FALLBACK}`, className: 'text-font-system', previewSample: '我爱你' },
+    { id: 'mushin', name: '無心（日文）', family: `"Mushin", ${TEXT_FONT_FALLBACK}`, face: 'Mushin', src: './assets/fonts/mushin.otf', mobileFamily: `"Mushin Mobile", "Mushin", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Mushin Mobile', mobileSrc: './assets/fonts/mushin-mobile.woff2', className: 'text-font-mushin', previewSample: '愛してる' },
+    { id: 'zhaizai-marker', name: '宅在家麦克笔（中文）', family: `"Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, face: 'Zhaizai Marker', src: './assets/fonts/zhaizai-marker.ttf', mobileFamily: `"Zhaizai Marker Mobile", "Zhaizai Marker", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Zhaizai Marker Mobile', mobileSrc: './assets/fonts/zhaizai-marker-mobile.woff2', className: 'text-font-zhaizai-marker', previewSample: '我爱你' },
+    { id: 'fusion-pixel-sc', name: '缝合像素（中文）', family: `"Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel SC', src: './assets/fonts/fusion-pixel-sc.otf', mobileFamily: `"Fusion Pixel SC Mobile", "Fusion Pixel SC", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel SC Mobile', mobileSrc: './assets/fonts/fusion-pixel-sc-mobile.woff2', className: 'text-font-fusion-pixel-sc', previewSample: '我爱你' },
+    { id: 'fusion-pixel-jp', name: '缝合像素（日文）', family: `"Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, face: 'Fusion Pixel JP', src: './assets/fonts/fusion-pixel-jp.otf', mobileFamily: `"Fusion Pixel JP Mobile", "Fusion Pixel JP", ${TEXT_FONT_FALLBACK}`, mobileFace: 'Fusion Pixel JP Mobile', mobileSrc: './assets/fonts/fusion-pixel-jp-mobile.woff2', className: 'text-font-fusion-pixel-jp', previewSample: '愛してる' },
+    { id: 'wafu-pop', name: '和風ぽっぷ', family: `"Wafu Pop", ${TEXT_FONT_FALLBACK}`, face: 'Wafu Pop', src: './assets/fonts/wafu-pop.ttf', className: 'text-font-wafu-pop', previewSample: '愛してる' },
+    { id: 'darts-font', name: 'ダーツフォント', family: `"Darts Font", ${TEXT_FONT_FALLBACK}`, face: 'Darts Font', src: './assets/fonts/darts-font.ttf', className: 'text-font-darts-font', previewSample: '愛してる' },
+    { id: 'nagino', name: 'なぎの', family: `"Nagino", ${TEXT_FONT_FALLBACK}`, face: 'Nagino', src: './assets/fonts/nagino.otf', className: 'text-font-nagino', previewSample: '愛してる' },
+    { id: 'nonbiri-2', name: 'のんびり', family: `"Nonbiri_2", ${TEXT_FONT_FALLBACK}`, face: 'Nonbiri_2', src: './assets/fonts/nonbiri-2.otf', className: 'text-font-nonbiri-2', previewSample: '愛してる' },
+    { id: 'haru-tegaki-12', name: 'はる手書き', family: `"harutegakifont", ${TEXT_FONT_FALLBACK}`, face: 'harutegakifont', src: './assets/fonts/haru-tegaki-12.otf', className: 'text-font-haru-tegaki-12', previewSample: '愛してる' },
+    { id: 'shigoto-memogaki', name: '仕事メモ書き（日文）', family: `"Shigoto Memogaki", ${TEXT_FONT_FALLBACK}`, face: 'Shigoto Memogaki', src: './assets/fonts/shigoto-memogaki.ttf', className: 'text-font-shigoto-memogaki', previewSample: '愛してる' },
+    { id: 'kyouryuno-guratan', name: 'きょうりゅうのグラタン（日文）', family: `"Kyouryuno Guratan", ${TEXT_FONT_FALLBACK}`, face: 'Kyouryuno Guratan', src: './assets/fonts/kyouryuno-guratan.ttf', className: 'text-font-kyouryuno-guratan', previewSample: '愛してる' },
   ];
   const TEXT_FONT_PREVIEW_SAMPLE = '今日の私';
   const TEXT_FONT_ACTIVATION_SAMPLE = '今日の私、満点!';
   const FONT_LOAD_TIMEOUT_MS = 2600;
-  const FONT_ASSET_VERSION = '20260429-textfonts-3';
-  const MOBILE_TEXT_FONT_IDS = new Set(['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc']);
-  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc', 'darts-font', 'nagino', 'wafu-pop'];
+  const FONT_ASSET_VERSION = '20260514-textfonts-5';
+  const MOBILE_TEXT_FONT_IDS = new Set(['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc', 'nonbiri-2', 'haru-tegaki-12', 'shigoto-memogaki', 'kyouryuno-guratan']);
+  const TEXT_FONT_WARMUP_ORDER = ['mushin', 'zhaizai-marker', 'nonbiri-2', 'haru-tegaki-12', 'shigoto-memogaki', 'kyouryuno-guratan', 'fusion-pixel-jp', 'fusion-pixel-sc', 'darts-font', 'nagino', 'wafu-pop'];
+
+  function getFontPreviewSample(font) {
+    if (!font) return TEXT_FONT_PREVIEW_SAMPLE;
+    if (!isMobileViewport() && font.desktopPreviewSample) return font.desktopPreviewSample;
+    return font.previewSample || TEXT_FONT_PREVIEW_SAMPLE;
+  }
+
+  function getTextFontWeightValue(layer) {
+    return clamp(Math.round(Number(layer?.fontWeight ?? 400) / 100) * 100, 100, 1500);
+  }
+
+  function getCssTextFontWeight(layer) {
+    return Math.min(1000, getTextFontWeightValue(layer));
+  }
+
+  function getExtraTextBoldPasses(layer) {
+    return Math.round(clamp((getTextFontWeightValue(layer) - 1000) / 100, 0, 5));
+  }
+
+  function getCanvasTextFont(layer, fontSize = layer?.fontSize ?? 56) {
+    return `${getCssTextFontWeight(layer)} ${fontSize}px ${layer?.fontFamily ?? '"Avenir Next", sans-serif'}`;
+  }
 
   const MOSAIC_TOOL_DEFAULTS = {
     variant: 'frosted',
@@ -431,7 +486,30 @@
     whiteOpacity: 0.34,
   };
 
+  const POLAROID_FRAMES = {
+    portrait: {
+      id: 'portrait-clean',
+      name: '竖版拍立得',
+      src: './assets/polaroid_frames/portrait-clean.png',
+      previewSrc: './assets/polaroid_frame_previews/portrait-clean.png',
+      width: 705,
+      height: 1111,
+      photoWindow: { x: 56, y: 104, width: 593, height: 796 },
+    },
+    landscape: {
+      id: 'landscape-clean',
+      name: '横版拍立得',
+      src: './assets/polaroid_frames/landscape-clean.png',
+      previewSrc: './assets/polaroid_frame_previews/landscape-clean.png',
+      width: 1111,
+      height: 705,
+      photoWindow: { x: 103, y: 56, width: 798, height: 593 },
+    },
+  };
+
   const STICKER_IMAGE_CACHE = new Map();
+  const STICKER_PREVIEW_CACHE = new Map();
+  const POLAROID_FRAME_CACHE = new Map();
   const MOBILE_SLIDER_COMMIT_MS = 64;
   const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
   const DESKTOP_SLIDER_COMMIT_MS = 16;
@@ -451,12 +529,12 @@
   let blushPreviewEnabled = false;
   let blushEditMode = false;
   let blushFallbackNoticeShown = false;
+  let polaroidEditor = null;
   const loadedFontFaces = new Set();
   const loadingFontFaces = new Map();
   const fontFaceStatus = new Map([['system', 'ready']]);
   const queuedFontPreviewWarmups = new Set();
   const fontWarmupProbes = new Map();
-  let fontPreviewWarmupChain = Promise.resolve();
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -547,6 +625,7 @@
       .then((loadedFace) => {
         loadedFontFaces.add(font.id);
         fontFaceStatus.set(font.id, 'ready');
+        refreshTextFontDependentPanels();
         render(store.getState());
         return loadedFace;
       })
@@ -555,10 +634,17 @@
       })
       .finally(() => {
         loadingFontFaces.delete(font.id);
+        refreshTextFontDependentPanels();
         render(store.getState());
       });
     loadingFontFaces.set(font.id, loadPromise);
     return loadPromise;
+  }
+
+  function refreshTextFontDependentPanels() {
+    textTemplatesRendered = false;
+    lastLayerControlsKey = '';
+    if (activeTool === 'text') ensureTextTemplatesRendered();
   }
 
   function scheduleFontPreviewWarmup(priorityFontId = activeTextFontId) {
@@ -579,21 +665,15 @@
     uniqueFonts.forEach((font, index) => {
       if (loadedFontFaces.has(font.id) || loadingFontFaces.has(font.id) || queuedFontPreviewWarmups.has(font.id)) return;
       queuedFontPreviewWarmups.add(font.id);
-      fontPreviewWarmupChain = fontPreviewWarmupChain
-        .then(() => new Promise((resolve) => window.setTimeout(resolve, isMobileViewport() ? (index === 0 ? 0 : 320) : 100)))
-        .then(
-          () =>
-            new Promise((resolve) => {
-              runWhenIdle(() => {
-                ensureTextFontLoaded(font)
-                  .then(() => render(store.getState()))
-                  .finally(() => {
-                    queuedFontPreviewWarmups.delete(font.id);
-                    resolve();
-                  });
-              }, isMobileViewport() ? 1800 : 700);
-            })
-        );
+      window.setTimeout(() => {
+        runWhenIdle(() => {
+          ensureTextFontLoaded(font)
+            .then(() => render(store.getState()))
+            .finally(() => {
+              queuedFontPreviewWarmups.delete(font.id);
+            });
+        }, isMobileViewport() ? 1800 : 700);
+      }, isMobileViewport() ? (index === 0 ? 0 : Math.min(index * 120, 720)) : Math.min(index * 80, 480));
     });
   }
 
@@ -771,11 +851,27 @@
       selectedLayerId: state.selectedLayerId,
       activePresetId: state.activePresetId,
       imageTransform: { ...state.image.transform },
+      polaroid: state.polaroid
+        ? {
+            enabled: Boolean(state.polaroid.enabled),
+            frameId: state.polaroid.frameId || null,
+            frameOrientation: state.polaroid.frameOrientation || null,
+            photoTransform: { ...(state.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
+            photoCanvas: state.polaroid.photoCanvas || null,
+            baseSnapshot: state.polaroid.baseSnapshot || null,
+          }
+        : null,
       compareMode: Boolean(state.compareMode),
       compareLabels: state.compareLabels !== false,
       renderToken: state.renderToken,
       toneToken: state.toneToken,
     };
+  }
+
+  function createPolaroidBaseSnapshot(state) {
+    const snapshot = createHistorySnapshot(state);
+    snapshot.polaroid = null;
+    return snapshot;
   }
 
   function createStore() {
@@ -796,6 +892,14 @@
       layers: [],
       selectedLayerId: null,
       activePresetId: 'original',
+      polaroid: {
+        enabled: false,
+        frameId: null,
+        frameOrientation: null,
+        photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
+        photoCanvas: null,
+        baseSnapshot: null,
+      },
       compareMode: false,
       compareLabels: true,
       comparePeekOriginal: false,
@@ -835,6 +939,23 @@
       state.selectedLayerId = snapshot.selectedLayerId;
       state.activePresetId = snapshot.activePresetId;
       state.image.transform = { ...snapshot.imageTransform };
+      state.polaroid = snapshot.polaroid
+        ? {
+            enabled: Boolean(snapshot.polaroid.enabled),
+            frameId: snapshot.polaroid.frameId || null,
+            frameOrientation: snapshot.polaroid.frameOrientation || null,
+            photoTransform: { ...(snapshot.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
+            photoCanvas: snapshot.polaroid.photoCanvas || null,
+            baseSnapshot: snapshot.polaroid.baseSnapshot || snapshot.polaroid.snapshot || null,
+          }
+        : {
+            enabled: false,
+            frameId: null,
+            frameOrientation: null,
+            photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
+            photoCanvas: null,
+            baseSnapshot: null,
+          };
       state.compareMode = Boolean(snapshot.compareMode);
       state.compareLabels = snapshot.compareLabels !== false;
       state.renderToken = snapshot.renderToken ?? state.renderToken;
@@ -872,6 +993,8 @@
         state.history.future.push(createHistorySnapshot(state));
         const snapshot = state.history.past.pop();
         restoreSnapshot(snapshot);
+        resetPreviewRenderCache();
+        bumpToneRenderToken();
         notify();
       },
       redo() {
@@ -879,6 +1002,8 @@
         state.history.past.push(createHistorySnapshot(state));
         const snapshot = state.history.future.pop();
         restoreSnapshot(snapshot);
+        resetPreviewRenderCache();
+        bumpToneRenderToken();
         notify();
       },
       setImage(img) {
@@ -921,6 +1046,14 @@
         state.layers = [];
         state.selectedLayerId = null;
         state.activePresetId = 'original';
+        state.polaroid = {
+          enabled: false,
+          frameId: null,
+          frameOrientation: null,
+          photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
+          photoCanvas: null,
+          baseSnapshot: null,
+        };
         state.compareMode = false;
         state.compareLabels = true;
         state.comparePeekOriginal = false;
@@ -964,8 +1097,19 @@
         state.filters = { ...state.filters, ...partial };
         if (presetId !== null) state.activePresetId = presetId;
         const changesOnlyPanelState = Object.keys(partial || {}).every((key) => key === 'hslActiveChannel');
+        if (!changesOnlyPanelState && state.polaroid?.enabled && state.image.loaded) {
+          state.polaroid.photoCanvas = renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true).canvas;
+          if (state.polaroid.baseSnapshot) {
+            state.polaroid.baseSnapshot = {
+              ...state.polaroid.baseSnapshot,
+              filters: { ...state.filters },
+              activePresetId: state.activePresetId,
+            };
+          }
+        }
         if (changesOnlyPanelState) bumpRenderToken();
         else bumpToneRenderToken();
+        resetPreviewRenderCache();
         notify();
       },
       setImageScale(scale, recordHistory = true) {
@@ -980,6 +1124,14 @@
         state.activePresetId = 'original';
         state.layers = [];
         state.selectedLayerId = null;
+        state.polaroid = {
+          enabled: false,
+          frameId: null,
+          frameOrientation: null,
+          photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
+          photoCanvas: null,
+          baseSnapshot: null,
+        };
         state.compareMode = false;
         state.compareLabels = true;
         state.comparePeekOriginal = false;
@@ -1052,6 +1204,39 @@
       selectLayer(id) {
         if (state.selectedLayerId === id) return;
         state.selectedLayerId = id;
+        notify();
+      },
+      setPolaroidMode(config) {
+        pushHistory();
+        state.polaroid = {
+          enabled: true,
+          frameId: config.frameId,
+          frameOrientation: config.frameOrientation,
+          photoTransform: {
+            scale: clamp(Number(config.photoTransform?.scale ?? 1), 0.1, 8),
+            offsetX: Number(config.photoTransform?.offsetX ?? 0),
+            offsetY: Number(config.photoTransform?.offsetY ?? 0),
+          },
+          photoCanvas: config.photoCanvas || null,
+          baseSnapshot: createPolaroidBaseSnapshot(state),
+        };
+        bumpToneRenderToken();
+        notify();
+      },
+      disablePolaroidMode() {
+        if (!state.polaroid?.enabled || !state.polaroid?.baseSnapshot) return;
+        pushHistory();
+        restoreSnapshot(state.polaroid.baseSnapshot);
+        state.polaroid = {
+          enabled: false,
+          frameId: null,
+          frameOrientation: null,
+          photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
+          photoCanvas: null,
+          baseSnapshot: null,
+        };
+        resetPreviewRenderCache();
+        bumpToneRenderToken();
         notify();
       },
     };
@@ -1989,7 +2174,32 @@
 
   function drawBlushPreview(ctx, state) {
     if (!blushPreviewEnabled) return;
+    if (blushEditMode) return;
     if (!state.image.loaded) return;
+    const polaroidMapping = getPolaroidPhotoDisplayMapping(state, ctx.canvas.width, ctx.canvas.height);
+    if (polaroidMapping) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(
+        polaroidMapping.photoRect.x,
+        polaroidMapping.photoRect.y,
+        polaroidMapping.photoRect.width,
+        polaroidMapping.photoRect.height
+      );
+      ctx.clip();
+      ctx.translate(polaroidMapping.imageRect.x, polaroidMapping.imageRect.y);
+      ctx.scale(
+        polaroidMapping.imageRect.width / polaroidMapping.sourceWidth,
+        polaroidMapping.imageRect.height / polaroidMapping.sourceHeight
+      );
+      drawBlushPreview(ctx, {
+        ...state,
+        polaroid: { enabled: false },
+        canvas: { width: polaroidMapping.sourceWidth, height: polaroidMapping.sourceHeight },
+      });
+      ctx.restore();
+      return;
+    }
     const blushControls = getActiveBlushControls(
       state.filters,
       state.image.faceBoxes || [],
@@ -2065,15 +2275,80 @@
     ctx.closePath();
   }
 
+  function measureTextLineWidth(ctx, line, letterSpacing = 0) {
+    const text = String(line ?? '');
+    if (!text.length) return ctx.measureText(' ').width;
+    const chars = Array.from(text);
+    const baseWidth = chars.reduce((sum, char) => sum + ctx.measureText(char).width, 0);
+    return baseWidth + Math.max(0, chars.length - 1) * letterSpacing;
+  }
+
+  function wrapTextLine(ctx, text, maxWidth, letterSpacing = 0) {
+    const source = String(text ?? '');
+    if (!source.length) return [''];
+    if (!Number.isFinite(maxWidth) || maxWidth <= 0) return [source];
+    const chars = Array.from(source);
+    const lines = [];
+    let current = '';
+    chars.forEach((char) => {
+      const candidate = current + char;
+      const candidateWidth = measureTextLineWidth(ctx, candidate, letterSpacing);
+      if (current && candidateWidth > maxWidth) {
+        lines.push(current);
+        current = char;
+      } else {
+        current = candidate;
+      }
+    });
+    if (current || !lines.length) lines.push(current);
+    return lines;
+  }
+
   function getTextLayout(ctx, layer) {
     const fontSize = layer.fontSize ?? 56;
+    const letterSpacing = layer.letterSpacing ?? 0;
     const rawLines = String(layer.content ?? '').split(/\r?\n/);
-    const lines = rawLines.length ? rawLines : [''];
-    const lineHeight = fontSize * 1.22;
-    const widths = lines.map((line) => ctx.measureText(line || ' ').width);
-    const textWidth = Math.max(1, ...widths);
+    const sourceLines = rawLines.length ? rawLines : [''];
+    const explicitTextBoxWidth = Number(layer.textBoxWidthPx);
+    const maxWidth =
+      Number.isFinite(explicitTextBoxWidth) && explicitTextBoxWidth > 0
+        ? Math.max(fontSize * 0.8, explicitTextBoxWidth)
+        : Number.isFinite(layer.width) && layer.width > 0
+          ? Math.max(fontSize * 0.8, layer.width * ctx.canvas.width)
+          : Infinity;
+    const lines = sourceLines.flatMap((line) => wrapTextLine(ctx, line, maxWidth, letterSpacing));
+    const lineHeight = fontSize * Math.max(0.8, layer.lineHeight ?? 1.22);
+    const widths = lines.map((line) => measureTextLineWidth(ctx, line || ' ', letterSpacing));
+    const textWidth = Number.isFinite(maxWidth) ? Math.min(Math.max(1, ...widths), maxWidth) : Math.max(1, ...widths);
     const textHeight = lineHeight * Math.max(1, lines.length);
-    return { lines, fontSize, lineHeight, textWidth, textHeight };
+    return { lines, fontSize, lineHeight, textWidth, textHeight, letterSpacing, maxWidth };
+  }
+
+  function drawTextLine(ctx, text, x, y, letterSpacing = 0, options = {}) {
+    const shouldStroke = options.stroke !== false;
+    const extraBoldPasses = Math.max(0, Math.round(options.extraBoldPasses || 0));
+    const chars = Array.from(String(text ?? ''));
+    if (!chars.length) {
+      if (shouldStroke) ctx.strokeText('', x, y);
+      ctx.fillText('', x, y);
+      return;
+    }
+    const extraBoldOffsets = [
+      [0.28, 0],
+      [-0.28, 0],
+      [0, 0.28],
+      [0, -0.28],
+      [0.2, 0.2],
+    ].slice(0, extraBoldPasses);
+    let cursorX = x;
+    chars.forEach((char, index) => {
+      if (shouldStroke) ctx.strokeText(char, cursorX, y);
+      extraBoldOffsets.forEach(([dx, dy]) => {
+        ctx.fillText(char, cursorX + dx, y + dy);
+      });
+      ctx.fillText(char, cursorX, y);
+      if (index < chars.length - 1) cursorX += ctx.measureText(char).width + letterSpacing;
+    });
   }
 
   function getTextBoxMetrics(layout, layer, scale = 1) {
@@ -2092,7 +2367,7 @@
 
   function makeTextStrokeShadow(layer, scale = 1) {
     const strokeWidth = Math.max(0, (layer.strokeWidth ?? 0) * scale);
-    const strokeColor = layer.strokeColor ?? '#2f2532';
+    const strokeColor = layer.strokeColor ?? '#e170c7';
     const shadowBlur = Math.max(0, (layer.shadowBlur ?? 0) * scale);
     const shadowColor = layer.shadowColor ?? '#2f2532';
     const shadows = [];
@@ -2290,7 +2565,7 @@
 
   function applyCanvasCssInteractionPreview(state) {
     if (!els?.canvas) return;
-    if (!isSliderDragging || !sliderDragStartFilters || !state.image.loaded) {
+    if (!isSliderDragging || !sliderDragStartFilters || !state.image.loaded || state.polaroid?.enabled) {
       els.canvas.style.filter = '';
       return;
     }
@@ -2367,6 +2642,7 @@
     const next = { ...layer };
     if (layer.type === 'text') {
       next.fontSize = Math.max(8, (layer.fontSize ?? 56) * scale);
+      next.letterSpacing = (layer.letterSpacing ?? 0) * scale;
       next.strokeWidth = Math.max(0, (layer.strokeWidth ?? 4) * scale);
       next.shadowBlur = Math.max(0, (layer.shadowBlur ?? 8) * scale);
       next.bgPadding = Math.max(0, (layer.bgPadding ?? 18) * scale);
@@ -2404,6 +2680,45 @@
     };
   }
 
+  function getPolaroidPlacement(frame, canvasWidth, canvasHeight) {
+    const scale = Math.min(canvasWidth / frame.width, canvasHeight / frame.height);
+    const width = frame.width * scale;
+    const height = frame.height * scale;
+    const x = (canvasWidth - width) / 2;
+    const y = (canvasHeight - height) / 2;
+    return {
+      frameRect: { x, y, width, height },
+      photoRect: {
+        x: x + frame.photoWindow.x * scale,
+        y: y + frame.photoWindow.y * scale,
+        width: frame.photoWindow.width * scale,
+        height: frame.photoWindow.height * scale,
+      },
+    };
+  }
+
+  function getPolaroidPhotoDisplayMapping(renderState, canvasWidth, canvasHeight) {
+    const frame = renderState.polaroid?.enabled ? getPolaroidFrameConfig(renderState.polaroid.frameId) : null;
+    if (!frame) return null;
+    const placement = getPolaroidPlacement(frame, canvasWidth, canvasHeight);
+    const sourceWidth = Math.max(1, renderState.polaroid.photoCanvas?.width || renderState.canvas?.width || canvasWidth || 1);
+    const sourceHeight = Math.max(1, renderState.polaroid.photoCanvas?.height || renderState.canvas?.height || canvasHeight || 1);
+    const normalized = clampPolaroidPhotoTransform(frame, sourceWidth, sourceHeight, renderState.polaroid.photoTransform);
+    const scaleX = placement.photoRect.width / frame.photoWindow.width;
+    const scaleY = placement.photoRect.height / frame.photoWindow.height;
+    return {
+      sourceWidth,
+      sourceHeight,
+      photoRect: placement.photoRect,
+      imageRect: {
+        x: placement.photoRect.x + normalized.offsetX * scaleX,
+        y: placement.photoRect.y + normalized.offsetY * scaleY,
+        width: normalized.drawWidth * scaleX,
+        height: normalized.drawHeight * scaleY,
+      },
+    };
+  }
+
   function renderToneBaseCanvas(state, transparent = false, options = {}) {
     const renderState = options.usePreviewScale ? createPreviewRenderState(state) : state;
     const canvas = document.createElement('canvas');
@@ -2428,6 +2743,22 @@
     const baseCtx = baseCanvas.getContext('2d');
     baseCtx.imageSmoothingEnabled = true;
     baseCtx.imageSmoothingQuality = options.usePreviewScale ? 'medium' : 'high';
+    const polaroidFrame = renderState.polaroid?.enabled ? getPolaroidFrameConfig(renderState.polaroid.frameId) : null;
+    if (polaroidFrame) {
+      if (!transparent) {
+        ctx.fillStyle = '#f2ecf3';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      const placement = getPolaroidPlacement(polaroidFrame, canvas.width, canvas.height);
+      const photoImage = renderState.polaroid.photoCanvas || renderState.image.element;
+      drawPhotoIntoPolaroidWindow(ctx, photoImage, polaroidFrame, renderState.polaroid.photoTransform, placement.photoRect);
+      const frameImage = POLAROID_FRAME_CACHE.get(polaroidFrame.src);
+      if (frameImage) {
+        ctx.drawImage(frameImage, placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
+      }
+      return { canvas, renderState };
+    }
+
     // 画布尺寸与原图像素一致，基底始终 1:1 覆盖，禁止自动补边/扩展。
     baseCtx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
 
@@ -2449,6 +2780,14 @@
 
   function drawLayerStack(ctx, renderState, options = {}) {
     const skipLayerId = options.skipLayerId || null;
+    const polaroidFrame = renderState.polaroid?.enabled ? getPolaroidFrameConfig(renderState.polaroid.frameId) : null;
+    if (polaroidFrame) {
+      const placement = getPolaroidPlacement(polaroidFrame, ctx.canvas.width, ctx.canvas.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
+      ctx.clip();
+    }
     const preMosaic = document.createElement('canvas');
     preMosaic.width = ctx.canvas.width;
     preMosaic.height = ctx.canvas.height;
@@ -2494,7 +2833,7 @@
         ctx.translate(x, y);
         ctx.rotate(((layer.rotation ?? 0) * Math.PI) / 180);
         ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
-        ctx.font = `${layer.fontSize ?? 56}px ${layer.fontFamily ?? '"Avenir Next", sans-serif'}`;
+        ctx.font = getCanvasTextFont(layer);
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         const layout = getTextLayout(ctx, layer);
@@ -2509,20 +2848,30 @@
         }
         ctx.shadowColor = layer.shadowColor ?? '#2f2532';
         ctx.shadowBlur = layer.shadowBlur ?? 8;
-        ctx.lineWidth = layer.strokeWidth ?? 4;
-        ctx.strokeStyle = layer.strokeColor ?? '#2f2532';
-        ctx.fillStyle = layer.color ?? '#ffeef5';
+        const strokeWidth = Math.max(0, layer.strokeWidth ?? 4);
+        const strokeEnabled = strokeWidth > 0.1;
+        if (strokeEnabled) {
+          ctx.lineWidth = strokeWidth;
+          ctx.strokeStyle = layer.strokeColor ?? '#e170c7';
+        }
+        ctx.fillStyle = layer.color ?? (strokeEnabled ? '#ffeef5' : TEXT_NO_STROKE_DEFAULT_COLOR);
         const firstY = -layout.textHeight / 2 + layout.lineHeight / 2;
         const align = ['left', 'center', 'right'].includes(layer.textAlign) ? layer.textAlign : 'center';
         const textX = align === 'left' ? -layout.textWidth / 2 : align === 'right' ? layout.textWidth / 2 : 0;
         ctx.textAlign = align;
         layout.lines.forEach((line, index) => {
           const y = firstY + index * layout.lineHeight;
-          ctx.strokeText(line, textX, y);
-          ctx.fillText(line, textX, y);
+          let lineX = textX;
+          if (align === 'center') lineX -= measureTextLineWidth(ctx, line, layout.letterSpacing) / 2;
+          if (align === 'right') lineX -= measureTextLineWidth(ctx, line, layout.letterSpacing);
+          drawTextLine(ctx, line, lineX, y, layout.letterSpacing, {
+            stroke: strokeEnabled,
+            extraBoldPasses: getExtraTextBoldPasses(layer),
+          });
         });
         ctx.restore();
       });
+    if (polaroidFrame) ctx.restore();
   }
 
   function renderEditedCanvas(state, transparent = false, options = {}) {
@@ -2554,6 +2903,15 @@
     const dy = y + (h - dh) / 2;
     ctx.drawImage(sourceCanvas, dx, dy, dw, dh);
     return { x: dx, y: dy, w: dw, h: dh };
+  }
+
+  function updateRangeInputProgress(input) {
+    if (!input) return;
+    const minValue = Number(input.min);
+    const maxValue = Number(input.max);
+    const currentValue = Number(input.value);
+    const pct = ((currentValue - minValue) / Math.max(0.0001, maxValue - minValue)) * 100;
+    input.style.setProperty('--range-progress', `${clamp(pct, 0, 100)}%`);
   }
 
   function getCompareLabelStyle(paneWidth) {
@@ -2594,8 +2952,10 @@
       outputCtx.drawImage(renderOriginalCanvas(state, false, { usePreviewScale: true }), 0, 0);
     };
 
+    const getHiddenLayerId = () => getPreviewHiddenLayerId(state);
+
     const ensureCache = () => {
-      const hiddenLayerId = activeTransformLayerId || null;
+      const hiddenLayerId = getHiddenLayerId();
       const interactivePreview = isSliderDragging || isTextEditing;
       if (
         previewRenderCache.renderToken === state.renderToken &&
@@ -2647,7 +3007,7 @@
         edited.height = previewRenderCache.toneBase.height;
         const editedCtx = edited.getContext('2d');
         editedCtx.drawImage(previewRenderCache.toneBase, 0, 0);
-        drawLayerStack(editedCtx, previewState, { skipLayerId: activeTransformLayerId || null });
+        drawLayerStack(editedCtx, previewState, { skipLayerId: getHiddenLayerId() });
         previewRenderCache.edited = edited;
       }
       return previewRenderCache.edited;
@@ -2719,6 +3079,13 @@
     commitOutput();
   }
 
+  function getPreviewHiddenLayerId(state) {
+    if (activeTransformLayerId) return activeTransformLayerId;
+    if (activeTool !== 'text') return null;
+    const selectedLayer = state.layers.find((layer) => layer.id === state.selectedLayerId);
+    return selectedLayer?.type === 'text' ? selectedLayer.id : null;
+  }
+
   function makeSlider({ label, min, max, step, value, onInput, onPreview, onBegin, onEnd, commitOnEnd, rangeClass = '', trackGradient = '' }) {
     const wrapper = document.createElement('div');
     wrapper.className = 'control-item slider-control';
@@ -2735,14 +3102,7 @@
     if (rangeClass) input.classList.add(rangeClass);
     if (trackGradient) input.style.setProperty('--hsl-track', trackGradient);
 
-    const syncRangeProgress = () => {
-      const minValue = Number(input.min);
-      const maxValue = Number(input.max);
-      const currentValue = Number(input.value);
-      const pct = ((currentValue - minValue) / Math.max(0.0001, maxValue - minValue)) * 100;
-      input.style.setProperty('--range-progress', `${clamp(pct, 0, 100)}%`);
-    };
-    syncRangeProgress();
+    updateRangeInputProgress(input);
 
     let started = false;
     let pendingSliderFrame = 0;
@@ -2776,7 +3136,7 @@
 
     const queueSliderInput = (v) => {
       latestSliderValue = v;
-      syncRangeProgress();
+      updateRangeInputProgress(input);
       onPreview?.(v);
       if (commitOnEndOnly) return;
       const now = performance.now();
@@ -3041,14 +3401,15 @@
       const status = fontFaceStatus.get(font.id) || (font.src ? 'idle' : 'ready');
       btn.dataset.fontStatus = status;
       btn.title = status === 'error' ? `${font.name} 加载失败，将使用系统字体兜底` : font.name;
+      const useFontPreview = shouldApplyFontPreviewClass(font);
       const name = document.createElement('span');
-      name.className = 'font-picker-name';
+      name.className = `font-picker-name ${useFontPreview ? font.className : ''}`.trim();
+      name.style.setProperty('--font-preview-family', useFontPreview ? getRuntimeFontFamily(font) : TEXT_FONTS[0].family);
       name.textContent = font.name;
       const sample = document.createElement('span');
-      const useFontPreview = shouldApplyFontPreviewClass(font);
       sample.className = `font-picker-sample ${useFontPreview ? font.className : ''}`.trim();
       sample.style.setProperty('--font-preview-family', useFontPreview ? getRuntimeFontFamily(font) : TEXT_FONTS[0].family);
-      sample.textContent = TEXT_FONT_PREVIEW_SAMPLE;
+      sample.textContent = getFontPreviewSample(font);
       btn.append(name, sample);
       btn.onclick = () => {
         onInput(font.id);
@@ -3133,6 +3494,35 @@
 
     function isBlushEditActive(state) {
       return activeTool === 'project' && blushEditMode && state.image.loaded;
+    }
+
+    function getBlushEditSpace(state, overlayRect) {
+      const mapping = getPolaroidPhotoDisplayMapping(state, overlayRect.width, overlayRect.height);
+      if (!mapping) {
+        return {
+          sourceWidth: overlayRect.width,
+          sourceHeight: overlayRect.height,
+          offsetX: 0,
+          offsetY: 0,
+          scaleX: 1,
+          scaleY: 1,
+          interactionRect: overlayRect,
+        };
+      }
+      return {
+        sourceWidth: mapping.sourceWidth,
+        sourceHeight: mapping.sourceHeight,
+        offsetX: mapping.imageRect.x,
+        offsetY: mapping.imageRect.y,
+        scaleX: mapping.imageRect.width / mapping.sourceWidth,
+        scaleY: mapping.imageRect.height / mapping.sourceHeight,
+        interactionRect: {
+          left: overlayRect.left + mapping.imageRect.x,
+          top: overlayRect.top + mapping.imageRect.y,
+          width: mapping.imageRect.width,
+          height: mapping.imageRect.height,
+        },
+      };
     }
 
     function ensureManualBlushSetup() {
@@ -3233,8 +3623,14 @@
         const canvasWidth = Math.max(1, state.canvas?.width || bounds.width || 1);
         const displayScale = bounds.width / canvasWidth;
         const fontSize = (layer.fontSize ?? 56) * displayScale;
-        textMeasureCtx.font = `${fontSize}px ${layer.fontFamily ?? '"Avenir Next", sans-serif'}`;
-        const layout = getTextLayout(textMeasureCtx, { ...layer, fontSize });
+        const letterSpacing = (layer.letterSpacing ?? 0) * displayScale;
+        textMeasureCtx.font = getCanvasTextFont(layer, fontSize);
+        const layout = getTextLayout(textMeasureCtx, {
+          ...layer,
+          fontSize,
+          letterSpacing,
+          textBoxWidthPx: (layer.width ?? 0.44) * bounds.width,
+        });
         const metrics = getTextBoxMetrics(layout, layer, displayScale);
         return {
           w: Math.max(24, metrics.w),
@@ -3361,9 +3757,26 @@
         if (interaction.layerType === 'sticker') scaleY = scaleX;
       }
       const rotation = layer.rotation ?? interaction.startRotation;
+      if (interaction.layerType === 'text') {
+        const previewSize = sizePx(layer, interaction.frameRect);
+        const minFrame = minOverlayFrame(interaction.frameRect);
+        const preview = element.querySelector('.overlay-preview');
+        element.style.width = `${Math.max(previewSize.w, minFrame.w)}px`;
+        element.style.height = `${Math.max(previewSize.h, minFrame.h)}px`;
+        if (preview) syncTextPreviewElement(preview, layer, interaction.frameRect);
+      }
       element.style.setProperty('--handle-scale-x', `${1 / Math.max(0.2, Math.abs(scaleX))}`);
       element.style.setProperty('--handle-scale-y', `${1 / Math.max(0.2, Math.abs(scaleY))}`);
       element.style.transform = `translate3d(${dx}px, ${dy}px, 0) translate(-50%, -50%) rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`;
+
+      activeTransformLayerId = interaction.id;
+      previewRenderCache.hiddenLayerId = interaction.id;
+      if (!pendingTransformCanvasFrame) {
+        pendingTransformCanvasFrame = window.requestAnimationFrame(() => {
+          pendingTransformCanvasFrame = 0;
+          requestRenderWithProcessingLead(store.getState());
+        });
+      }
     }
 
     function startBlushInteraction(event, side, mode, control, frameRect) {
@@ -3406,16 +3819,16 @@
         window.cancelAnimationFrame(pendingTransformCanvasFrame);
         pendingTransformCanvasFrame = 0;
       }
-      current?.element?.classList.remove('is-transforming');
       activeTransformLayerId = null;
       previewRenderCache.hiddenLayerId = null;
-      isDirectManipulating = false;
       if (current?.kind === 'blush' && current.pendingPatch) {
         patchBlush(current.side, current.pendingPatch, false);
       }
       if (current?.kind === 'layer' && current.pendingPatch) {
         store.updateLayer(current.id, current.pendingPatch);
       }
+      resetPreviewRenderCache();
+      isDirectManipulating = false;
       current?.pointers?.clear?.();
       interaction = null;
       const selectedLayer = store.getState().layers.find((layer) => layer.id === store.getState().selectedLayerId);
@@ -3423,6 +3836,7 @@
         mobileLayerControlsExpanded = true;
       }
       render(store.getState());
+      current?.element?.classList.remove('is-transforming');
     }
 
     function applyBlushInteractionPreview(patch) {
@@ -3523,6 +3937,45 @@
       return handle;
     }
 
+    function syncTextPreviewElement(preview, layer, frameRect) {
+      const canvasWidth = Math.max(1, store.getState().canvas?.width || frameRect.width || 1);
+      const displayScale = frameRect.width / canvasWidth;
+      const fontSize = Math.max(8, (layer.fontSize ?? 56) * displayScale);
+      const letterSpacing = (layer.letterSpacing ?? 0) * displayScale;
+      textMeasureCtx.font = getCanvasTextFont(layer, fontSize);
+      const layout = getTextLayout(textMeasureCtx, {
+        ...layer,
+        fontSize,
+        letterSpacing,
+        textBoxWidthPx: (layer.width ?? 0.44) * frameRect.width,
+      });
+      preview.textContent = '';
+      preview.style.fontFamily = layer.fontFamily ?? '"Avenir Next", sans-serif';
+      preview.style.fontSize = `${fontSize}px`;
+      preview.style.fontWeight = String(getCssTextFontWeight(layer));
+      preview.style.width = `${layout.textWidth}px`;
+      preview.style.height = `${layout.textHeight}px`;
+      preview.style.whiteSpace = 'pre';
+      preview.style.wordBreak = 'normal';
+      preview.style.overflowWrap = 'normal';
+      preview.style.lineHeight = `${layout.lineHeight}px`;
+      preview.style.letterSpacing = `${letterSpacing}px`;
+      preview.style.color = layer.color ?? (((layer.strokeWidth ?? 0) > 0) ? '#ffeef5' : TEXT_NO_STROKE_DEFAULT_COLOR);
+      preview.style.webkitTextStroke = `${Math.max(0, (layer.strokeWidth ?? 0) * displayScale)}px ${layer.strokeColor ?? '#e170c7'}`;
+      preview.style.textShadow = makeTextStrokeShadow(layer, displayScale);
+      const align = ['left', 'center', 'right'].includes(layer.textAlign) ? layer.textAlign : 'left';
+      preview.style.textAlign = align;
+      layout.lines.forEach((line) => {
+        const row = document.createElement('div');
+        row.textContent = line || ' ';
+        row.style.width = '100%';
+        row.style.height = `${layout.lineHeight}px`;
+        row.style.lineHeight = `${layout.lineHeight}px`;
+        row.style.textAlign = align;
+        preview.appendChild(row);
+      });
+    }
+
     function appendLayerPreview(item, layer, frameRect) {
       if (layer.type === 'sticker') {
         const preview = document.createElement('div');
@@ -3537,16 +3990,7 @@
       if (layer.type === 'text') {
         const preview = document.createElement('div');
         preview.className = 'overlay-preview text-preview';
-        const canvasWidth = Math.max(1, store.getState().canvas?.width || frameRect.width || 1);
-        const displayScale = frameRect.width / canvasWidth;
-        const fontSize = Math.max(8, (layer.fontSize ?? 56) * displayScale);
-        preview.textContent = layer.content || '';
-        preview.style.fontFamily = layer.fontFamily ?? '"Avenir Next", sans-serif';
-        preview.style.fontSize = `${fontSize}px`;
-        preview.style.color = layer.color ?? '#ffeef5';
-        preview.style.webkitTextStroke = `${Math.max(0, (layer.strokeWidth ?? 0) * displayScale)}px ${layer.strokeColor ?? '#2f2532'}`;
-        preview.style.textShadow = makeTextStrokeShadow(layer, displayScale);
-        preview.style.textAlign = ['left', 'center', 'right'].includes(layer.textAlign) ? layer.textAlign : 'left';
+        syncTextPreviewElement(preview, layer, frameRect);
         item.appendChild(preview);
         return;
       }
@@ -3556,9 +4000,22 @@
         preview.className = `overlay-preview mosaic-preview mosaic-shape-${shape}`;
         if (shape === 'heart') {
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          svg.setAttribute('viewBox', '-50 -50 100 100');
+          svg.setAttribute('viewBox', '-86 -86 172 172');
           svg.setAttribute('aria-hidden', 'true');
+          const featherStrength = clamp(layer.feather ?? 0.12, 0, 0.8);
+          const featherRange = clamp(layer.featherRange ?? 1, 0, 3);
+          const steps = Math.max(0, Math.round(featherStrength * 10 + featherRange * 2));
+          const maxScale = 1 + featherRange * 0.55;
+          for (let i = steps; i >= 1; i -= 1) {
+            const t = i / Math.max(1, steps);
+            const featherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            featherPath.setAttribute('class', 'mosaic-heart-path mosaic-heart-feather');
+            featherPath.setAttribute('d', `${heartPathToSvgD(50)} Z`);
+            featherPath.setAttribute('transform', `scale(${Number((1 + (maxScale - 1) * t).toFixed(3))})`);
+            featherPath.style.opacity = String(Math.max(0.02, (1 - t) * featherStrength * 0.85));
+            svg.appendChild(featherPath);
+          }
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('class', 'mosaic-heart-path');
           path.setAttribute('d', `${heartPathToSvgD(50)} Z`);
           svg.appendChild(path);
@@ -3649,6 +4106,10 @@
 
         if (state.selectedLayerId === layer.id) {
           item.appendChild(makeHandle('scale', layer, frameRect));
+          if (layer.type === 'text') {
+            item.appendChild(makeHandle('text-width-left', layer, frameRect));
+            item.appendChild(makeHandle('text-width-right', layer, frameRect));
+          }
           if (layer.type === 'mosaic') {
             item.appendChild(makeHandle('stretch-x', layer, frameRect));
             item.appendChild(makeHandle('stretch-y', layer, frameRect));
@@ -3663,12 +4124,13 @@
 
       if (isBlushEditActive(state)) {
         ensureManualBlushSetup();
+        const blushSpace = getBlushEditSpace(store.getState(), frameRect);
         const controls = getActiveBlushControls(
           store.getState().filters,
           store.getState().image.faceBoxes || [],
           store.getState().image.faceLandmarks || [],
-          frameRect.width,
-          frameRect.height
+          blushSpace.sourceWidth,
+          blushSpace.sourceHeight
         );
         const blushItems = [
           { side: 'left', control: controls?.left, label: '左腮红' },
@@ -3683,10 +4145,16 @@
           const groupClass = side === 'extraLeft' || side === 'extraRight' ? 'blush-extra' : 'blush-primary';
           item.className = `overlay-item blush-control ${sideClass} ${groupClass} selected`;
           const minFrame = minOverlayFrame(frameRect, { w: 84, h: 64 });
-          const blushW = control.rx * 2;
-          const blushH = control.ry * 2;
-          item.style.left = `${control.x}px`;
-          item.style.top = `${control.y}px`;
+          const displayControl = {
+            x: control.x * blushSpace.scaleX,
+            y: control.y * blushSpace.scaleY,
+            rx: control.rx * blushSpace.scaleX,
+            ry: control.ry * blushSpace.scaleY,
+          };
+          const blushW = displayControl.rx * 2;
+          const blushH = displayControl.ry * 2;
+          item.style.left = `${blushSpace.offsetX + displayControl.x}px`;
+          item.style.top = `${blushSpace.offsetY + displayControl.y}px`;
           item.style.width = `${Math.max(blushW, minFrame.w)}px`;
           item.style.height = `${Math.max(blushH, minFrame.h)}px`;
           item.style.transform = 'translate(-50%, -50%)';
@@ -3702,7 +4170,7 @@
           item.onpointerdown = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            startBlushInteraction(event, side, 'move', control, frameRect);
+            startBlushInteraction(event, side, 'move', displayControl, blushSpace.interactionRect);
           };
 
           const scaleHandle = document.createElement('button');
@@ -3711,7 +4179,7 @@
           scaleHandle.onpointerdown = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            startBlushInteraction(event, side, 'scale', control, frameRect);
+            startBlushInteraction(event, side, 'scale', displayControl, blushSpace.interactionRect);
           };
 
           const deleteHandle = document.createElement('button');
@@ -3847,6 +4315,28 @@
         return;
       }
 
+      if (interaction.mode === 'text-width-right') {
+        const delta = (event.clientX - interaction.startX) / interaction.frameRect.width;
+        const leftEdge = interaction.startLayerX - interaction.startWidth / 2;
+        const nextWidth = clamp(interaction.startWidth + delta, 0.08, 0.95);
+        queueInteractionPreview({
+          width: nextWidth,
+          x: clamp(leftEdge + nextWidth / 2, nextWidth / 2, 1 - nextWidth / 2),
+        });
+        return;
+      }
+
+      if (interaction.mode === 'text-width-left') {
+        const delta = (event.clientX - interaction.startX) / interaction.frameRect.width;
+        const rightEdge = interaction.startLayerX + interaction.startWidth / 2;
+        const nextWidth = clamp(interaction.startWidth - delta, 0.08, 0.95);
+        queueInteractionPreview({
+          width: nextWidth,
+          x: clamp(rightEdge - nextWidth / 2, nextWidth / 2, 1 - nextWidth / 2),
+        });
+        return;
+      }
+
       if (interaction.mode === 'rotate') {
         const cx = interaction.startLayerX * interaction.frameRect.width;
         const cy = interaction.startLayerY * interaction.frameRect.height;
@@ -3867,8 +4357,10 @@
     };
 
     overlayEl.onclick = () => {
+      resetPreviewRenderCache();
       store.selectLayer(null);
       mobileLayerControlsExpanded = false;
+      render(store.getState());
     };
 
     return { render, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
@@ -3930,7 +4422,33 @@
       }
     } else {
       canvas = renderEditedCanvas(exportState, true, renderOptions);
+      canvas = cropPolaroidExportCanvas(canvas, exportState) || canvas;
     }
+    return canvas;
+  }
+
+  function cropPolaroidExportCanvas(sourceCanvas, state) {
+    const frame = state.polaroid?.enabled ? getPolaroidFrameConfig(state.polaroid.frameId) : null;
+    if (!frame || !sourceCanvas?.width || !sourceCanvas?.height) return null;
+    const placement = getPolaroidPlacement(frame, sourceCanvas.width, sourceCanvas.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(
+      sourceCanvas,
+      placement.frameRect.x,
+      placement.frameRect.y,
+      placement.frameRect.width,
+      placement.frameRect.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
     return canvas;
   }
 
@@ -4139,6 +4657,97 @@
     });
   }
 
+  function getPolaroidFrameConfig(frameId) {
+    return Object.values(POLAROID_FRAMES).find((frame) => frame.id === frameId) || null;
+  }
+
+  function loadPolaroidFrameImage(frameId) {
+    const frame = getPolaroidFrameConfig(frameId);
+    if (!frame) return Promise.resolve(null);
+    if (POLAROID_FRAME_CACHE.has(frame.src)) return Promise.resolve(POLAROID_FRAME_CACHE.get(frame.src));
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        POLAROID_FRAME_CACHE.set(frame.src, img);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = frame.src;
+    });
+  }
+
+  function preloadPolaroidFrameImages() {
+    Object.values(POLAROID_FRAMES).forEach((frame) => {
+      loadPolaroidFrameImage(frame.id).catch(() => {});
+    });
+  }
+
+  function computeCoverTransform(sourceWidth, sourceHeight, targetWidth, targetHeight) {
+    const safeSourceWidth = Math.max(1, sourceWidth || 1);
+    const safeSourceHeight = Math.max(1, sourceHeight || 1);
+    const safeTargetWidth = Math.max(1, targetWidth || 1);
+    const safeTargetHeight = Math.max(1, targetHeight || 1);
+    const scale = Math.max(safeTargetWidth / safeSourceWidth, safeTargetHeight / safeSourceHeight);
+    const drawWidth = safeSourceWidth * scale;
+    const drawHeight = safeSourceHeight * scale;
+    return {
+      scale,
+      minScale: scale,
+      offsetX: (safeTargetWidth - drawWidth) / 2,
+      offsetY: (safeTargetHeight - drawHeight) / 2,
+      drawWidth,
+      drawHeight,
+    };
+  }
+
+  function clampPolaroidPhotoTransform(frame, imageWidth, imageHeight, transform = {}) {
+    const base = computeCoverTransform(imageWidth, imageHeight, frame.photoWindow.width, frame.photoWindow.height);
+    const scale = Math.max(base.minScale, Number(transform.scale ?? base.scale));
+    const drawWidth = Math.max(1, imageWidth * scale);
+    const drawHeight = Math.max(1, imageHeight * scale);
+    const minOffsetX = frame.photoWindow.width - drawWidth;
+    const minOffsetY = frame.photoWindow.height - drawHeight;
+    return {
+      scale,
+      offsetX: clamp(Number(transform.offsetX ?? base.offsetX), minOffsetX, 0),
+      offsetY: clamp(Number(transform.offsetY ?? base.offsetY), minOffsetY, 0),
+      minScale: base.minScale,
+      drawWidth,
+      drawHeight,
+    };
+  }
+
+  function drawPhotoIntoPolaroidWindow(ctx, image, frame, transform, targetRect = null) {
+    if (!image || !frame) return;
+    const photoWindow = frame.photoWindow;
+    const windowRect = targetRect || photoWindow;
+    const scaleX = windowRect.width / photoWindow.width;
+    const scaleY = windowRect.height / photoWindow.height;
+    const normalized = clampPolaroidPhotoTransform(frame, image.naturalWidth || image.width, image.naturalHeight || image.height, transform);
+    const dx = windowRect.x + normalized.offsetX * scaleX;
+    const dy = windowRect.y + normalized.offsetY * scaleY;
+    const dw = normalized.drawWidth * scaleX;
+    const dh = normalized.drawHeight * scaleY;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(windowRect.x, windowRect.y, windowRect.width, windowRect.height);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  function convertPolaroidTransformBetweenSources(transform, fromImage, toImage) {
+    const fromWidth = Math.max(1, fromImage?.naturalWidth || fromImage?.width || 1);
+    const toWidth = Math.max(1, toImage?.naturalWidth || toImage?.width || fromWidth);
+    const sourceScale = fromWidth / toWidth;
+    return {
+      scale: Math.max(0.1, Number(transform?.scale ?? 1) * sourceScale),
+      offsetX: Number(transform?.offsetX ?? 0),
+      offsetY: Number(transform?.offsetY ?? 0),
+    };
+  }
+
   const store = createStore();
   const previewRenderCache = {
     renderToken: -1,
@@ -4151,6 +4760,18 @@
     toneBase: null,
     edited: null,
   };
+
+  function resetPreviewRenderCache() {
+    previewRenderCache.renderToken = -1;
+    previewRenderCache.toneToken = -1;
+    previewRenderCache.hiddenLayerId = null;
+    previewRenderCache.interactivePreview = false;
+    previewRenderCache.width = 0;
+    previewRenderCache.height = 0;
+    previewRenderCache.original = null;
+    previewRenderCache.toneBase = null;
+    previewRenderCache.edited = null;
+  }
 
   const els = {
     canvas: document.getElementById('editorCanvas'),
@@ -4179,6 +4800,7 @@
     compareBtn: document.getElementById('compareBtn'),
 
     originalFilterBtn: document.getElementById('originalFilterBtn'),
+    polaroidFrameList: document.getElementById('polaroidFrameList'),
     presetButtons: document.getElementById('presetButtons'),
     stickerPackList: document.getElementById('stickerPackList'),
     textTemplateList: document.getElementById('textTemplateList'),
@@ -4194,8 +4816,18 @@
     propListBlock: document.getElementById('propListBlock'),
     propertyPanel: document.querySelector('.PropertyPanel'),
     studioShell: document.querySelector('.studio-shell'),
+    brandProfileBtn: document.getElementById('brandProfileBtn'),
+    mobileProfileBtn: document.getElementById('mobileProfileBtn'),
+    profileModal: document.getElementById('profileModal'),
+    profileCloseBtn: document.getElementById('profileCloseBtn'),
 
     sidebarNav: document.getElementById('sidebarNav'),
+    polaroidModal: document.getElementById('polaroidModal'),
+    polaroidPreviewCanvas: document.getElementById('polaroidPreviewCanvas'),
+    polaroidScaleInput: document.getElementById('polaroidScaleInput'),
+    polaroidResetBtn: document.getElementById('polaroidResetBtn'),
+    polaroidConfirmBtn: document.getElementById('polaroidConfirmBtn'),
+    polaroidCancelBtn: document.getElementById('polaroidCancelBtn'),
   };
 
   const ctx = els.canvas.getContext('2d');
@@ -4214,6 +4846,20 @@
     if (state.compareLabels !== false) return 'unlabeled';
     return 'off';
   }
+
+  function openProfileModal() {
+    if (!els.profileModal) return;
+    els.profileModal.classList.add('show');
+    els.profileModal.setAttribute('aria-hidden', 'false');
+    trackEvent('profile_open', { source: 'bow_icon' });
+  }
+
+  function closeProfileModal() {
+    if (!els.profileModal) return;
+    els.profileModal.classList.remove('show');
+    els.profileModal.setAttribute('aria-hidden', 'true');
+  }
+
   const COMPARE_LONG_PRESS_MS = 220;
   let brandSubtitleTimer = null;
   let latestExportUrl = '';
@@ -4233,24 +4879,29 @@
   let lastCanvasFrameWidth = 0;
   let lastCanvasFrameHeight = 0;
   let stickerPanelRendered = false;
+  let polaroidPanelRendered = false;
   let textTemplatesRendered = false;
 
-  function isTouchTabletViewport() {
-    const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
-    const shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
-    const longSide = Math.max(window.innerWidth || 0, window.innerHeight || 0);
-    const tabletSize = shortSide >= 761 && shortSide <= 1180 && longSide <= 1400;
+  function isTouchMobileOrTabletDevice() {
+    const ua = navigator.userAgent || '';
     const ipadDesktopUa = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-    const ipadUa = /ipad/i.test(navigator.userAgent);
-    return coarsePointer && tabletSize && (ipadDesktopUa || ipadUa || navigator.maxTouchPoints > 1);
+    const mobileOrTabletUa = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(ua);
+    return Boolean(ipadDesktopUa || mobileOrTabletUa);
+  }
+
+  function isDesktopMobileRatioViewport() {
+    const width = window.innerWidth || 0;
+    const height = window.innerHeight || 0;
+    if (!width || !height) return false;
+    return width <= 760 && height / width >= 1.28;
   }
 
   function isMobileLayoutViewport() {
-    return window.matchMedia('(max-width: 760px)').matches || (isTouchTabletViewport() && window.matchMedia('(orientation: portrait)').matches);
+    return isTouchMobileOrTabletDevice() || isDesktopMobileRatioViewport();
   }
 
   function isBlockedTabletLandscape() {
-    return isTouchTabletViewport() && window.matchMedia('(orientation: landscape)').matches;
+    return false;
   }
 
   function syncViewportMode() {
@@ -4310,10 +4961,24 @@
       name: `贴纸 ${index + 1}`,
       src: resolveAssetUrl(`./assets/user_stickers/${fileName}`, USER_STICKER_VERSION),
       fallbackSrc: resolveAssetUrl(`./assets/user_stickers/${fileName}`),
+      previewSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`, STICKER_PREVIEW_VERSION),
+      previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`),
+      packId: 'user-pack',
     }));
-    stickerPacks = stickers.length
-      ? [{ id: 'user-pack', name: '地雷系像素风贴纸', stickers }]
-      : [];
+    const handDrawnStickers = HAND_DRAWN_STICKERS.map((sticker) => ({
+      id: `hand-drawn-${sticker.id}`,
+      name: sticker.name,
+      src: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`, HAND_DRAWN_STICKER_VERSION),
+      fallbackSrc: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`),
+      previewSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`, STICKER_PREVIEW_VERSION),
+      previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`),
+      packId: 'hand-drawn-pack',
+      previewCrop: Boolean(sticker.previewCrop),
+    }));
+    stickerPacks = [
+      ...(stickers.length ? [{ id: 'user-pack', name: '地雷系装饰贴纸', stickers }] : []),
+      { id: 'hand-drawn-pack', name: '手绘风格贴纸', stickers: handDrawnStickers },
+    ];
   }
 
   function preloadStickerImages() {
@@ -4330,6 +4995,26 @@
           img.src = sticker.fallbackSrc;
         };
         img.src = sticker.src;
+      });
+    });
+  }
+
+  function preloadStickerPreviewImages() {
+    stickerPacks.forEach((pack) => {
+      pack.stickers.forEach((sticker) => {
+        const previewSrc = sticker.previewSrc || sticker.src;
+        if (STICKER_PREVIEW_CACHE.has(previewSrc)) return;
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = () => {
+          STICKER_PREVIEW_CACHE.set(previewSrc, img);
+          if (sticker.previewFallbackSrc) STICKER_PREVIEW_CACHE.set(sticker.previewFallbackSrc, img);
+        };
+        img.onerror = () => {
+          if (!sticker.previewFallbackSrc || img.src === sticker.previewFallbackSrc) return;
+          img.src = sticker.previewFallbackSrc;
+        };
+        img.src = previewSrc;
       });
     });
   }
@@ -4393,6 +5078,15 @@
       packId: sticker.packId || 'user-pack',
       hasImage: Boolean(state.image.loaded),
     });
+    if (!STICKER_IMAGE_CACHE.has(sticker.src)) {
+      loadImageFromUrl(sticker.src)
+        .then((loadedImg) => {
+          STICKER_IMAGE_CACHE.set(sticker.src, loadedImg);
+          if (sticker.fallbackSrc) STICKER_IMAGE_CACHE.set(sticker.fallbackSrc, loadedImg);
+          render(store.getState());
+        })
+        .catch(() => {});
+    }
     render(store.getState());
   }
 
@@ -4487,19 +5181,258 @@
     });
   }
 
+  function drawPolaroidEditorPreview() {
+    if (!polaroidEditor?.open || !els.polaroidPreviewCanvas) return;
+    const canvas = els.polaroidPreviewCanvas;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f6eef2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!polaroidEditor.frame || !(polaroidEditor.filteredImage || polaroidEditor.image)) {
+      ctx.fillStyle = 'rgba(45, 31, 42, 0.46)';
+      ctx.font = '700 22px "Avenir Next", "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('加工中', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+    const placement = getPolaroidPlacement(polaroidEditor.frame, canvas.width, canvas.height);
+    drawPhotoIntoPolaroidWindow(
+      ctx,
+      polaroidEditor.filteredImage || polaroidEditor.image,
+      polaroidEditor.frame,
+      polaroidEditor.transform,
+      placement.photoRect
+    );
+    if (polaroidEditor.frameImage) {
+      ctx.drawImage(
+        polaroidEditor.frameImage,
+        placement.frameRect.x,
+        placement.frameRect.y,
+        placement.frameRect.width,
+        placement.frameRect.height
+      );
+    } else {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(45, 31, 42, 0.14)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
+      ctx.restore();
+    }
+    if (polaroidEditor.loading) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 248, 252, 0.82)';
+      ctx.strokeStyle = 'rgba(45, 31, 42, 0.1)';
+      ctx.lineWidth = 1;
+      const badgeW = 104;
+      const badgeH = 32;
+      const badgeX = canvas.width - badgeW - 16;
+      const badgeY = 16;
+      drawRoundedRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 16);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(45, 31, 42, 0.62)';
+      ctx.font = '700 14px "Avenir Next", "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('加工中', badgeX + badgeW / 2, badgeY + badgeH / 2);
+      ctx.restore();
+    }
+  }
+
+  function syncPolaroidPreviewCanvasSize(frame) {
+    const canvas = els.polaroidPreviewCanvas;
+    if (!canvas || !frame) return;
+    const maxSide = 900;
+    const scale = maxSide / Math.max(frame.width, frame.height);
+    const nextWidth = Math.max(1, Math.round(frame.width * scale));
+    const nextHeight = Math.max(1, Math.round(frame.height * scale));
+    if (canvas.width !== nextWidth) canvas.width = nextWidth;
+    if (canvas.height !== nextHeight) canvas.height = nextHeight;
+  }
+
+  function syncPolaroidScaleInput() {
+    if (!els.polaroidScaleInput || !polaroidEditor?.frame || !(polaroidEditor?.filteredImage || polaroidEditor?.image)) return;
+    const sourceImage = polaroidEditor.filteredImage || polaroidEditor.image;
+    const minScale = computeCoverTransform(
+      sourceImage.naturalWidth || sourceImage.width,
+      sourceImage.naturalHeight || sourceImage.height,
+      polaroidEditor.frame.photoWindow.width,
+      polaroidEditor.frame.photoWindow.height
+    ).minScale;
+    els.polaroidScaleInput.min = String(minScale.toFixed(4));
+    els.polaroidScaleInput.max = String((minScale * 2.4).toFixed(4));
+    els.polaroidScaleInput.value = String(polaroidEditor.transform.scale);
+    updateRangeInputProgress(els.polaroidScaleInput);
+  }
+
+  function openPolaroidEditor(frameOrientation) {
+    const state = store.getState();
+    if (!state.image.loaded || !state.image.element) {
+      alert('请先上传图片。');
+      return;
+    }
+    const frame = POLAROID_FRAMES[frameOrientation];
+    if (!frame) return;
+    syncPolaroidPreviewCanvasSize(frame);
+    primeProcessingBadgeForRender();
+    els.polaroidModal?.classList.add('show');
+    els.polaroidModal?.setAttribute('aria-hidden', 'false');
+    const sameActiveFrame = state.polaroid?.enabled && state.polaroid.frameId === frame.id;
+    const baseSource = sameActiveFrame && state.polaroid.photoCanvas ? state.polaroid.photoCanvas : state.image.element;
+    const baseTransform = sameActiveFrame
+      ? convertPolaroidTransformBetweenSources(state.polaroid.photoTransform, state.polaroid.photoCanvas || state.image.element, baseSource)
+      : computeCoverTransform(baseSource.naturalWidth || baseSource.width, baseSource.naturalHeight || baseSource.height, frame.photoWindow.width, frame.photoWindow.height);
+    const transform = clampPolaroidPhotoTransform(
+      frame,
+      baseSource.naturalWidth || baseSource.width,
+      baseSource.naturalHeight || baseSource.height,
+      baseTransform
+    );
+    polaroidEditor = {
+      open: true,
+      frame,
+      frameImage: POLAROID_FRAME_CACHE.get(frame.src) || null,
+      image: baseSource,
+      filteredImage: null,
+      transform: {
+        scale: transform.scale,
+        offsetX: transform.offsetX,
+        offsetY: transform.offsetY,
+      },
+      drag: null,
+      loading: true,
+    };
+    syncPolaroidScaleInput();
+    drawPolaroidEditorPreview();
+
+    loadPolaroidFrameImage(frame.id)
+      .then((frameImage) => {
+        if (!polaroidEditor?.open || polaroidEditor.frame?.id !== frame.id) return;
+        polaroidEditor.frameImage = frameImage;
+        drawPolaroidEditorPreview();
+      })
+      .catch((error) => {
+        console.error('Polaroid frame load failed:', error);
+      });
+
+    Promise.resolve()
+      .then(() => renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true, { usePreviewScale: true }).canvas)
+      .then((filteredImage) => {
+        if (!polaroidEditor?.open || polaroidEditor.frame?.id !== frame.id) return;
+        const previousSource = polaroidEditor.filteredImage || polaroidEditor.image;
+        const nextTransform = clampPolaroidPhotoTransform(
+          frame,
+          filteredImage.width,
+          filteredImage.height,
+          convertPolaroidTransformBetweenSources(polaroidEditor.transform, previousSource, filteredImage)
+        );
+        polaroidEditor.filteredImage = filteredImage;
+        polaroidEditor.transform = {
+          scale: nextTransform.scale,
+          offsetX: nextTransform.offsetX,
+          offsetY: nextTransform.offsetY,
+        };
+        polaroidEditor.loading = false;
+        syncPolaroidScaleInput();
+        drawPolaroidEditorPreview();
+        showProcessingBadgeForSlowRender(PROCESSING_RENDER_COST_MS);
+      })
+      .catch((error) => {
+        if (polaroidEditor?.open && polaroidEditor.frame?.id === frame.id) {
+          polaroidEditor.loading = false;
+          syncPolaroidScaleInput();
+          drawPolaroidEditorPreview();
+        }
+        hideProcessingBadge();
+        console.error('Polaroid preview render failed:', error);
+      });
+  }
+
+  function closePolaroidEditor() {
+    polaroidEditor = null;
+    els.polaroidModal?.classList.remove('show');
+    els.polaroidModal?.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderPolaroidPanel(state) {
+    if (!els.polaroidFrameList) return;
+    els.polaroidFrameList.innerHTML = '';
+
+    Object.entries(POLAROID_FRAMES).forEach(([orientation, frame]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'polaroid-frame-btn';
+      btn.classList.toggle('is-active', state.polaroid?.enabled && state.polaroid.frameId === frame.id);
+
+      const thumb = document.createElement('img');
+      thumb.className = 'polaroid-frame-thumb';
+      thumb.alt = frame.name;
+      thumb.loading = 'eager';
+      thumb.decoding = 'async';
+      thumb.setAttribute('fetchpriority', 'high');
+      thumb.src = resolveAssetUrl(frame.previewSrc || frame.src, POLAROID_FRAME_PREVIEW_VERSION);
+      btn.appendChild(thumb);
+
+      const label = document.createElement('span');
+      label.textContent = frame.name;
+      btn.appendChild(label);
+
+      btn.onclick = () => openPolaroidEditor(orientation);
+      els.polaroidFrameList.appendChild(btn);
+    });
+
+    if (state.polaroid?.enabled) {
+      const actionRow = document.createElement('div');
+      actionRow.className = 'polaroid-action-row';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'polaroid-action-btn polaroid-edit-btn';
+      editBtn.textContent = '调整照片位置';
+      editBtn.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const orientation = state.polaroid.frameOrientation || Object.keys(POLAROID_FRAMES).find((key) => POLAROID_FRAMES[key].id === state.polaroid.frameId);
+        if (orientation) openPolaroidEditor(orientation);
+      };
+
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'polaroid-action-btn polaroid-close-btn';
+      closeBtn.textContent = '关闭拍立得';
+      closeBtn.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        store.disablePolaroidMode();
+      };
+
+      actionRow.append(editBtn, closeBtn);
+      els.polaroidFrameList.appendChild(actionRow);
+    }
+  }
+
   function renderStickerPanel() {
     els.stickerPackList.innerHTML = '';
+    let thumbIndex = 0;
 
     stickerPacks.forEach((pack) => {
       const packEl = document.createElement('div');
       packEl.className = 'sticker-pack';
 
+      const title = document.createElement('div');
+      title.className = 'field-title sticker-pack-title';
+      title.textContent = pack.name;
+      packEl.appendChild(title);
+
       const grid = document.createElement('div');
       grid.className = 'sticker-grid';
 
       pack.stickers.forEach((sticker) => {
+        thumbIndex += 1;
         const btn = document.createElement('button');
         btn.className = 'sticker-btn';
+        btn.classList.toggle('is-preview-cropped', Boolean(sticker.previewCrop));
         btn.title = sticker.name;
 
         const img = document.createElement('img');
@@ -4508,14 +5441,15 @@
         img.decoding = 'async';
         img.setAttribute('fetchpriority', 'high');
         img.onload = () => {
-          if (!STICKER_IMAGE_CACHE.has(sticker.src)) STICKER_IMAGE_CACHE.set(sticker.src, img);
-          if (sticker.fallbackSrc && !STICKER_IMAGE_CACHE.has(sticker.fallbackSrc)) STICKER_IMAGE_CACHE.set(sticker.fallbackSrc, img);
+          const previewSrc = sticker.previewSrc || sticker.src;
+          if (!STICKER_PREVIEW_CACHE.has(previewSrc)) STICKER_PREVIEW_CACHE.set(previewSrc, img);
+          if (sticker.previewFallbackSrc && !STICKER_PREVIEW_CACHE.has(sticker.previewFallbackSrc)) STICKER_PREVIEW_CACHE.set(sticker.previewFallbackSrc, img);
         };
         img.onerror = () => {
-          if (!sticker.fallbackSrc || img.src === sticker.fallbackSrc) return;
-          img.src = sticker.fallbackSrc;
+          if (!sticker.previewFallbackSrc || img.src === sticker.previewFallbackSrc) return;
+          img.src = sticker.previewFallbackSrc;
         };
-        img.src = sticker.src;
+        img.src = sticker.previewSrc || sticker.src;
 
         btn.appendChild(img);
         btn.onclick = () => addSticker(sticker);
@@ -4531,6 +5465,12 @@
     if (stickerPanelRendered) return;
     renderStickerPanel();
     stickerPanelRendered = true;
+  }
+
+  function ensurePolaroidPanelRendered() {
+    if (polaroidPanelRendered) return;
+    renderPolaroidPanel(store.getState());
+    polaroidPanelRendered = true;
   }
 
   function renderTextTemplates() {
@@ -4551,6 +5491,8 @@
       btn.onclick = () => addText(preset);
       els.textTemplateList.appendChild(btn);
     });
+    const presetFontIds = Array.from(new Set(TEXT_PRESETS.map((preset) => preset.fontId).filter(Boolean)));
+    presetFontIds.forEach((fontId) => ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === fontId)));
     scheduleFontPreviewWarmup('mushin');
   }
 
@@ -4680,7 +5622,7 @@
           max: controlMax,
           step: controlStep,
           value: clamp(Number(state.filters[control.key] ?? control.min), control.min, controlMax),
-          commitOnEnd: true,
+          commitOnEnd: !state.polaroid?.enabled,
           onBegin: () => store.beginStep(),
           onPreview: (value) => {
             const currentFilters = store.getState().filters;
@@ -4778,7 +5720,7 @@
           value: sliderValue,
           rangeClass: 'hsl-range',
           trackGradient: axisTrack,
-          commitOnEnd: true,
+          commitOnEnd: !state.polaroid?.enabled,
           onBegin: () => store.beginStep(),
           onPreview: (value) => {
             sliderPreviewFilters = { ...store.getState().filters, [key]: value };
@@ -4936,7 +5878,12 @@
       strokeBtn.type = 'button';
       strokeBtn.textContent = strokeOn ? '关闭描边' : '开启描边';
       strokeBtn.classList.toggle('is-active', strokeOn);
-      strokeBtn.onclick = () => store.updateLayer(selected.id, { strokeWidth: strokeOn ? 0 : 3 }, true);
+      strokeBtn.onclick = () => {
+        const patch = strokeOn
+          ? { strokeWidth: 0, color: TEXT_NO_STROKE_DEFAULT_COLOR }
+          : { strokeWidth: 3 };
+        store.updateLayer(selected.id, patch, true);
+      };
       const bgBtn = document.createElement('button');
       bgBtn.type = 'button';
       bgBtn.textContent = bgOn ? '关闭背景' : '开启背景';
@@ -4992,12 +5939,49 @@
           max: 180,
           step: 1,
           value: selected.fontSize ?? 56,
+          commitOnEnd: false,
           onBegin: () => store.beginStep(),
           onInput: (v) => store.updateLayer(selected.id, { fontSize: v }),
         })
       );
       els.layerControls.appendChild(
-        makeColorInput({ label: '文字颜色', value: selected.color ?? '#ffeef5', onInput: (v) => store.updateLayer(selected.id, { color: v }, true) })
+        makeSlider({
+          label: '字重',
+          min: 100,
+          max: 1500,
+          step: 100,
+          value: getTextFontWeightValue(selected),
+          commitOnEnd: false,
+          onBegin: () => store.beginStep(),
+          onInput: (v) => store.updateLayer(selected.id, { fontWeight: getTextFontWeightValue({ fontWeight: v }) }),
+        })
+      );
+      els.layerControls.appendChild(
+        makeSlider({
+          label: '字间距',
+          min: -24,
+          max: 36,
+          step: 1,
+          value: selected.letterSpacing ?? 0,
+          commitOnEnd: false,
+          onBegin: () => store.beginStep(),
+          onInput: (v) => store.updateLayer(selected.id, { letterSpacing: v }),
+        })
+      );
+      els.layerControls.appendChild(
+        makeSlider({
+          label: '行间距',
+          min: 0.8,
+          max: 2,
+          step: 0.02,
+          value: selected.lineHeight ?? 1.22,
+          commitOnEnd: false,
+          onBegin: () => store.beginStep(),
+          onInput: (v) => store.updateLayer(selected.id, { lineHeight: v }),
+        })
+      );
+      els.layerControls.appendChild(
+        makeColorInput({ label: '文字颜色', value: selected.color ?? (strokeOn ? '#ffeef5' : TEXT_NO_STROKE_DEFAULT_COLOR), onInput: (v) => store.updateLayer(selected.id, { color: v }, true) })
       );
       if (bgOn) {
         els.layerControls.appendChild(
@@ -5039,7 +6023,7 @@
       }
       if (strokeOn) {
         els.layerControls.appendChild(
-          makeColorInput({ label: '描边颜色', value: selected.strokeColor ?? '#2f2532', onInput: (v) => store.updateLayer(selected.id, { strokeColor: v }, true) })
+          makeColorInput({ label: '描边颜色', value: selected.strokeColor ?? '#e170c7', onInput: (v) => store.updateLayer(selected.id, { strokeColor: v }, true) })
         );
         els.layerControls.appendChild(
           makeSlider({
@@ -5048,6 +6032,7 @@
             max: 16,
             step: 1,
             value: selected.strokeWidth ?? 4,
+            commitOnEnd: false,
             onBegin: () => store.beginStep(),
             onInput: (v) => store.updateLayer(selected.id, { strokeWidth: v }),
           })
@@ -5149,7 +6134,10 @@
     });
     if (tool === 'stickers') {
       ensureStickerPanelRendered();
-      preloadStickerImages();
+    }
+    if (tool === 'polaroid') {
+      ensurePolaroidPanelRendered();
+      preloadPolaroidFrameImages();
     }
     if (tool === 'text') ensureTextTemplatesRendered();
   }
@@ -5167,7 +6155,7 @@
     blushEditMode = true;
     render(store.getState());
     window.requestAnimationFrame(() => {
-      if (isBlushEditActive(store.getState())) overlayController.render();
+      if (activeTool === 'project' && blushEditMode && store.getState().image.loaded) overlayController.render();
     });
   }
 
@@ -5249,7 +6237,7 @@
         } catch {}
       }
     }
-    if (!isSliderDragging && !isTextEditing) {
+    if (!isSliderDragging && !isTextEditing && !isDirectManipulating) {
       overlayController.render();
     }
 
@@ -5297,6 +6285,7 @@
     if (!isSliderDragging && !isTextEditing) {
       renderMobileLayerDock(state);
       renderMosaicToolButtons();
+      if (activeTool === 'polaroid' || state.polaroid?.enabled) renderPolaroidPanel(state);
     }
 
     const showFilter = activeTool === 'filters';
@@ -5633,6 +6622,129 @@
       };
     }
 
+    if (els.polaroidScaleInput) {
+      els.polaroidScaleInput.oninput = (event) => {
+        if (!polaroidEditor?.open) return;
+        updateRangeInputProgress(event.target);
+        const sourceImage = polaroidEditor.filteredImage || polaroidEditor.image;
+        const next = clampPolaroidPhotoTransform(
+          polaroidEditor.frame,
+          sourceImage.naturalWidth || sourceImage.width,
+          sourceImage.naturalHeight || sourceImage.height,
+          { ...polaroidEditor.transform, scale: Number(event.target.value) }
+        );
+        polaroidEditor.transform = { scale: next.scale, offsetX: next.offsetX, offsetY: next.offsetY };
+        drawPolaroidEditorPreview();
+      };
+    }
+    if (els.polaroidResetBtn) {
+      els.polaroidResetBtn.onclick = () => {
+        if (!polaroidEditor?.open) return;
+        const sourceImage = polaroidEditor.filteredImage || polaroidEditor.image;
+        const next = computeCoverTransform(
+          sourceImage.naturalWidth || sourceImage.width,
+          sourceImage.naturalHeight || sourceImage.height,
+          polaroidEditor.frame.photoWindow.width,
+          polaroidEditor.frame.photoWindow.height
+        );
+        polaroidEditor.transform = { scale: next.scale, offsetX: next.offsetX, offsetY: next.offsetY };
+        syncPolaroidScaleInput();
+        drawPolaroidEditorPreview();
+      };
+    }
+    if (els.polaroidConfirmBtn) {
+      els.polaroidConfirmBtn.onclick = () => {
+        if (!polaroidEditor?.open) return;
+        const state = store.getState();
+        const photoCanvas = renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true).canvas;
+        const finalTransform = convertPolaroidTransformBetweenSources(polaroidEditor.transform, polaroidEditor.filteredImage || polaroidEditor.image, photoCanvas);
+        const finalClampedTransform = clampPolaroidPhotoTransform(
+          polaroidEditor.frame,
+          photoCanvas.width,
+          photoCanvas.height,
+          finalTransform
+        );
+        store.setPolaroidMode({
+          frameId: polaroidEditor.frame.id,
+          frameOrientation: Object.keys(POLAROID_FRAMES).find((key) => POLAROID_FRAMES[key].id === polaroidEditor.frame.id) || null,
+          photoTransform: {
+            scale: finalClampedTransform.scale,
+            offsetX: finalClampedTransform.offsetX,
+            offsetY: finalClampedTransform.offsetY,
+          },
+          photoCanvas,
+        });
+        closePolaroidEditor();
+      };
+    }
+    if (els.polaroidCancelBtn) {
+      els.polaroidCancelBtn.onclick = () => closePolaroidEditor();
+    }
+    if (els.polaroidModal) {
+      els.polaroidModal.onclick = (event) => {
+        if (event.target === els.polaroidModal) closePolaroidEditor();
+      };
+    }
+    if (els.polaroidPreviewCanvas) {
+      const canvas = els.polaroidPreviewCanvas;
+      const toLocalPoint = (event) => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: ((event.clientX - rect.left) / Math.max(1, rect.width)) * canvas.width,
+          y: ((event.clientY - rect.top) / Math.max(1, rect.height)) * canvas.height,
+        };
+      };
+      const finishPolaroidDrag = (event) => {
+        if (!polaroidEditor?.drag) return;
+        if (event && polaroidEditor.drag.pointerId !== event.pointerId) return;
+        polaroidEditor.drag = null;
+      };
+      canvas.onpointerdown = (event) => {
+        if (!polaroidEditor?.open) return;
+        const point = toLocalPoint(event);
+        const placement = getPolaroidPlacement(polaroidEditor.frame, canvas.width, canvas.height);
+        const photoRect = placement.photoRect;
+        if (
+          point.x < photoRect.x ||
+          point.x > photoRect.x + photoRect.width ||
+          point.y < photoRect.y ||
+          point.y > photoRect.y + photoRect.height
+        ) {
+          return;
+        }
+        event.preventDefault();
+        polaroidEditor.drag = {
+          pointerId: event.pointerId,
+          x: point.x,
+          y: point.y,
+          startOffsetX: polaroidEditor.transform.offsetX,
+          startOffsetY: polaroidEditor.transform.offsetY,
+        };
+        canvas.setPointerCapture?.(event.pointerId);
+      };
+      canvas.onpointermove = (event) => {
+        if (!polaroidEditor?.drag || polaroidEditor.drag.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        const point = toLocalPoint(event);
+        const placement = getPolaroidPlacement(polaroidEditor.frame, canvas.width, canvas.height);
+        const sourceImage = polaroidEditor.filteredImage || polaroidEditor.image;
+        const next = clampPolaroidPhotoTransform(
+          polaroidEditor.frame,
+          sourceImage.naturalWidth || sourceImage.width,
+          sourceImage.naturalHeight || sourceImage.height,
+          {
+            ...polaroidEditor.transform,
+            offsetX: polaroidEditor.drag.startOffsetX + (point.x - polaroidEditor.drag.x) * (polaroidEditor.frame.photoWindow.width / placement.photoRect.width),
+            offsetY: polaroidEditor.drag.startOffsetY + (point.y - polaroidEditor.drag.y) * (polaroidEditor.frame.photoWindow.height / placement.photoRect.height),
+          }
+        );
+        polaroidEditor.transform = { scale: next.scale, offsetX: next.offsetX, offsetY: next.offsetY };
+        drawPolaroidEditorPreview();
+      };
+      canvas.onpointerup = finishPolaroidDrag;
+      canvas.onpointercancel = finishPolaroidDrag;
+    }
+
     els.canvasFrame.onclick = (event) => {
       const state = store.getState();
       const clickedOverlay = event.target.closest('.overlay-item');
@@ -5653,6 +6765,25 @@
       event.preventDefault();
     };
 
+    [els.brandProfileBtn, els.mobileProfileBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openProfileModal();
+      };
+    });
+
+    if (els.profileCloseBtn) {
+      els.profileCloseBtn.onclick = closeProfileModal;
+    }
+
+    if (els.profileModal) {
+      els.profileModal.onclick = (event) => {
+        if (event.target === els.profileModal) closeProfileModal();
+      };
+    }
+
     if (els.sidebarNav) {
       els.sidebarNav.onclick = (event) => {
         const target = event.target.closest('.nav-item');
@@ -5670,7 +6801,10 @@
         activeTool = tool;
         if (tool === 'stickers') {
           ensureStickerPanelRendered();
-          preloadStickerImages();
+        }
+        if (tool === 'polaroid') {
+          ensurePolaroidPanelRendered();
+          preloadPolaroidFrameImages();
         }
         if (tool === 'text') ensureTextTemplatesRendered();
         trackEvent('tool_select', { tool });
@@ -5688,6 +6822,10 @@
       syncViewportMode();
       syncCanvasFrameSize();
       render(store.getState());
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeProfileModal();
     });
 
     window.addEventListener('orientationchange', () => {
@@ -5735,24 +6873,35 @@
     bindEvents();
     store.subscribe(scheduleRender);
     buildPixelStickerPack();
+    preloadStickerPreviewImages();
     if (isMobileViewport()) {
       if (activeTool === 'stickers') ensureStickerPanelRendered();
+      if (activeTool === 'polaroid') {
+        ensurePolaroidPanelRendered();
+        preloadPolaroidFrameImages();
+      }
       if (activeTool === 'text') ensureTextTemplatesRendered();
     } else {
       ensureStickerPanelRendered();
+      ensurePolaroidPanelRendered();
       ensureTextTemplatesRendered();
     }
     render(store.getState());
 
     runWhenIdle(() => {
-      if (!isMobileViewport()) ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
+      ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
     });
     runWhenIdle(() => {
-      if (!isMobileViewport() || activeTool === 'stickers') preloadStickerImages();
-    }, 1200);
+      preloadStickerImages();
+    }, isMobileViewport() ? 2200 : 1200);
+    runWhenIdle(() => preloadPolaroidFrameImages(), 900);
     runWhenIdle(() => {
-      if (!isMobileViewport()) preloadTextFonts().then(() => render(store.getState()));
-    }, 1800);
+      if (isMobileViewport()) {
+        ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === 'mushin')).then(() => render(store.getState()));
+      } else {
+        preloadTextFonts().then(() => render(store.getState()));
+      }
+    }, isMobileViewport() ? 500 : 1800);
   }
 
   init();
