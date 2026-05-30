@@ -3129,7 +3129,7 @@
 
   function getPreviewHiddenLayerId(state) {
     if (activeTransformLayerId) return activeTransformLayerId;
-    if (activeTool !== 'text') return null;
+    if (!isTextEditing || activeTool !== 'text') return null;
     const selectedLayer = state.layers.find((layer) => layer.id === state.selectedLayerId);
     return selectedLayer?.type === 'text' ? selectedLayer.id : null;
   }
@@ -4113,6 +4113,7 @@
         const item = document.createElement('div');
         item.className = `overlay-item overlay-${layer.type}`;
         if (state.selectedLayerId === layer.id) item.classList.add('selected');
+        if (layer.type === 'text' && state.selectedLayerId === layer.id && isTextEditing) item.classList.add('is-text-editing');
 
         const { w, h } = sizePx(layer, frameRect);
         const minFrame = minOverlayFrame(frameRect);

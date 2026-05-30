@@ -1469,6 +1469,12 @@ textarea {
   transform: translateZ(0);
 }
 
+.overlay-item.overlay-text.selected::after {
+  inset: -8px;
+  border: 1px dashed rgba(64, 43, 61, 0.38);
+  border-radius: 10px;
+}
+
 .overlay-preview {
   position: absolute;
   inset: 0;
@@ -1484,6 +1490,15 @@ textarea {
 
 .overlay-item.selected .overlay-preview,
 .blush-control.selected .overlay-preview {
+  opacity: 1;
+}
+
+.overlay-item.overlay-text.selected .overlay-preview {
+  opacity: 0;
+}
+
+.overlay-item.overlay-text.is-transforming .overlay-preview,
+.overlay-item.overlay-text.is-text-editing .overlay-preview {
   opacity: 1;
 }
 
