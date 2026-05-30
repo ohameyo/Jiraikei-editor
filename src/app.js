@@ -2443,13 +2443,13 @@
   const textMeasureCanvas = document.createElement('canvas');
   const textMeasureCtx = textMeasureCanvas.getContext('2d');
   const HEART_PATH_POINTS = [
-    ['M', 0, -0.24],
-    ['C', -0.06, -0.54, -0.42, -0.64, -0.68, -0.45],
-    ['C', -1.02, -0.18, -0.98, 0.33, -0.28, 0.78],
-    ['C', -0.14, 0.88, -0.04, 0.95, 0, 1],
-    ['C', 0.04, 0.95, 0.14, 0.88, 0.28, 0.78],
-    ['C', 0.98, 0.33, 1.02, -0.18, 0.68, -0.45],
-    ['C', 0.42, -0.64, 0.06, -0.54, 0, -0.24],
+    ['M', 0, 0.78],
+    ['C', -0.12, 0.66, -0.42, 0.5, -0.7, 0.26],
+    ['C', -1.08, -0.06, -1.02, -0.48, -0.74, -0.68],
+    ['C', -0.48, -0.86, -0.16, -0.78, 0, -0.48],
+    ['C', 0.16, -0.78, 0.48, -0.86, 0.74, -0.68],
+    ['C', 1.02, -0.48, 1.08, -0.06, 0.7, 0.26],
+    ['C', 0.42, 0.5, 0.12, 0.66, 0, 0.78],
   ];
 
   function heartPathToSvgD(scale = 100) {
@@ -2457,25 +2457,6 @@
       const [command, ...values] = segment;
       return `${command}${values.map((value) => Number((value * scale).toFixed(3))).join(' ')}`;
     }).join(' ');
-  }
-
-  function getHeartPathBounds(scale = 100) {
-    const points = [];
-    HEART_PATH_POINTS.forEach(([, ...values]) => {
-      for (let i = 0; i < values.length; i += 2) {
-        points.push({ x: values[i] * scale, y: values[i + 1] * scale });
-      }
-    });
-    const minX = Math.min(...points.map((point) => point.x));
-    const maxX = Math.max(...points.map((point) => point.x));
-    const minY = Math.min(...points.map((point) => point.y));
-    const maxY = Math.max(...points.map((point) => point.y));
-    return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
-  }
-
-  function getHeartSvgViewBox(scale = 100) {
-    const bounds = getHeartPathBounds(scale);
-    return `${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`;
   }
 
   function drawShapePath(ctx, shape, width, height) {
@@ -4077,7 +4058,7 @@
         if (shape === 'heart') {
           const heartScale = 50;
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          svg.setAttribute('viewBox', getHeartSvgViewBox(heartScale));
+          svg.setAttribute('viewBox', `${-heartScale} ${-heartScale} ${heartScale * 2} ${heartScale * 2}`);
           svg.setAttribute('preserveAspectRatio', 'none');
           svg.setAttribute('aria-hidden', 'true');
           const featherStrength = clamp(layer.feather ?? 0.12, 0, 0.8);

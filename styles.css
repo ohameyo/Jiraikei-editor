@@ -1541,20 +1541,20 @@ textarea {
   height: 100%;
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 1px 4px rgba(32, 21, 31, 0.16));
+  filter: drop-shadow(0 1px 2px rgba(32, 21, 31, 0.08));
 }
 
 .overlay-preview.mosaic-preview.mosaic-shape-heart .mosaic-heart-path {
   fill: rgba(255, 255, 255, 0.22);
-  stroke: rgba(74, 47, 69, 0.38);
-  stroke-width: 2.4;
+  stroke: rgba(74, 47, 69, 0.22);
+  stroke-width: 1.1;
   vector-effect: non-scaling-stroke;
 }
 
 .overlay-preview.mosaic-preview.mosaic-shape-heart .mosaic-heart-feather {
   fill: rgba(255, 255, 255, 0.2);
-  stroke: rgba(74, 47, 69, 0.2);
-  stroke-width: 1.4;
+  stroke: rgba(74, 47, 69, 0.12);
+  stroke-width: 0.8;
 }
 
 .overlay-preview.blush-preview {
