@@ -3724,6 +3724,8 @@
         pointers: new Map([[event.pointerId, { clientX: event.clientX, clientY: event.clientY }]]),
         pendingPatch: null,
         previewStarted: false,
+        canvasHideRequested: false,
+        revealLayerAfterInteraction: null,
       };
     }
 
@@ -3819,7 +3821,8 @@
 
       activeTransformLayerId = interaction.id;
       previewRenderCache.hiddenLayerId = interaction.id;
-      if (!pendingTransformCanvasFrame) {
+      if (!interaction.canvasHideRequested && !pendingTransformCanvasFrame) {
+        interaction.canvasHideRequested = true;
         pendingTransformCanvasFrame = window.requestAnimationFrame(() => {
           pendingTransformCanvasFrame = 0;
           requestRenderWithProcessingLead(store.getState());
@@ -3884,6 +3887,9 @@
         mobileLayerControlsExpanded = true;
       }
       render(store.getState());
+      if (current?.kind === 'layer' && current.revealLayerAfterInteraction) {
+        revealLayerControlsFor(current.revealLayerAfterInteraction);
+      }
       current?.element?.classList.remove('is-transforming');
     }
 
@@ -3918,11 +3924,26 @@
 
     function queueInteractionPreview(patch) {
       queuedInteractionPatch = { ...(queuedInteractionPatch || {}), ...patch };
+      if (interaction?.kind === 'layer' && !interaction.previewStarted) {
+        flushQueuedInteractionPreview();
+        return;
+      }
       if (pendingInteractionPreviewFrame) return;
       pendingInteractionPreviewFrame = window.requestAnimationFrame(() => {
         pendingInteractionPreviewFrame = 0;
         flushQueuedInteractionPreview();
       });
+    }
+
+    function selectLayerForInteraction(layer) {
+      if (!interaction || interaction.kind !== 'layer') return;
+      interaction.revealLayerAfterInteraction = layer;
+      interaction.element?.classList.add('selected');
+      if (isMobileViewport()) {
+        store.selectLayerSilent(layer.id);
+        return;
+      }
+      store.selectLayer(layer.id);
     }
 
     function attachMoveHandler(el, layer, frameRect) {
@@ -3934,13 +3955,7 @@
           return;
         }
         startInteraction(event, 'move', layer, frameRect);
-        if (isMobileViewport()) {
-          store.selectLayerSilent(layer.id);
-          revealLayerControlsFor(layer);
-        } else {
-          store.selectLayer(layer.id);
-          revealLayerControlsFor(layer);
-        }
+        selectLayerForInteraction(layer);
       };
     }
 
@@ -3974,13 +3989,7 @@
         event.preventDefault();
         event.stopPropagation();
         startInteraction(event, type, layer, frameRect);
-        if (isMobileViewport()) {
-          store.selectLayerSilent(layer.id);
-          revealLayerControlsFor(layer);
-        } else {
-          store.selectLayer(layer.id);
-          revealLayerControlsFor(layer);
-        }
+        selectLayerForInteraction(layer);
       };
       return handle;
     }
