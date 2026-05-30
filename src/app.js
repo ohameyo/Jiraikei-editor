@@ -2459,6 +2459,25 @@
     }).join(' ');
   }
 
+  function getHeartPathBounds(scale = 100) {
+    const points = [];
+    HEART_PATH_POINTS.forEach(([, ...values]) => {
+      for (let i = 0; i < values.length; i += 2) {
+        points.push({ x: values[i] * scale, y: values[i + 1] * scale });
+      }
+    });
+    const minX = Math.min(...points.map((point) => point.x));
+    const maxX = Math.max(...points.map((point) => point.x));
+    const minY = Math.min(...points.map((point) => point.y));
+    const maxY = Math.max(...points.map((point) => point.y));
+    return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+  }
+
+  function getHeartSvgViewBox(scale = 100) {
+    const bounds = getHeartPathBounds(scale);
+    return `${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`;
+  }
+
   function drawShapePath(ctx, shape, width, height) {
     if (shape === 'circle') {
       ctx.beginPath();
@@ -4056,25 +4075,27 @@
         const shape = ['circle', 'heart'].includes(layer.shape) ? layer.shape : 'rect';
         preview.className = `overlay-preview mosaic-preview mosaic-shape-${shape}`;
         if (shape === 'heart') {
+          const heartScale = 50;
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          svg.setAttribute('viewBox', '-86 -86 172 172');
+          svg.setAttribute('viewBox', getHeartSvgViewBox(heartScale));
+          svg.setAttribute('preserveAspectRatio', 'none');
           svg.setAttribute('aria-hidden', 'true');
           const featherStrength = clamp(layer.feather ?? 0.12, 0, 0.8);
           const featherRange = clamp(layer.featherRange ?? 1, 0, 3);
-          const steps = Math.max(0, Math.round(featherStrength * 10 + featherRange * 2));
+          const steps = Math.max(0, Math.round(featherStrength * 18 + featherRange * 4));
           const maxScale = 1 + featherRange * 0.55;
           for (let i = steps; i >= 1; i -= 1) {
             const t = i / Math.max(1, steps);
             const featherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             featherPath.setAttribute('class', 'mosaic-heart-path mosaic-heart-feather');
-            featherPath.setAttribute('d', `${heartPathToSvgD(50)} Z`);
+            featherPath.setAttribute('d', `${heartPathToSvgD(heartScale)} Z`);
             featherPath.setAttribute('transform', `scale(${Number((1 + (maxScale - 1) * t).toFixed(3))})`);
-            featherPath.style.opacity = String(Math.max(0.02, (1 - t) * featherStrength * 0.85));
+            featherPath.style.opacity = String(Math.max(0.008, (1 - t) * featherStrength * 0.55));
             svg.appendChild(featherPath);
           }
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('class', 'mosaic-heart-path');
-          path.setAttribute('d', `${heartPathToSvgD(50)} Z`);
+          path.setAttribute('d', `${heartPathToSvgD(heartScale)} Z`);
           svg.appendChild(path);
           preview.appendChild(svg);
         }
