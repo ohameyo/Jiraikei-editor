@@ -1,3 +1,9 @@
+import {
+  createToneRuntime,
+  isForcedWebGLToneFailure,
+  isWebGLToneRequested,
+} from './tone/index.js';
+
 (function () {
   const FIXED_CANVAS = { width: 1080, height: 1350 };
   const EDIT_CANVAS_MAX_SIDE = 2400;
@@ -2220,6 +2226,24 @@
     applyVisibleBlushOverlay(targetCtx, filters, blushRegions, faceBoxes);
   }
 
+  const toneRuntime = createToneRuntime({
+    enabled: isWebGLToneRequested(window.location, window.localStorage),
+    forceFailure: isForcedWebGLToneFailure(window.location),
+    cpuRender(request) {
+      applyTonePipeline(
+        request.targetContext,
+        request.sourceCanvas,
+        request.filters,
+        {
+          ...request.vision,
+          interactivePreview: request.interactivePreview,
+        },
+      );
+    },
+  });
+
+  window.__JIRAI_TONE_DIAGNOSTICS__ = () => toneRuntime.getDiagnostics();
+
   function drawBlushPreview(ctx, state) {
     if (!blushPreviewEnabled) return;
     if (blushEditMode) return;
@@ -2811,10 +2835,16 @@
     baseCtx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
 
     try {
-      applyTonePipeline(ctx, baseCanvas, renderState.filters, {
-        faceBoxes: renderState.image.faceBoxes || [],
-        faceLandmarks: renderState.image.faceLandmarks || [],
-        personMaskCanvas: renderState.image.personMaskCanvas || null,
+      toneRuntime.render({
+        targetContext: ctx,
+        sourceCanvas: baseCanvas,
+        filters: renderState.filters,
+        vision: {
+          faceBoxes: renderState.image.faceBoxes || [],
+          faceLandmarks: renderState.image.faceLandmarks || [],
+          personMaskCanvas: renderState.image.personMaskCanvas || null,
+        },
+        mode: options.mode,
         interactivePreview: Boolean(options.interactivePreview),
       });
     } catch (error) {
@@ -4446,7 +4476,7 @@
           ),
 	        }
 	      : state;
-    const renderOptions = { usePreviewScale: safeSizeMode };
+    const renderOptions = { usePreviewScale: safeSizeMode, mode: 'export' };
     if (exportState.compareMode) {
       const original = renderOriginalCanvas(exportState, true, renderOptions);
       const edited = renderEditedCanvas(exportState, true, renderOptions);
