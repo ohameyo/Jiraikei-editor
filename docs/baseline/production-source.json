@@ -1,0 +1,12 @@
+{
+  "productionUrl": "https://jirai.pages.dev",
+  "cloudflareProject": "jirai",
+  "verifiedAt": "2026-06-16",
+  "sourceCommit": "1e5ab7220bf320e5943f3b86cb1c32025fcda660",
+  "sourceCommitDate": "2026-05-30 21:53:12 +0800",
+  "primaryFiles": {
+    "index.html": "8bca0c72faa382fc1bc9209ac8524bf5f94373d1942736cd9cb3d86f78141b92",
+    "src/app.js": "6fd022275eb3a3f324bc8aae86b9fa2b99e827b07e3b35ab778d1c39f772a80c",
+    "styles.css": "fd3926cc09c802903ca233c4a2b17f658321d49ad1fa46d4318213767c57ab07"
+  }
+}
