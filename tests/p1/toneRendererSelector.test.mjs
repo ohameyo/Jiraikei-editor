@@ -79,7 +79,7 @@ test('uses CPU for effects that are not migrated', () => {
 
   selector.render({
     ...request,
-    filters: { ...request.filters, saturation: 0.8 },
+    filters: { ...request.filters, skinWhiten: 0.1 },
   })
 
   assert.equal(cpu.calls.length, 1)
@@ -147,5 +147,6 @@ test('uses GPU for an eligible passthrough request', () => {
     gpuRenderCount: 1,
     cpuFallbackCount: 0,
     lastError: null,
+    gpuResources: null,
   })
 })

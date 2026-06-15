@@ -1,4 +1,4 @@
-import { getPassthroughEligibility } from './toneRequest.js';
+import { getGpuToneEligibility } from './toneRequest.js';
 
 export class ToneRendererSelector {
   constructor({ enabled = false, cpuRender, gpuRenderer }) {
@@ -33,7 +33,7 @@ export class ToneRendererSelector {
       return this.renderCpu(request, false, 'gpu-disabled');
     }
 
-    const eligibility = getPassthroughEligibility(request.filters);
+    const eligibility = getGpuToneEligibility(request.filters);
     this.diagnostics.eligible = eligibility.eligible;
     if (!eligibility.eligible) {
       return this.renderCpu(request, false, eligibility.reason);
@@ -64,7 +64,10 @@ export class ToneRendererSelector {
   }
 
   getDiagnostics() {
-    return { ...this.diagnostics };
+    return {
+      ...this.diagnostics,
+      gpuResources: this.gpuRenderer?.getDiagnostics?.() || null,
+    };
   }
 
   dispose() {

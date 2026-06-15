@@ -4,7 +4,10 @@ import {
   isForcedWebGLToneFailure,
   isWebGLToneRequested,
 } from './toneFeatureSwitch.js';
-import { createToneRenderRequest } from './toneRequest.js';
+import {
+  createToneRenderRequest,
+  getGpuToneEligibility,
+} from './toneRequest.js';
 
 export function createToneRuntime({
   cpuRender,
@@ -33,5 +36,6 @@ export function createToneRuntime({
 
 export {
   isForcedWebGLToneFailure,
+  getGpuToneEligibility,
   isWebGLToneRequested,
 };

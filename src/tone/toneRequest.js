@@ -1,19 +1,12 @@
 const NEUTRAL_FILTERS = Object.freeze({
-  brightness: 1,
-  contrast: 1,
-  saturation: 1,
-  temperature: 0,
-  tint: 0,
   skinWhiten: 0,
   blushStrength: 0,
   blackProtect: 0,
-  fade: 0,
-  overlayStrength: 0,
 });
 
 const EPSILON = 1e-6;
 
-export function getPassthroughEligibility(filters = {}) {
+export function getGpuToneEligibility(filters = {}) {
   for (const [key, expected] of Object.entries(NEUTRAL_FILTERS)) {
     const actual = filters[key] ?? expected;
     if (!Number.isFinite(actual) || Math.abs(actual - expected) > EPSILON) {
@@ -33,9 +26,12 @@ export function getPassthroughEligibility(filters = {}) {
   return { eligible: true, reason: null };
 }
 
+export const getPassthroughEligibility = getGpuToneEligibility;
+
 export function createToneRenderRequest({
   targetContext,
   sourceCanvas,
+  sourceKey,
   filters = {},
   vision = {},
   mode = 'preview',
@@ -48,6 +44,7 @@ export function createToneRenderRequest({
   return Object.freeze({
     targetContext,
     sourceCanvas,
+    sourceKey: sourceKey ?? sourceCanvas,
     filters,
     vision,
     mode: mode === 'export' ? 'export' : 'preview',

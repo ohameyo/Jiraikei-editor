@@ -56,7 +56,7 @@ async function run() {
   gpuRuntime.render({
     targetContext: gpuTarget.getContext('2d'),
     sourceCanvas,
-    filters: { brightness: 1.01 },
+    filters: { skinWhiten: 0.01 },
   });
 
   const forcedTarget = createTargetCanvas();

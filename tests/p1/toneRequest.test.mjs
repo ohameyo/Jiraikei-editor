@@ -26,12 +26,14 @@ test('normalizes one shared preview or export tone request', () => {
   const targetContext = { canvas: { width: 8, height: 6 } }
   const filters = { ...originalFilters }
   const vision = { faceBoxes: [] }
+  const sourceKey = {}
 
   const request = createToneRenderRequest({
     sourceCanvas,
     targetContext,
     filters,
     vision,
+    sourceKey,
     mode: 'export',
     interactivePreview: true,
   })
@@ -40,21 +42,22 @@ test('normalizes one shared preview or export tone request', () => {
   assert.equal(request.targetContext, targetContext)
   assert.equal(request.filters, filters)
   assert.equal(request.vision, vision)
+  assert.equal(request.sourceKey, sourceKey)
   assert.equal(request.mode, 'export')
   assert.equal(request.interactivePreview, true)
   assert.deepEqual(request.size, { width: 8, height: 6 })
   assert.equal(Object.isFrozen(request), true)
 })
 
-test('allows passthrough only when every migrated tone effect is neutral', () => {
+test('allows migrated global tone effects and rejects unsupported effects', () => {
   assert.deepEqual(getPassthroughEligibility(originalFilters), {
     eligible: true,
     reason: null,
   })
 
   assert.equal(
-    getPassthroughEligibility({ ...originalFilters, brightness: 1.01 }).reason,
-    'effects-not-migrated',
+    getPassthroughEligibility({ ...originalFilters, brightness: 1.01 }).eligible,
+    true,
   )
   assert.equal(
     getPassthroughEligibility({ ...originalFilters, blushStrength: 0.1 }).reason,

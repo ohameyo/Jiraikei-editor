@@ -2,6 +2,7 @@ import {
   PASSTHROUGH_FRAGMENT_SHADER,
   PASSTHROUGH_VERTEX_SHADER,
 } from './shaders.js';
+import { normalizeBasicToneParameters } from './basicToneParameters.js';
 
 const CONTEXT_ATTRIBUTES = {
   alpha: true,
@@ -23,6 +24,15 @@ export class WebGLToneRenderer {
     this.vertexArray = null;
     this.vertexBuffer = null;
     this.texture = null;
+    this.uniforms = null;
+    this.lastSourceKey = null;
+    this.lastSourceWidth = 0;
+    this.lastSourceHeight = 0;
+    this.diagnostics = {
+      programBuildCount: 0,
+      textureUploadCount: 0,
+      uniformUpdateCount: 0,
+    };
   }
 
   isSupported() {
@@ -56,15 +66,27 @@ export class WebGLToneRenderer {
     gl.bindVertexArray(this.vertexArray);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      request.sourceCanvas,
-    );
+    this.updateToneUniforms(request.filters);
+    const sourceKey = request.sourceKey ?? request.sourceCanvas;
+    if (
+      sourceKey !== this.lastSourceKey ||
+      width !== this.lastSourceWidth ||
+      height !== this.lastSourceHeight
+    ) {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        request.sourceCanvas,
+      );
+      this.lastSourceKey = sourceKey;
+      this.lastSourceWidth = width;
+      this.lastSourceHeight = height;
+      this.diagnostics.textureUploadCount += 1;
+    }
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -149,6 +171,39 @@ export class WebGLToneRenderer {
     this.vertexArray = vertexArray;
     this.vertexBuffer = vertexBuffer;
     this.texture = texture;
+    this.uniforms = {
+      brightness: gl.getUniformLocation(program, 'u_brightness'),
+      contrast: gl.getUniformLocation(program, 'u_contrast'),
+      saturation: gl.getUniformLocation(program, 'u_saturation'),
+      temperature: gl.getUniformLocation(program, 'u_temperature'),
+      tint: gl.getUniformLocation(program, 'u_tint'),
+      fade: gl.getUniformLocation(program, 'u_fade'),
+      overlayStrength: gl.getUniformLocation(program, 'u_overlayStrength'),
+      overlayColor: gl.getUniformLocation(program, 'u_overlayColor'),
+    };
+    this.diagnostics.programBuildCount += 1;
+  }
+
+  getToneParameters(filters) {
+    return normalizeBasicToneParameters(filters);
+  }
+
+  updateToneUniforms(filters) {
+    const gl = this.gl;
+    const parameters = this.getToneParameters(filters);
+    gl.uniform1f(this.uniforms.brightness, parameters.brightness);
+    gl.uniform1f(this.uniforms.contrast, parameters.contrast);
+    gl.uniform1f(this.uniforms.saturation, parameters.saturation);
+    gl.uniform1f(this.uniforms.temperature, parameters.temperature);
+    gl.uniform1f(this.uniforms.tint, parameters.tint);
+    gl.uniform1f(this.uniforms.fade, parameters.fade);
+    gl.uniform1f(this.uniforms.overlayStrength, parameters.overlayStrength);
+    gl.uniform3fv(this.uniforms.overlayColor, parameters.overlayColorRgb);
+    this.diagnostics.uniformUpdateCount += 1;
+  }
+
+  getDiagnostics() {
+    return { ...this.diagnostics };
   }
 
   compileShader(type, source) {
@@ -178,6 +233,10 @@ export class WebGLToneRenderer {
     this.vertexBuffer = null;
     this.vertexArray = null;
     this.program = null;
+    this.uniforms = null;
+    this.lastSourceKey = null;
+    this.lastSourceWidth = 0;
+    this.lastSourceHeight = 0;
     this.gl = null;
     this.canvas = null;
   }

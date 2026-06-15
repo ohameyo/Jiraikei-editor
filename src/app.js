@@ -1,5 +1,6 @@
 import {
   createToneRuntime,
+  getGpuToneEligibility,
   isForcedWebGLToneFailure,
   isWebGLToneRequested,
 } from './tone/index.js';
@@ -89,6 +90,15 @@ import {
     { key: 'blackProtect', label: '黑发保护', min: 0, max: 1, step: 0.01 },
     { key: 'fade', label: '褪色 / 雾感', min: 0, max: 0.5, step: 0.01 },
   ];
+  const MIGRATED_GPU_FILTER_KEYS = new Set([
+    'brightness',
+    'contrast',
+    'saturation',
+    'temperature',
+    'tint',
+    'fade',
+    'overlayStrength',
+  ]);
 
   const HSL_CHANNELS = [
     { id: 'master', name: '综合色', swatch: '#e7c8ac' },
@@ -543,6 +553,9 @@ import {
   let interactiveRenderPressure = 0;
   let sliderDragStartFilters = null;
   let sliderPreviewFilters = null;
+  let activeSliderFilterKey = null;
+  let pendingGpuTonePreviewFrame = 0;
+  let pendingGpuTonePreviewFilters = null;
   let blushPreviewEnabled = false;
   let blushEditMode = false;
   let blushFallbackNoticeShown = false;
@@ -2226,8 +2239,12 @@ import {
     applyVisibleBlushOverlay(targetCtx, filters, blushRegions, faceBoxes);
   }
 
+  const webglToneRequested = isWebGLToneRequested(
+    window.location,
+    window.localStorage,
+  );
   const toneRuntime = createToneRuntime({
-    enabled: isWebGLToneRequested(window.location, window.localStorage),
+    enabled: webglToneRequested,
     forceFailure: isForcedWebGLToneFailure(window.location),
     cpuRender(request) {
       applyTonePipeline(
@@ -2243,6 +2260,40 @@ import {
   });
 
   window.__JIRAI_TONE_DIAGNOSTICS__ = () => toneRuntime.getDiagnostics();
+
+  function isMigratedGpuFilter(key) {
+    return MIGRATED_GPU_FILTER_KEYS.has(key);
+  }
+
+  function canPreviewWithGpu(filters) {
+    return webglToneRequested && getGpuToneEligibility(filters).eligible;
+  }
+
+  function cancelGpuTonePreview() {
+    if (pendingGpuTonePreviewFrame) {
+      window.cancelAnimationFrame(pendingGpuTonePreviewFrame);
+      pendingGpuTonePreviewFrame = 0;
+    }
+    pendingGpuTonePreviewFilters = null;
+  }
+
+  function queueGpuTonePreview(filters) {
+    pendingGpuTonePreviewFilters = filters;
+    if (pendingGpuTonePreviewFrame) return;
+    pendingGpuTonePreviewFrame = window.requestAnimationFrame(() => {
+      pendingGpuTonePreviewFrame = 0;
+      const previewFilters = pendingGpuTonePreviewFilters;
+      pendingGpuTonePreviewFilters = null;
+      if (!previewFilters) return;
+      const currentState = store.getState();
+      resetPreviewRenderCache();
+      render({
+        ...currentState,
+        filters: previewFilters,
+        toneToken: Number(currentState.toneToken || 0) + 0.5,
+      });
+    });
+  }
 
   function drawBlushPreview(ctx, state) {
     if (!blushPreviewEnabled) return;
@@ -2637,6 +2688,13 @@ import {
 
   function applyCanvasCssInteractionPreview(state) {
     if (!els?.canvas) return;
+    if (
+      isMigratedGpuFilter(activeSliderFilterKey) &&
+      canPreviewWithGpu(sliderPreviewFilters || state.filters)
+    ) {
+      els.canvas.style.filter = '';
+      return;
+    }
     if (!isSliderDragging || !sliderDragStartFilters || !state.image.loaded || state.polaroid?.enabled) {
       els.canvas.style.filter = '';
       return;
@@ -2838,6 +2896,7 @@ import {
       toneRuntime.render({
         targetContext: ctx,
         sourceCanvas: baseCanvas,
+        sourceKey: renderState.image.element,
         filters: renderState.filters,
         vision: {
           faceBoxes: renderState.image.faceBoxes || [],
@@ -3280,6 +3339,8 @@ import {
       }
       sliderDragStartFilters = null;
       sliderPreviewFilters = null;
+      activeSliderFilterKey = null;
+      cancelGpuTonePreview();
       if (els?.canvas) els.canvas.style.filter = '';
       if (shouldCommit) {
         if (commitOnEndOnly) {
@@ -5838,7 +5899,19 @@ import {
     const isOriginalMode = (state.activePresetId ?? 'original') === 'original';
 
     const filterPanels = [
-      { id: 'basic', label: '基础', keys: ['overlayStrength', 'brightness', 'saturation', 'fade'] },
+      {
+        id: 'basic',
+        label: '基础',
+        keys: [
+          'overlayStrength',
+          'brightness',
+          'contrast',
+          'saturation',
+          'temperature',
+          'tint',
+          'fade',
+        ],
+      },
       { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'blackProtect'] },
     ];
     if (!filterPanels.some((panel) => panel.id === activeFilterPanel)) activeFilterPanel = 'basic';
@@ -5877,14 +5950,21 @@ import {
           step: controlStep,
           value: clamp(Number(state.filters[control.key] ?? control.min), control.min, controlMax),
           commitOnEnd: !state.polaroid?.enabled,
-          onBegin: () => store.beginStep(),
+          onBegin: () => {
+            activeSliderFilterKey = control.key;
+            store.beginStep();
+          },
           onPreview: (value) => {
             const currentFilters = store.getState().filters;
             sliderPreviewFilters =
               control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original'
                 ? { ...currentFilters, ...blendPresetFiltersByStrength(selectedPreset.filters, value) }
                 : { ...currentFilters, [control.key]: value };
-            applyCanvasCssInteractionPreview(store.getState());
+            if (isMigratedGpuFilter(control.key) && canPreviewWithGpu(sliderPreviewFilters)) {
+              queueGpuTonePreview(sliderPreviewFilters);
+            } else {
+              applyCanvasCssInteractionPreview(store.getState());
+            }
           },
           onInput: (value) => {
             if (control.key === 'overlayStrength' && selectedPreset && selectedPreset.id !== 'original') {
