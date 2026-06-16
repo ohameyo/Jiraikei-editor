@@ -1,6 +1,9 @@
 import {
+  HSL_AXES,
+  HSL_CHANNELS,
   createToneRuntime,
   getGpuToneEligibility,
+  hslFilterKey as hslKey,
   isForcedWebGLToneFailure,
   isWebGLToneRequested,
 } from './tone/index.js';
@@ -99,28 +102,6 @@ import {
     'fade',
     'overlayStrength',
   ]);
-
-  const HSL_CHANNELS = [
-    { id: 'master', name: '综合色', swatch: '#e7c8ac' },
-    { id: 'skin', name: '肤色', swatch: '#f4c3a0' },
-    { id: 'red', name: '红', swatch: '#e86a70', center: 0, width: 34 },
-    { id: 'orange', name: '橙', swatch: '#f0a35a', center: 28, width: 32 },
-    { id: 'yellow', name: '黄', swatch: '#e9dc63', center: 56, width: 34 },
-    { id: 'green', name: '绿', swatch: '#6ccd68', center: 122, width: 38 },
-    { id: 'cyan', name: '青', swatch: '#53c8d8', center: 182, width: 38 },
-    { id: 'blue', name: '蓝', swatch: '#6079e8', center: 228, width: 36 },
-    { id: 'purple', name: '紫', swatch: '#a66ae5', center: 286, width: 38 },
-  ];
-
-  const HSL_AXES = [
-    { axis: 'h', label: '色相', min: -40, max: 40, step: 1 },
-    { axis: 's', label: '饱和度', min: -70, max: 55, step: 1 },
-    { axis: 'l', label: '明度', min: -32, max: 32, step: 1 },
-  ];
-
-  function hslKey(channelId, axis) {
-    return `hsl_${channelId}_${axis}`;
-  }
 
   function hslFilterKeys() {
     return HSL_CHANNELS.flatMap((channel) => HSL_AXES.map(({ axis }) => hslKey(channel.id, axis)));
@@ -256,6 +237,7 @@ import {
         ...buildHslPatch({
           master: { h: 1, s: -3, l: 6 },
           skin: { h: 4, s: 11, l: 8 },
+          lip: { h: -4, s: 10, l: 2 },
           red: { h: -3, s: 13, l: 3 },
           orange: { h: -6, s: -13, l: 4 },
           yellow: { h: -8, s: -50, l: 6 },
@@ -263,6 +245,7 @@ import {
           cyan: { h: 10, s: -34, l: 6 },
           blue: { h: 7, s: -17, l: 4 },
           purple: { h: -4, s: 10, l: 6 },
+          black: { h: 0, s: -8, l: -2 },
         }),
       },
     },
@@ -285,6 +268,7 @@ import {
         ...buildHslPatch({
           master: { h: -3, s: -21, l: 6 },
           skin: { h: -3, s: -17, l: 7 },
+          lip: { h: -6, s: -12, l: 1 },
           red: { h: -4, s: -27, l: 2 },
           orange: { h: -7, s: -43, l: 3 },
           yellow: { h: 20, s: -67, l: 8 },
@@ -292,6 +276,7 @@ import {
           cyan: { h: 4, s: 13, l: 7 },
           blue: { h: 3, s: 11, l: 7 },
           purple: { h: -6, s: -20, l: 3 },
+          black: { h: -4, s: -16, l: -1 },
         }),
       },
     },
@@ -315,6 +300,7 @@ import {
         ...buildHslPatch({
           master: { h: 0, s: -34, l: 2 },
           skin: { h: 4, s: 6, l: 11 },
+          lip: { h: -2, s: 7, l: 1 },
           red: { h: 0, s: -10, l: 2 },
           orange: { h: 0, s: -64, l: 3 },
           yellow: { h: 0, s: -94, l: 4 },
@@ -322,6 +308,7 @@ import {
           cyan: { h: 0, s: -88, l: 4 },
           blue: { h: 0, s: -82, l: 3 },
           purple: { h: 0, s: -54, l: 2 },
+          black: { h: 0, s: -28, l: -3 },
         }),
       },
     },
@@ -345,6 +332,7 @@ import {
         ...buildHslPatch({
           master: { h: 0, s: -72, l: 2 },
           skin: { h: 1, s: -8, l: 12 },
+          lip: { h: -4, s: 12, l: -1 },
           red: { h: 0, s: -42, l: 1 },
           orange: { h: 0, s: -76, l: 2 },
           yellow: { h: 0, s: -96, l: 3 },
@@ -352,6 +340,7 @@ import {
           cyan: { h: 0, s: -96, l: 2 },
           blue: { h: 0, s: -94, l: 1 },
           purple: { h: 0, s: -78, l: 1 },
+          black: { h: 0, s: -44, l: -4 },
         }),
       },
     },
@@ -817,10 +806,12 @@ import {
     return clamp(redHue * lipChroma * lipLight * context, 0, 1);
   }
 
-  function applySelectiveHsl(r, g, b, filters, skinMask, hasFaceContext = true) {
+  function applySelectiveHsl(r, g, b, filters, skinMask, hasFaceContext = true, toneMasks = {}) {
     let [h, s, l] = rgbToHsl(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255));
     const baseH = h;
     const baseS = s;
+    const lipMask = clamp(Number(toneMasks.lipMask ?? 0), 0, 1);
+    const blackMask = clamp(Number(toneMasks.blackMask ?? 0), 0, 1);
     const hslSafety = 1 - clamp(skinMask * 0.78 + smoothstep(0, 0.22, 0.22 - s) * 0.55, 0, 0.86);
 
     const masterH = clamp(Number(filters[hslKey('master', 'h')] ?? 0), -40, 40);
@@ -832,7 +823,7 @@ import {
     l = clamp(l + (masterL / 100) * 0.34 * masterSafety, 0, 1);
 
     HSL_CHANNELS.forEach((channel) => {
-      if (channel.id === 'master' || channel.id === 'skin') return;
+      if (channel.id === 'master' || channel.id === 'skin' || channel.id === 'lip' || channel.id === 'black') return;
       if (Math.max(s, baseS) < 0.045) return;
       const channelSat = Math.max(s, baseS * 0.82);
       const w = getHueChannelWeight(baseH, channelSat, channel);
@@ -846,6 +837,15 @@ import {
       l = clamp(l + (cl / 100) * 0.28 * w * contextScale, 0, 1);
     });
 
+    if (lipMask > 0.0001) {
+      const lh = clamp(Number(filters[hslKey('lip', 'h')] ?? 0), -40, 40);
+      const ls = clamp(Number(filters[hslKey('lip', 's')] ?? 0), -70, 55);
+      const ll = clamp(Number(filters[hslKey('lip', 'l')] ?? 0), -32, 32);
+      h = (h + lh * 1.05 * lipMask + 360) % 360;
+      s = clamp(s * (1 + (ls / 100) * lipMask * 0.98), 0, 1);
+      l = clamp(l + (ll / 100) * 0.24 * lipMask, 0, 1);
+    }
+
     if (skinMask > 0.0001) {
       const sh = clamp(Number(filters[hslKey('skin', 'h')] ?? 0), -24, 24);
       const ss = clamp(Number(filters[hslKey('skin', 's')] ?? 0), -36, 30);
@@ -853,6 +853,15 @@ import {
       h = (h + sh * 0.95 * skinMask + 360) % 360;
       s = clamp(s * (1 + (ss / 100) * skinMask * 0.85), 0, 1);
       l = clamp(l + (sl / 100) * 0.22 * skinMask, 0, 1);
+    }
+
+    if (blackMask > 0.0001) {
+      const bh = clamp(Number(filters[hslKey('black', 'h')] ?? 0), -40, 40);
+      const bs = clamp(Number(filters[hslKey('black', 's')] ?? 0), -70, 55);
+      const bl = clamp(Number(filters[hslKey('black', 'l')] ?? 0), -32, 32);
+      h = (h + bh * 0.72 * blackMask + 360) % 360;
+      s = clamp(s * (1 + (bs / 100) * blackMask * 0.72), 0, 1);
+      l = clamp(l + (bl / 100) * 0.18 * blackMask, 0, 1);
     }
 
     return hslToRgb(h, s, l);
@@ -2037,7 +2046,18 @@ import {
       const skinProb = clamp(cbScore * crScore * satScore * lumaScore * (0.48 + 0.52 * hueScore), 0, 1);
       const skinMask = skinProb * faceWeight;
       const skinAreaMask = clamp(skinProb * Math.max(faceWeight, subjectWeight * 0.36), 0, 1);
-      [r, g, bl] = applySelectiveHsl(r, g, bl, filters, skinMask, hasFaceBoxes);
+      const lipWeight = getLipColorWeight(oHue, oSat, oLight, faceWeight, subjectWeight, hasFaceBoxes);
+      const blackToneMask = clamp(
+        (1 - smoothstep(36, 132, oLuma)) *
+          (1 - smoothstep(0.035, 0.22, oSat)) *
+          Math.max(subjectWeight, hasFaceBoxes ? 0.22 : 0.72),
+        0,
+        1
+      );
+      [r, g, bl] = applySelectiveHsl(r, g, bl, filters, skinMask, hasFaceBoxes, {
+        lipMask: lipWeight,
+        blackMask: blackToneMask,
+      });
 
       const [nhAfterProtect, nsAfterProtect, nlAfterProtect] = rgbToHsl(r, g, bl);
       const greenSpeckHue = Math.max(
@@ -2064,7 +2084,6 @@ import {
         bl = lerp(bl, sb2, greenSpeckFix);
       }
 
-      const lipWeight = getLipColorWeight(oHue, oSat, oLight, faceWeight, subjectWeight, hasFaceBoxes);
       if (lipWeight > 0.001) {
         const [, lipS, lipL] = rgbToHsl(r, g, bl);
         const masterDesat = Math.max(0, -Number(filters[hslKey('master', 's')] ?? 0)) / 70;
@@ -5913,6 +5932,7 @@ import {
         ],
       },
       { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'blackProtect'] },
+      { id: 'hsl', label: 'HSL', keys: [] },
     ];
     if (!filterPanels.some((panel) => panel.id === activeFilterPanel)) activeFilterPanel = 'basic';
 

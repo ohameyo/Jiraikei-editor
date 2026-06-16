@@ -39,3 +39,9 @@ export {
   getGpuToneEligibility,
   isWebGLToneRequested,
 };
+
+export {
+  HSL_AXES,
+  HSL_CHANNELS,
+  hslFilterKey,
+} from './advancedToneParameters.js';
