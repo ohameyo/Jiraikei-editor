@@ -2699,7 +2699,7 @@ import {
   function getPreviewScaleForState(state) {
     if (!state.image.loaded || !state.canvas.width || !state.canvas.height) return 1;
     const mobilePreview = isMobileLayoutViewport();
-    const lightweight = isDirectManipulating || isTextEditing;
+    const lightweight = isSliderDragging || isDirectManipulating || isTextEditing;
     const pressureScale = lightweight ? clamp(1 - interactiveRenderPressure * 0.08, 0.78, 1) : 1;
     const maxSide = (lightweight ? (mobilePreview ? 720 : 980) : (mobilePreview ? 1100 : 1700)) * pressureScale;
     const maxPixels = (lightweight ? (mobilePreview ? 420000 : 760000) : (mobilePreview ? 1100000 : 2200000)) * pressureScale;

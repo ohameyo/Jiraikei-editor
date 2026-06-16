@@ -15,10 +15,14 @@ export function isWebGLToneRequested(
   if (queryValue === '0') return false;
 
   try {
-    return storageLike?.getItem('jirai-v3-gpu') === '1';
+    const storageValue = storageLike?.getItem('jirai-v3-gpu');
+    if (storageValue === '1') return true;
+    if (storageValue === '0') return false;
   } catch {
-    return false;
+    return true;
   }
+
+  return true;
 }
 
 export function isForcedWebGLToneFailure(locationLike = globalThis.location) {
