@@ -1,6 +1,9 @@
 import {
   HSL_AXES,
   HSL_CHANNELS,
+  ADVANCED_TONE_FIXTURES,
+  ADVANCED_TONE_VISUAL_QA_SCENARIOS,
+  createAdvancedToneFixtureCanvas,
   createToneRuntime,
   getGpuToneEligibility,
   hslFilterKey as hslKey,
@@ -7221,10 +7224,129 @@ import {
     tick();
   }
 
+  function setupQaTestHooks() {
+    window.__JIRAI_V3_QA__ = {
+      fixtures: ADVANCED_TONE_FIXTURES.map((fixture) => ({
+        id: fixture.id,
+        label: fixture.label,
+        riskTags: [...fixture.riskTags],
+      })),
+      scenarios: ADVANCED_TONE_VISUAL_QA_SCENARIOS.map((scenario) => ({
+        id: scenario.id,
+        label: scenario.label,
+        fixtureIds: [...scenario.fixtureIds],
+      })),
+      async loadFixture({ fixtureId, scenarioId }) {
+        const fixture = ADVANCED_TONE_FIXTURES.find((item) => item.id === fixtureId);
+        const scenario = ADVANCED_TONE_VISUAL_QA_SCENARIOS.find((item) => item.id === scenarioId);
+        if (!fixture) throw new RangeError(`Unknown fixture: ${fixtureId}`);
+        if (!scenario) throw new RangeError(`Unknown QA scenario: ${scenarioId}`);
+
+        const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+        const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+        overlayController.finishInteraction?.();
+        blushEditMode = false;
+        blushPreviewEnabled = false;
+        store.setImage(image);
+        store.setVisionData({
+          faceBoxes: [{ ...fixture.faceBox }],
+          faceLandmarks: [],
+          autoBlushDetected: true,
+        });
+        store.setFilters({ ...DEFAULT_FILTERS, ...scenario.filters }, 'original', false);
+        activeFilterPanel = 'hsl';
+        setActiveTool('filters');
+        render(store.getState());
+
+        const exportCanvas = renderEditedCanvas(store.getState(), true, { mode: 'export' });
+        return {
+          fixtureId,
+          scenarioId,
+          imageLoaded: store.getState().image.loaded,
+          activeTool,
+          activeFilterPanel,
+          tabs: Array.from(document.querySelectorAll('.filter-panel-tab')).map((node) => ({
+            text: node.textContent.trim(),
+            active: node.classList.contains('is-active'),
+          })),
+          channels: Array.from(document.querySelectorAll('.hsl-channel-btn')).map((node) => node.getAttribute('aria-label')),
+          previewDataUrl: els.canvas.toDataURL('image/png'),
+          exportDataUrl: exportCanvas.toDataURL('image/png'),
+          diagnostics: toneRuntime.getDiagnostics(),
+        };
+      },
+    };
+  }
+
+  async function runP5QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p5qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p5QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    try {
+      const cases = [];
+      for (const scenario of ADVANCED_TONE_VISUAL_QA_SCENARIOS) {
+        for (const fixtureId of scenario.fixtureIds) {
+          const result = await window.__JIRAI_V3_QA__.loadFixture({ fixtureId, scenarioId: scenario.id });
+          cases.push({
+            scenarioId: scenario.id,
+            fixtureId,
+            imageLoaded: result.imageLoaded,
+            activeTool: result.activeTool,
+            activeFilterPanel: result.activeFilterPanel,
+            hslTabActive: result.tabs.some((tab) => tab.text === 'HSL' && tab.active),
+            channelCount: result.channels.length,
+            selectedRenderer: result.diagnostics.selectedRenderer,
+            fallbackReason: result.diagnostics.fallbackReason,
+            previewBytes: result.previewDataUrl.length,
+            exportBytes: result.exportDataUrl.length,
+            dataUrlEqual: result.previewDataUrl === result.exportDataUrl,
+          });
+        }
+      }
+      const passed = cases.every((item) =>
+        item.imageLoaded &&
+        item.activeTool === 'filters' &&
+        item.activeFilterPanel === 'hsl' &&
+        item.hslTabActive &&
+        item.channelCount >= 11 &&
+        item.selectedRenderer === 'cpu' &&
+        item.fallbackReason === 'effects-not-migrated' &&
+        item.previewBytes > 1000 &&
+        item.exportBytes > 1000
+      );
+      resultNode.textContent = JSON.stringify({
+        passed,
+        fixtureCount: ADVANCED_TONE_FIXTURES.length,
+        scenarioCount: ADVANCED_TONE_VISUAL_QA_SCENARIOS.length,
+        cases,
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
   async function init() {
     trackEvent('app_open', { referrerType: document.referrer ? 'external_or_internal' : 'direct' });
     syncViewportMode();
     setupBrandSubtitleTyping();
+    setupQaTestHooks();
     bindEvents();
     store.subscribe(scheduleRender);
     buildPixelStickerPack();
@@ -7242,6 +7364,7 @@ import {
       ensureTextTemplatesRendered();
     }
     render(store.getState());
+    runP5QaFromQuery();
 
     runWhenIdle(() => {
       ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));

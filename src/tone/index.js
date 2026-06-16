@@ -41,6 +41,12 @@ export {
 };
 
 export {
+  ADVANCED_TONE_FIXTURES,
+  ADVANCED_TONE_VISUAL_QA_SCENARIOS,
+  createAdvancedToneFixtureCanvas,
+} from './advancedToneFixtures.js';
+
+export {
   HSL_AXES,
   HSL_CHANNELS,
   hslFilterKey,
