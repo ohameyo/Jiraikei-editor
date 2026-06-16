@@ -45,16 +45,6 @@ test('normalizes filter values before writing uniforms', () => {
       overlayStrength: 0.45,
       overlayColor: '#F5B9E4',
       overlayColorRgb: [245 / 255, 185 / 255, 228 / 255],
-      hsl: {
-        master: { h: 0, s: 0, l: 0 },
-        red: { h: 0, s: 0, l: 0 },
-        orange: { h: 0, s: 0, l: 0 },
-        yellow: { h: 0, s: 0, l: 0 },
-        green: { h: 0, s: 0, l: 0 },
-        cyan: { h: 0, s: 0, l: 0 },
-        blue: { h: 0, s: 0, l: 0 },
-        purple: { h: 0, s: 0, l: 0 },
-      },
     },
   )
 })

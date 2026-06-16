@@ -48,7 +48,6 @@ test('pairs each fixture with visual QA scenarios', () => {
   assert.deepEqual(
     ADVANCED_TONE_VISUAL_QA_SCENARIOS.map((scenario) => scenario.id),
     [
-      'hsl-skin-lip-check',
       'whiten-heavy-blush-check',
       'black-hair-dark-clothes-check',
       'combined-export-check',

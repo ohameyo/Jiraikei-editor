@@ -1,12 +1,9 @@
 import {
-  HSL_AXES,
-  HSL_CHANNELS,
   ADVANCED_TONE_FIXTURES,
   ADVANCED_TONE_VISUAL_QA_SCENARIOS,
   createAdvancedToneFixtureCanvas,
   createToneRuntime,
   getGpuToneEligibility,
-  hslFilterKey as hslKey,
   isForcedWebGLToneFailure,
   isWebGLToneRequested,
 } from './tone/index.js';
@@ -106,21 +103,6 @@ import {
     'overlayStrength',
   ]);
 
-  function hslFilterKeys() {
-    return HSL_CHANNELS.flatMap((channel) => HSL_AXES.map(({ axis }) => hslKey(channel.id, axis)));
-  }
-
-  function buildHslPatch(config = {}) {
-    const patch = {};
-    HSL_CHANNELS.forEach((channel) => {
-      const channelConfig = config[channel.id] || {};
-      HSL_AXES.forEach(({ axis }) => {
-        patch[hslKey(channel.id, axis)] = Number(channelConfig[axis] ?? 0);
-      });
-    });
-    return patch;
-  }
-
   const DEFAULT_FILTERS = {
     brightness: 1,
     contrast: 1,
@@ -155,8 +137,6 @@ import {
     fade: 0,
     overlayColor: '#e7d3ea',
     overlayStrength: 0,
-    hslActiveChannel: 'master',
-    ...Object.fromEntries(HSL_CHANNELS.flatMap((channel) => HSL_AXES.map(({ axis }) => [hslKey(channel.id, axis), 0]))),
   };
 
   const BLUSH_REGION_KEYS = [
@@ -202,7 +182,6 @@ import {
     const partial = { overlayStrength };
     const blendKeys = [
       ...FILTER_CONTROL_DEFS.map((item) => item.key).filter((key) => key !== 'overlayStrength'),
-      ...hslFilterKeys(),
     ];
     blendKeys.forEach((key) => {
       const presetValue = presetFilters?.[key];
@@ -237,19 +216,6 @@ import {
         fade: 0.14,
         overlayColor: '#F5B9E4',
         overlayStrength: 0.14,
-        ...buildHslPatch({
-          master: { h: 1, s: -3, l: 6 },
-          skin: { h: 4, s: 11, l: 8 },
-          lip: { h: -4, s: 10, l: 2 },
-          red: { h: -3, s: 13, l: 3 },
-          orange: { h: -6, s: -13, l: 4 },
-          yellow: { h: -8, s: -50, l: 6 },
-          green: { h: 13, s: -62, l: 7 },
-          cyan: { h: 10, s: -34, l: 6 },
-          blue: { h: 7, s: -17, l: 4 },
-          purple: { h: -4, s: 10, l: 6 },
-          black: { h: 0, s: -8, l: -2 },
-        }),
       },
     },
     {
@@ -268,19 +234,6 @@ import {
         fade: 0.11,
         overlayColor: '#CDEBFA',
         overlayStrength: 0.14,
-        ...buildHslPatch({
-          master: { h: -3, s: -21, l: 6 },
-          skin: { h: -3, s: -17, l: 7 },
-          lip: { h: -6, s: -12, l: 1 },
-          red: { h: -4, s: -27, l: 2 },
-          orange: { h: -7, s: -43, l: 3 },
-          yellow: { h: 20, s: -67, l: 8 },
-          green: { h: 22, s: -55, l: 7 },
-          cyan: { h: 4, s: 13, l: 7 },
-          blue: { h: 3, s: 11, l: 7 },
-          purple: { h: -6, s: -20, l: 3 },
-          black: { h: -4, s: -16, l: -1 },
-        }),
       },
     },
     {
@@ -300,19 +253,6 @@ import {
         fade: 0.08,
         overlayColor: '#E2D7DF',
         overlayStrength: 0.04,
-        ...buildHslPatch({
-          master: { h: 0, s: -34, l: 2 },
-          skin: { h: 4, s: 6, l: 11 },
-          lip: { h: -2, s: 7, l: 1 },
-          red: { h: 0, s: -10, l: 2 },
-          orange: { h: 0, s: -64, l: 3 },
-          yellow: { h: 0, s: -94, l: 4 },
-          green: { h: 0, s: -96, l: 6 },
-          cyan: { h: 0, s: -88, l: 4 },
-          blue: { h: 0, s: -82, l: 3 },
-          purple: { h: 0, s: -54, l: 2 },
-          black: { h: 0, s: -28, l: -3 },
-        }),
       },
     },
     {
@@ -332,19 +272,6 @@ import {
         fade: 0.025,
         overlayColor: '#DCDDE3',
         overlayStrength: 0.006,
-        ...buildHslPatch({
-          master: { h: 0, s: -72, l: 2 },
-          skin: { h: 1, s: -8, l: 12 },
-          lip: { h: -4, s: 12, l: -1 },
-          red: { h: 0, s: -42, l: 1 },
-          orange: { h: 0, s: -76, l: 2 },
-          yellow: { h: 0, s: -96, l: 3 },
-          green: { h: 0, s: -98, l: 4 },
-          cyan: { h: 0, s: -96, l: 2 },
-          blue: { h: 0, s: -94, l: 1 },
-          purple: { h: 0, s: -78, l: 1 },
-          black: { h: 0, s: -44, l: -4 },
-        }),
       },
     },
   ];
@@ -788,15 +715,6 @@ import {
     return d > 180 ? 360 - d : d;
   }
 
-  function getHueChannelWeight(h, sat, channel) {
-    const dist = hueDistance(h, channel.center);
-    const width = channel.width || 36;
-    const base = 1 - smoothstep(width * 0.62, width, dist);
-    // 低饱和区色相不稳定，避免肤色和手部出现分区色块。
-    const chroma = smoothstep(0.05, 0.24, sat);
-    return clamp(base * chroma, 0, 1);
-  }
-
   function getLipColorWeight(hue, sat, light, faceWeight, subjectWeight, hasFaceContext) {
     const redHue = Math.max(
       1 - smoothstep(18, 54, hueDistance(hue, 352)),
@@ -807,67 +725,6 @@ import {
     const lipLight = smoothstep(0.12, 0.24, light) * (1 - smoothstep(0.68, 0.84, light));
     const context = hasFaceContext ? smoothstep(0.08, 0.5, faceWeight) : subjectWeight * 0.28;
     return clamp(redHue * lipChroma * lipLight * context, 0, 1);
-  }
-
-  function applySelectiveHsl(r, g, b, filters, skinMask, hasFaceContext = true, toneMasks = {}) {
-    let [h, s, l] = rgbToHsl(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255));
-    const baseH = h;
-    const baseS = s;
-    const lipMask = clamp(Number(toneMasks.lipMask ?? 0), 0, 1);
-    const blackMask = clamp(Number(toneMasks.blackMask ?? 0), 0, 1);
-    const hslSafety = 1 - clamp(skinMask * 0.78 + smoothstep(0, 0.22, 0.22 - s) * 0.55, 0, 0.86);
-
-    const masterH = clamp(Number(filters[hslKey('master', 'h')] ?? 0), -40, 40);
-    const masterS = clamp(Number(filters[hslKey('master', 's')] ?? 0), -70, 55);
-    const masterL = clamp(Number(filters[hslKey('master', 'l')] ?? 0), -32, 32);
-    const masterSafety = Math.max(hslSafety, skinMask > 0.0001 ? 0.42 : 0.68);
-    h = (h + masterH * 1.35 * masterSafety + 360) % 360;
-    s = clamp(s * (1 + (masterS / 100) * masterSafety * 1.12), 0, 1);
-    l = clamp(l + (masterL / 100) * 0.34 * masterSafety, 0, 1);
-
-    HSL_CHANNELS.forEach((channel) => {
-      if (channel.id === 'master' || channel.id === 'skin' || channel.id === 'lip' || channel.id === 'black') return;
-      if (Math.max(s, baseS) < 0.045) return;
-      const channelSat = Math.max(s, baseS * 0.82);
-      const w = getHueChannelWeight(baseH, channelSat, channel);
-      if (w <= 0.0001) return;
-      const contextScale = hasFaceContext ? Math.max(hslSafety, 0.5) : Math.max(hslSafety, 0.32);
-      const ch = clamp(Number(filters[hslKey(channel.id, 'h')] ?? 0), -40, 40);
-      const cs = clamp(Number(filters[hslKey(channel.id, 's')] ?? 0), -70, 55);
-      const cl = clamp(Number(filters[hslKey(channel.id, 'l')] ?? 0), -32, 32);
-      h = (h + ch * 1.2 * w * contextScale + 360) % 360;
-      s = clamp(s * (1 + (cs / 100) * w * contextScale * 1.08), 0, 1);
-      l = clamp(l + (cl / 100) * 0.28 * w * contextScale, 0, 1);
-    });
-
-    if (lipMask > 0.0001) {
-      const lh = clamp(Number(filters[hslKey('lip', 'h')] ?? 0), -40, 40);
-      const ls = clamp(Number(filters[hslKey('lip', 's')] ?? 0), -70, 55);
-      const ll = clamp(Number(filters[hslKey('lip', 'l')] ?? 0), -32, 32);
-      h = (h + lh * 1.05 * lipMask + 360) % 360;
-      s = clamp(s * (1 + (ls / 100) * lipMask * 0.98), 0, 1);
-      l = clamp(l + (ll / 100) * 0.24 * lipMask, 0, 1);
-    }
-
-    if (skinMask > 0.0001) {
-      const sh = clamp(Number(filters[hslKey('skin', 'h')] ?? 0), -24, 24);
-      const ss = clamp(Number(filters[hslKey('skin', 's')] ?? 0), -36, 30);
-      const sl = clamp(Number(filters[hslKey('skin', 'l')] ?? 0), -18, 18);
-      h = (h + sh * 0.95 * skinMask + 360) % 360;
-      s = clamp(s * (1 + (ss / 100) * skinMask * 0.85), 0, 1);
-      l = clamp(l + (sl / 100) * 0.22 * skinMask, 0, 1);
-    }
-
-    if (blackMask > 0.0001) {
-      const bh = clamp(Number(filters[hslKey('black', 'h')] ?? 0), -40, 40);
-      const bs = clamp(Number(filters[hslKey('black', 's')] ?? 0), -70, 55);
-      const bl = clamp(Number(filters[hslKey('black', 'l')] ?? 0), -32, 32);
-      h = (h + bh * 0.72 * blackMask + 360) % 360;
-      s = clamp(s * (1 + (bs / 100) * blackMask * 0.72), 0, 1);
-      l = clamp(l + (bl / 100) * 0.18 * blackMask, 0, 1);
-    }
-
-    return hslToRgb(h, s, l);
   }
 
   function deriveCanvasSizeFromImage(img) {
@@ -1541,8 +1398,7 @@ import {
     const imageData = targetCtx.getImageData(0, 0, canvasWidth, targetCtx.canvas.height);
     const data = imageData.data;
     const strengthCurve = Math.pow(blushStrength, 0.82);
-    const masterDesat = Math.max(0, -Number(filters[hslKey('master', 's')] ?? 0)) / 100;
-    const lowSaturationBoost = clamp((1 - clamp(Number(filters.saturation ?? 1), 0, 1)) * 0.42 + masterDesat * 0.26, 0, 0.62);
+    const lowSaturationBoost = clamp((1 - clamp(Number(filters.saturation ?? 1), 0, 1)) * 0.42, 0, 0.62);
     const hasFaceBoxes = Array.isArray(faceBoxes) && faceBoxes.length > 0;
 
     for (let i = 0; i < data.length; i += 4) {
@@ -2057,11 +1913,6 @@ import {
         0,
         1
       );
-      [r, g, bl] = applySelectiveHsl(r, g, bl, filters, skinMask, hasFaceBoxes, {
-        lipMask: lipWeight,
-        blackMask: blackToneMask,
-      });
-
       const [nhAfterProtect, nsAfterProtect, nlAfterProtect] = rgbToHsl(r, g, bl);
       const greenSpeckHue = Math.max(
         1 - smoothstep(26, 70, hueDistance(nhAfterProtect, 120)),
@@ -2089,10 +1940,9 @@ import {
 
       if (lipWeight > 0.001) {
         const [, lipS, lipL] = rgbToHsl(r, g, bl);
-        const masterDesat = Math.max(0, -Number(filters[hslKey('master', 's')] ?? 0)) / 70;
         const globalDesat = 1 - clamp(Number(filters.saturation ?? 1), 0, 1);
         const lostChroma = smoothstep(0.02, 0.18, oSat - lipS);
-        const restore = lipWeight * clamp(0.12 + globalDesat * 0.18 + masterDesat * 0.14 + lostChroma * 0.12, 0.08, 0.42);
+        const restore = lipWeight * clamp(0.12 + globalDesat * 0.18 + lostChroma * 0.12, 0.08, 0.42);
         if (restore > 0.001) {
           const targetS = clamp(Math.max(lipS, Math.min(0.5, oSat * 0.72 + 0.035)), 0, 1);
           const targetL = clamp(lipL * 0.7 + oLight * 0.3, 0, 1);
@@ -2732,11 +2582,6 @@ import {
     const sepia = clamp(Math.max(temperatureDelta, 0) * 0.18 + Math.abs(tintDelta) * 0.08 + Math.max(fadeDelta, 0) * 0.16, 0, 0.34);
     let hueRotate = tintDelta * 10 - temperatureDelta * 8;
     let previewBrightness = brightness + Math.max(temperatureDelta, 0) * 0.03 + Math.max(fadeDelta, 0) * 0.08;
-    HSL_CHANNELS.forEach((channel) => {
-      hueRotate += ((current[hslKey(channel.id, 'h')] ?? 0) - (start[hslKey(channel.id, 'h')] ?? 0)) * 0.35;
-      saturation *= 1 + (((current[hslKey(channel.id, 's')] ?? 0) - (start[hslKey(channel.id, 's')] ?? 0)) / 100) * 0.45;
-      previewBrightness += (((current[hslKey(channel.id, 'l')] ?? 0) - (start[hslKey(channel.id, 'l')] ?? 0)) / 100) * 0.18;
-    });
     hueRotate = clamp(hueRotate, -28, 28);
     saturation = clamp(saturation, 0.35, 1.9);
     previewBrightness = clamp(previewBrightness, 0.72, 1.42);
@@ -5432,14 +5277,10 @@ import {
   }
 
   function isOriginalFilters(filters) {
-    const hslIsNeutral = HSL_CHANNELS.every((channel) =>
-      HSL_AXES.every(({ axis }) => Math.abs(Number(filters[hslKey(channel.id, axis)] ?? 0)) < 0.001)
-    );
     return (
       Math.abs(filters.brightness - 1) < 0.001 &&
       Math.abs(filters.contrast - 1) < 0.001 &&
       Math.abs(filters.saturation - 1) < 0.001 &&
-      hslIsNeutral &&
       Math.abs(filters.temperature) < 0.001 &&
       Math.abs(filters.tint) < 0.001 &&
       Math.abs(filters.skinWhiten ?? 0) < 0.001 &&
@@ -5935,7 +5776,6 @@ import {
         ],
       },
       { id: 'portrait', label: '人像', keys: ['skinWhiten', 'blushStrength', 'blackProtect'] },
-      { id: 'hsl', label: 'HSL', keys: [] },
     ];
     if (!filterPanels.some((panel) => panel.id === activeFilterPanel)) activeFilterPanel = 'basic';
 
@@ -6026,76 +5866,6 @@ import {
       }
       return;
     }
-
-    const channelRow = document.createElement('div');
-    channelRow.className = 'inline-actions hsl-channel-row';
-    const activeChannel = state.filters.hslActiveChannel || 'master';
-    HSL_CHANNELS.forEach((channel) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'hsl-channel-btn';
-      if (activeChannel === channel.id) btn.classList.add('is-active');
-      btn.title = channel.name;
-      btn.setAttribute('aria-label', channel.name);
-      btn.innerHTML = `<svg class="hsl-heart" style="--hsl-swatch:${channel.swatch}" viewBox="0 0 32 29" aria-hidden="true"><path d="M16 28C10 22.7 4.9 18.4 2.4 14.4C-1.4 8.3 2.1 1 8.7 1C12.2 1 14.5 2.9 16 5.1C17.5 2.9 19.8 1 23.3 1C29.9 1 33.4 8.3 29.6 14.4C27.1 18.4 22 22.7 16 28Z"></path></svg>`;
-      btn.onclick = () => store.setFilters({ hslActiveChannel: channel.id }, state.activePresetId ?? 'original', true);
-      channelRow.appendChild(btn);
-    });
-    els.filterControls.appendChild(channelRow);
-
-    HSL_AXES.forEach((item) => {
-      const key = hslKey(activeChannel, item.axis);
-      const sliderValue = clamp(Number(state.filters[key] ?? 0), item.min, item.max);
-      const activeSwatch = HSL_CHANNELS.find((c) => c.id === activeChannel)?.swatch || '#8adf75';
-      const swatchRgb = activeSwatch.replace('#', '');
-      const sr = Number.parseInt(swatchRgb.slice(0, 2), 16);
-      const sg = Number.parseInt(swatchRgb.slice(2, 4), 16);
-      const sb = Number.parseInt(swatchRgb.slice(4, 6), 16);
-      const [h, , l] = rgbToHsl(sr, sg, sb);
-      const [dr, dg, db] = hslToRgb(0, 0, l);
-      const desatSwatch = rgbToHex(dr, dg, db);
-      const [hlr, hlg, hlb] = hslToRgb((h - 70 + 360) % 360, 0.85, 0.62);
-      const [hcr, hcg, hcb] = hslToRgb(h, 0.9, 0.62);
-      const [hrr, hrg, hrb] = hslToRgb((h + 70) % 360, 0.85, 0.62);
-      const hueLeft = rgbToHex(hlr, hlg, hlb);
-      const hueCenter = rgbToHex(hcr, hcg, hcb);
-      const hueRight = rgbToHex(hrr, hrg, hrb);
-      const axisTrack =
-        item.axis === 'h'
-          ? activeChannel === 'master'
-            ? 'linear-gradient(90deg,#ff49d8,#ff5f62,#ffac45,#f2e95d,#72df6a,#58cde1,#6e7df2,#b56cf1,#ff49d8)'
-            : `linear-gradient(90deg,${hueLeft},${hueCenter},${hueRight})`
-          : item.axis === 's'
-            ? `linear-gradient(90deg,${desatSwatch},${activeSwatch})`
-            : `linear-gradient(90deg,#1f1a20,${activeSwatch},#ffffff)`;
-      els.filterControls.appendChild(
-        makeSlider({
-          label: item.label,
-          min: item.min,
-          max: item.max,
-          step: item.step,
-          value: sliderValue,
-          rangeClass: 'hsl-range',
-          trackGradient: axisTrack,
-          commitOnEnd: !state.polaroid?.enabled,
-          onBegin: () => store.beginStep(),
-          onPreview: (value) => {
-            sliderPreviewFilters = { ...store.getState().filters, [key]: value };
-            applyCanvasCssInteractionPreview(store.getState());
-          },
-          onInput: (value) => store.setFilters({ [key]: value }, state.activePresetId ?? 'original', false),
-          onEnd: () => {
-            trackEvent('filter_adjust', {
-              key,
-              channel: activeChannel,
-              axis: item.axis,
-              presetId: state.activePresetId ?? 'original',
-              panel: 'hsl',
-            });
-          },
-        })
-      );
-    });
 
   }
 
@@ -7254,7 +7024,7 @@ import {
           autoBlushDetected: true,
         });
         store.setFilters({ ...DEFAULT_FILTERS, ...scenario.filters }, 'original', false);
-        activeFilterPanel = 'hsl';
+        activeFilterPanel = 'portrait';
         setActiveTool('filters');
         render(store.getState());
 
@@ -7269,7 +7039,6 @@ import {
             text: node.textContent.trim(),
             active: node.classList.contains('is-active'),
           })),
-          channels: Array.from(document.querySelectorAll('.hsl-channel-btn')).map((node) => node.getAttribute('aria-label')),
           previewDataUrl: els.canvas.toDataURL('image/png'),
           exportDataUrl: exportCanvas.toDataURL('image/png'),
           diagnostics: toneRuntime.getDiagnostics(),
@@ -7307,8 +7076,6 @@ import {
             imageLoaded: result.imageLoaded,
             activeTool: result.activeTool,
             activeFilterPanel: result.activeFilterPanel,
-            hslTabActive: result.tabs.some((tab) => tab.text === 'HSL' && tab.active),
-            channelCount: result.channels.length,
             selectedRenderer: result.diagnostics.selectedRenderer,
             fallbackReason: result.diagnostics.fallbackReason,
             previewBytes: result.previewDataUrl.length,
@@ -7320,9 +7087,7 @@ import {
       const passed = cases.every((item) =>
         item.imageLoaded &&
         item.activeTool === 'filters' &&
-        item.activeFilterPanel === 'hsl' &&
-        item.hslTabActive &&
-        item.channelCount >= 11 &&
+        item.activeFilterPanel === 'portrait' &&
         item.selectedRenderer === 'cpu' &&
         item.fallbackReason === 'effects-not-migrated' &&
         item.previewBytes > 1000 &&

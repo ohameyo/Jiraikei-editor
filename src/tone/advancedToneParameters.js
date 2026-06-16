@@ -1,38 +1,3 @@
-export const HSL_CHANNELS = Object.freeze([
-  Object.freeze({ id: 'master', name: '综合色', swatch: '#e7c8ac' }),
-  Object.freeze({ id: 'skin', name: '肤色', swatch: '#f4c3a0' }),
-  Object.freeze({ id: 'lip', name: '唇色', swatch: '#d95f77' }),
-  Object.freeze({ id: 'red', name: '红', swatch: '#e86a70', center: 0, width: 34 }),
-  Object.freeze({ id: 'orange', name: '橙', swatch: '#f0a35a', center: 28, width: 32 }),
-  Object.freeze({ id: 'yellow', name: '黄', swatch: '#e9dc63', center: 56, width: 34 }),
-  Object.freeze({ id: 'green', name: '绿', swatch: '#6ccd68', center: 122, width: 38 }),
-  Object.freeze({ id: 'cyan', name: '青', swatch: '#53c8d8', center: 182, width: 38 }),
-  Object.freeze({ id: 'blue', name: '蓝', swatch: '#6079e8', center: 228, width: 36 }),
-  Object.freeze({ id: 'purple', name: '紫', swatch: '#a66ae5', center: 286, width: 38 }),
-  Object.freeze({ id: 'black', name: '黑', swatch: '#2f2b34' }),
-]);
-
-export const HSL_AXES = Object.freeze([
-  Object.freeze({ axis: 'h', label: '色相', min: -40, default: 0, max: 40, step: 1 }),
-  Object.freeze({ axis: 's', label: '饱和度', min: -70, default: 0, max: 55, step: 1 }),
-  Object.freeze({ axis: 'l', label: '明度', min: -32, default: 0, max: 32, step: 1 }),
-]);
-
-export const MIGRATED_HSL_CHANNEL_IDS = Object.freeze([
-  'master',
-  'red',
-  'orange',
-  'yellow',
-  'green',
-  'cyan',
-  'blue',
-  'purple',
-]);
-
-export const MIGRATED_HSL_CHANNELS = Object.freeze(
-  MIGRATED_HSL_CHANNEL_IDS.map((id) => HSL_CHANNELS.find((channel) => channel.id === id)),
-);
-
 export const PORTRAIT_TONE_RANGES = Object.freeze({
   skinWhiten: Object.freeze({ min: 0, default: 0, max: 1, step: 0.01 }),
   blushStrength: Object.freeze({ min: 0, default: 0, max: 1, step: 0.01 }),
@@ -50,46 +15,6 @@ export const ADVANCED_TONE_SAMPLE_PIXELS = Object.freeze([
   Object.freeze({ id: 'lip-red', label: '唇色红区', group: 'lip', rgb: Object.freeze([171, 58, 77]) }),
 ]);
 
-export function hslFilterKey(channelId, axis) {
-  return `hsl_${channelId}_${axis}`;
-}
-
-export function hslFilterKeys() {
-  return HSL_CHANNELS.flatMap((channel) =>
-    HSL_AXES.map(({ axis }) => hslFilterKey(channel.id, axis)),
-  );
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function normalizeNumber(value, range) {
-  const numeric = Number(value);
-  return clamp(
-    Number.isFinite(numeric) ? numeric : range.default,
-    range.min,
-    range.max,
-  );
-}
-
-export function normalizeMigratedHslParameters(filters = {}) {
-  return Object.fromEntries(
-    MIGRATED_HSL_CHANNELS.map((channel) => [
-      channel.id,
-      Object.fromEntries(
-        HSL_AXES.map((range) => [
-          range.axis,
-          normalizeNumber(filters[hslFilterKey(channel.id, range.axis)], range),
-        ]),
-      ),
-    ]),
-  );
-}
-
 export function isAdvancedToneFilterKey(key) {
-  return (
-    hslFilterKeys().includes(key) ||
-    Object.hasOwn(PORTRAIT_TONE_RANGES, key)
-  );
+  return Object.hasOwn(PORTRAIT_TONE_RANGES, key);
 }

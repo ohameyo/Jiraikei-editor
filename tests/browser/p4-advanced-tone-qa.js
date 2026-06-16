@@ -75,17 +75,8 @@ function renderScenario({ scenario, mode, scale }) {
 }
 
 function scenarioMatchesP7MigrationBoundary(item) {
-  const gpuExpected = item.id === 'global-hsl' || item.id === 'split-color-hsl';
   const preview = item.preview.diagnostics;
   const exportRender = item.export.diagnostics;
-  if (gpuExpected) {
-    return (
-      preview.selectedRenderer === 'gpu' &&
-      preview.fallbackReason === null &&
-      exportRender.selectedRenderer === 'gpu' &&
-      exportRender.fallbackReason === null
-    );
-  }
 
   return (
     preview.selectedRenderer === 'cpu' &&

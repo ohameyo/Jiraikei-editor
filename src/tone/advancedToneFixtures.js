@@ -1,5 +1,3 @@
-import { hslFilterKey } from './advancedToneParameters.js';
-
 export const ADVANCED_TONE_FIXTURE_RISK_TAGS = Object.freeze([
   'light-skin',
   'medium-skin',
@@ -59,19 +57,6 @@ export const ADVANCED_TONE_FIXTURES = Object.freeze([
 
 export const ADVANCED_TONE_VISUAL_QA_SCENARIOS = Object.freeze([
   Object.freeze({
-    id: 'hsl-skin-lip-check',
-    label: 'HSL 肤色与唇色核对',
-    fixtureIds: Object.freeze(['fair-skin-black-hair', 'deep-skin-red-lip']),
-    filters: Object.freeze({
-      [hslFilterKey('skin', 'h')]: 5,
-      [hslFilterKey('skin', 's')]: 10,
-      [hslFilterKey('skin', 'l')]: 8,
-      [hslFilterKey('lip', 'h')]: -7,
-      [hslFilterKey('lip', 's')]: 18,
-      [hslFilterKey('lip', 'l')]: 3,
-    }),
-  }),
-  Object.freeze({
     id: 'whiten-heavy-blush-check',
     label: '美白与重腮红核对',
     fixtureIds: Object.freeze(['fair-skin-black-hair', 'medium-skin-dark-clothes']),
@@ -86,8 +71,6 @@ export const ADVANCED_TONE_VISUAL_QA_SCENARIOS = Object.freeze([
     fixtureIds: Object.freeze(['fair-skin-black-hair', 'medium-skin-dark-clothes', 'deep-skin-red-lip']),
     filters: Object.freeze({
       blackProtect: 0.94,
-      [hslFilterKey('black', 's')]: -38,
-      [hslFilterKey('black', 'l')]: -5,
     }),
   }),
   Object.freeze({
@@ -104,10 +87,6 @@ export const ADVANCED_TONE_VISUAL_QA_SCENARIOS = Object.freeze([
       skinWhiten: 0.42,
       blushStrength: 0.42,
       blackProtect: 0.82,
-      [hslFilterKey('master', 's')]: -16,
-      [hslFilterKey('skin', 'l')]: 8,
-      [hslFilterKey('lip', 's')]: 12,
-      [hslFilterKey('black', 'l')]: -3,
     }),
   }),
 ]);

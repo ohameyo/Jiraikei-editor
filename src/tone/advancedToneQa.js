@@ -1,5 +1,3 @@
-import { hslFilterKey } from './advancedToneParameters.js';
-
 export const ADVANCED_TONE_QA_SAMPLE_GROUPS = Object.freeze([
   'light',
   'dark',
@@ -25,41 +23,6 @@ const BASE_FILTERS = Object.freeze({
 
 export const ADVANCED_TONE_QA_SCENARIOS = Object.freeze([
   Object.freeze({
-    id: 'global-hsl',
-    label: '综合色 HSL',
-    requiredGroups: Object.freeze(['light', 'dark', 'black-white', 'skin-tone']),
-    filters: Object.freeze({
-      [hslFilterKey('master', 'h')]: 12,
-      [hslFilterKey('master', 's')]: -24,
-      [hslFilterKey('master', 'l')]: 10,
-    }),
-  }),
-  Object.freeze({
-    id: 'split-color-hsl',
-    label: '分色 HSL',
-    requiredGroups: Object.freeze(['light', 'skin-tone', 'lip']),
-    filters: Object.freeze({
-      [hslFilterKey('red', 'h')]: -8,
-      [hslFilterKey('red', 's')]: 18,
-      [hslFilterKey('orange', 's')]: -22,
-      [hslFilterKey('yellow', 'l')]: 9,
-      [hslFilterKey('blue', 's')]: -18,
-    }),
-  }),
-  Object.freeze({
-    id: 'skin-lip-hsl',
-    label: '肤色与唇色',
-    requiredGroups: Object.freeze(['skin-tone', 'lip']),
-    filters: Object.freeze({
-      [hslFilterKey('skin', 'h')]: 6,
-      [hslFilterKey('skin', 's')]: 12,
-      [hslFilterKey('skin', 'l')]: 10,
-      [hslFilterKey('lip', 'h')]: -7,
-      [hslFilterKey('lip', 's')]: 16,
-      [hslFilterKey('lip', 'l')]: 4,
-    }),
-  }),
-  Object.freeze({
     id: 'whiten-blush',
     label: '美白与腮红',
     requiredGroups: Object.freeze(['skin-tone', 'lip']),
@@ -74,8 +37,6 @@ export const ADVANCED_TONE_QA_SCENARIOS = Object.freeze([
     requiredGroups: Object.freeze(['dark', 'black-white', 'black-hair']),
     filters: Object.freeze({
       blackProtect: 0.92,
-      [hslFilterKey('black', 's')]: -36,
-      [hslFilterKey('black', 'l')]: -5,
     }),
   }),
   Object.freeze({
@@ -92,10 +53,6 @@ export const ADVANCED_TONE_QA_SCENARIOS = Object.freeze([
       skinWhiten: 0.38,
       blushStrength: 0.34,
       blackProtect: 0.78,
-      [hslFilterKey('master', 's')]: -18,
-      [hslFilterKey('skin', 'l')]: 8,
-      [hslFilterKey('lip', 's')]: 10,
-      [hslFilterKey('black', 'l')]: -3,
     }),
   }),
 ]);

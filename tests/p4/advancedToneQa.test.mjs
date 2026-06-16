@@ -26,11 +26,8 @@ test('declares advanced tone QA sample groups for P4 risk areas', () => {
   assert.deepEqual(coverage.missingGroups, [])
 })
 
-test('declares QA scenarios for HSL, skin, lip, black protection, blush, and smoothing', () => {
+test('declares QA scenarios for maintained portrait tone effects', () => {
   assert.deepEqual(getAdvancedToneQaScenarioIds(), [
-    'global-hsl',
-    'split-color-hsl',
-    'skin-lip-hsl',
     'whiten-blush',
     'black-protect-smooth',
     'combined-export-parity',
@@ -43,14 +40,10 @@ test('declares QA scenarios for HSL, skin, lip, black protection, blush, and smo
   }
 })
 
-test('builds advanced filters with the expected P7 GPU migration boundary', () => {
+test('builds advanced filters with the expected HSL shutdown boundary', () => {
   for (const scenario of ADVANCED_TONE_QA_SCENARIOS) {
     const filters = buildAdvancedToneQaFilters(scenario.id)
     const eligibility = getPassthroughEligibility(filters)
-    if (scenario.id === 'global-hsl' || scenario.id === 'split-color-hsl') {
-      assert.equal(eligibility.eligible, true, scenario.id)
-    } else {
-      assert.equal(eligibility.reason, 'effects-not-migrated', scenario.id)
-    }
+    assert.equal(eligibility.reason, 'effects-not-migrated', scenario.id)
   }
 })

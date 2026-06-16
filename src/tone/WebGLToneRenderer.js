@@ -3,10 +3,6 @@ import {
   PASSTHROUGH_VERTEX_SHADER,
 } from './shaders.js';
 import { normalizeBasicToneParameters } from './basicToneParameters.js';
-import {
-  MIGRATED_HSL_CHANNEL_IDS,
-  normalizeMigratedHslParameters,
-} from './advancedToneParameters.js';
 
 const CONTEXT_ATTRIBUTES = {
   alpha: true,
@@ -184,21 +180,12 @@ export class WebGLToneRenderer {
       fade: gl.getUniformLocation(program, 'u_fade'),
       overlayStrength: gl.getUniformLocation(program, 'u_overlayStrength'),
       overlayColor: gl.getUniformLocation(program, 'u_overlayColor'),
-      hsl: Object.fromEntries(
-        MIGRATED_HSL_CHANNEL_IDS.map((channel) => [
-          channel,
-          gl.getUniformLocation(program, `u_hsl_${channel}`),
-        ]),
-      ),
     };
     this.diagnostics.programBuildCount += 1;
   }
 
   getToneParameters(filters) {
-    return {
-      ...normalizeBasicToneParameters(filters),
-      hsl: normalizeMigratedHslParameters(filters),
-    };
+    return normalizeBasicToneParameters(filters);
   }
 
   updateToneUniforms(filters) {
@@ -212,10 +199,6 @@ export class WebGLToneRenderer {
     gl.uniform1f(this.uniforms.fade, parameters.fade);
     gl.uniform1f(this.uniforms.overlayStrength, parameters.overlayStrength);
     gl.uniform3fv(this.uniforms.overlayColor, parameters.overlayColorRgb);
-    for (const channel of MIGRATED_HSL_CHANNEL_IDS) {
-      const hsl = parameters.hsl[channel];
-      gl.uniform3fv(this.uniforms.hsl[channel], [hsl.h, hsl.s, hsl.l]);
-    }
     this.diagnostics.uniformUpdateCount += 1;
   }
 
