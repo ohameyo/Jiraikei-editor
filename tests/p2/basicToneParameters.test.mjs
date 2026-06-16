@@ -96,7 +96,7 @@ test('allows migrated global filters and rejects non-migrated effects', () => {
     { skinWhiten: 0.01 },
     { blushStrength: 0.01 },
     { blackProtect: 0.01 },
-    { hsl_master_s: -1 },
+    { hsl_skin_s: -1 },
   ]) {
     assert.equal(
       getPassthroughEligibility({ ...defaults, ...patch }).reason,

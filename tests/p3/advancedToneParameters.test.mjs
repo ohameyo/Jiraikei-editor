@@ -61,10 +61,8 @@ test('advanced tone samples cover required visual risk cases', () => {
   }
 })
 
-test('advanced color and portrait effects stay on CPU until shader parity exists', () => {
+test('portrait-dependent advanced effects stay on CPU until shader parity exists', () => {
   for (const patch of [
-    { hsl_master_h: 1 },
-    { hsl_red_s: -1 },
     { hsl_skin_l: 1 },
     { hsl_lip_h: 1 },
     { hsl_black_l: -1 },

@@ -74,6 +74,27 @@ function renderScenario({ scenario, mode, scale }) {
   };
 }
 
+function scenarioMatchesP7MigrationBoundary(item) {
+  const gpuExpected = item.id === 'global-hsl' || item.id === 'split-color-hsl';
+  const preview = item.preview.diagnostics;
+  const exportRender = item.export.diagnostics;
+  if (gpuExpected) {
+    return (
+      preview.selectedRenderer === 'gpu' &&
+      preview.fallbackReason === null &&
+      exportRender.selectedRenderer === 'gpu' &&
+      exportRender.fallbackReason === null
+    );
+  }
+
+  return (
+    preview.selectedRenderer === 'cpu' &&
+    preview.fallbackReason === 'effects-not-migrated' &&
+    exportRender.selectedRenderer === 'cpu' &&
+    exportRender.fallbackReason === 'effects-not-migrated'
+  );
+}
+
 async function run() {
   drawVisibleSamples();
   const coverage = validateAdvancedToneQaCoverage(ADVANCED_TONE_SAMPLE_PIXELS);
@@ -92,10 +113,7 @@ async function run() {
   const passed =
     coverage.ok &&
     cases.every((item) =>
-      item.preview.diagnostics.selectedRenderer === 'cpu' &&
-      item.preview.diagnostics.fallbackReason === 'effects-not-migrated' &&
-      item.export.diagnostics.selectedRenderer === 'cpu' &&
-      item.export.diagnostics.fallbackReason === 'effects-not-migrated' &&
+      scenarioMatchesP7MigrationBoundary(item) &&
       item.export.width === item.preview.width * 3 &&
       item.export.height === item.preview.height * 3
     );

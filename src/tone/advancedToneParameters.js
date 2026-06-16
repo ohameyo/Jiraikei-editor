@@ -18,6 +18,21 @@ export const HSL_AXES = Object.freeze([
   Object.freeze({ axis: 'l', label: '明度', min: -32, default: 0, max: 32, step: 1 }),
 ]);
 
+export const MIGRATED_HSL_CHANNEL_IDS = Object.freeze([
+  'master',
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'cyan',
+  'blue',
+  'purple',
+]);
+
+export const MIGRATED_HSL_CHANNELS = Object.freeze(
+  MIGRATED_HSL_CHANNEL_IDS.map((id) => HSL_CHANNELS.find((channel) => channel.id === id)),
+);
+
 export const PORTRAIT_TONE_RANGES = Object.freeze({
   skinWhiten: Object.freeze({ min: 0, default: 0, max: 1, step: 0.01 }),
   blushStrength: Object.freeze({ min: 0, default: 0, max: 1, step: 0.01 }),
@@ -42,6 +57,33 @@ export function hslFilterKey(channelId, axis) {
 export function hslFilterKeys() {
   return HSL_CHANNELS.flatMap((channel) =>
     HSL_AXES.map(({ axis }) => hslFilterKey(channel.id, axis)),
+  );
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeNumber(value, range) {
+  const numeric = Number(value);
+  return clamp(
+    Number.isFinite(numeric) ? numeric : range.default,
+    range.min,
+    range.max,
+  );
+}
+
+export function normalizeMigratedHslParameters(filters = {}) {
+  return Object.fromEntries(
+    MIGRATED_HSL_CHANNELS.map((channel) => [
+      channel.id,
+      Object.fromEntries(
+        HSL_AXES.map((range) => [
+          range.axis,
+          normalizeNumber(filters[hslFilterKey(channel.id, range.axis)], range),
+        ]),
+      ),
+    ]),
   );
 }
 

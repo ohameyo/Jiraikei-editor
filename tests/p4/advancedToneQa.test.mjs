@@ -43,13 +43,14 @@ test('declares QA scenarios for HSL, skin, lip, black protection, blush, and smo
   }
 })
 
-test('builds advanced filters that intentionally stay off the GPU path', () => {
+test('builds advanced filters with the expected P7 GPU migration boundary', () => {
   for (const scenario of ADVANCED_TONE_QA_SCENARIOS) {
     const filters = buildAdvancedToneQaFilters(scenario.id)
-    assert.equal(
-      getPassthroughEligibility(filters).reason,
-      'effects-not-migrated',
-      scenario.id,
-    )
+    const eligibility = getPassthroughEligibility(filters)
+    if (scenario.id === 'global-hsl' || scenario.id === 'split-color-hsl') {
+      assert.equal(eligibility.eligible, true, scenario.id)
+    } else {
+      assert.equal(eligibility.reason, 'effects-not-migrated', scenario.id)
+    }
   }
 })

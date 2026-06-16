@@ -64,11 +64,11 @@ test('allows migrated global tone effects and rejects unsupported effects', () =
     'effects-not-migrated',
   )
   assert.equal(
-    getPassthroughEligibility({ ...originalFilters, hsl_red_s: -1 }).reason,
-    'effects-not-migrated',
+    getPassthroughEligibility({ ...originalFilters, hsl_red_s: -1 }).eligible,
+    true,
   )
   assert.equal(
-    getPassthroughEligibility({ ...originalFilters, hsl_red_s: '-1' }).reason,
+    getPassthroughEligibility({ ...originalFilters, hsl_skin_s: '-1' }).reason,
     'effects-not-migrated',
   )
 })

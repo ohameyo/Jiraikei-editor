@@ -1,3 +1,5 @@
+import { MIGRATED_HSL_CHANNEL_IDS } from './advancedToneParameters.js';
+
 const NEUTRAL_FILTERS = Object.freeze({
   skinWhiten: 0,
   blushStrength: 0,
@@ -5,6 +7,7 @@ const NEUTRAL_FILTERS = Object.freeze({
 });
 
 const EPSILON = 1e-6;
+const MIGRATED_HSL_CHANNEL_SET = new Set(MIGRATED_HSL_CHANNEL_IDS);
 
 export function getGpuToneEligibility(filters = {}) {
   for (const [key, expected] of Object.entries(NEUTRAL_FILTERS)) {
@@ -16,6 +19,8 @@ export function getGpuToneEligibility(filters = {}) {
 
   for (const [key, value] of Object.entries(filters)) {
     if (key.startsWith('hsl_')) {
+      const [, channelId] = key.split('_');
+      if (MIGRATED_HSL_CHANNEL_SET.has(channelId)) continue;
       const numericValue = Number(value);
       if (!Number.isFinite(numericValue) || Math.abs(numericValue) > EPSILON) {
         return { eligible: false, reason: 'effects-not-migrated' };
