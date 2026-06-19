@@ -295,6 +295,7 @@ import {
   ];
 
   const USER_STICKER_FILES = [
+    'face-cover-lace-heart.png',
     'sel_01.png',
     'sel_03.png',
     'sel_08.png',
@@ -316,9 +317,9 @@ import {
     'deco_06.png',
     'deco_07.png',
   ];
-  const USER_STICKER_VERSION = '20260512-color-sort-1';
+  const USER_STICKER_VERSION = '20260619-face-cover-1';
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
-  const STICKER_PREVIEW_VERSION = '20260514-preview-thumbs-1';
+  const STICKER_PREVIEW_VERSION = '20260619-face-cover-1';
   const POLAROID_FRAME_PREVIEW_VERSION = '20260514-preview-thumbs-1';
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
   const HAND_DRAWN_STICKER_COLORS = [
