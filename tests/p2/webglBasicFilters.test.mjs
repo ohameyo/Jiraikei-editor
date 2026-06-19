@@ -15,6 +15,9 @@ test('declares every migrated basic filter uniform', () => {
     'u_tint',
     'u_fade',
     'u_overlayStrength',
+    'u_skinWhiten',
+    'u_blushStrength',
+    'u_blackProtect',
     'u_overlayColor',
   ]) {
     assert.match(PASSTHROUGH_FRAGMENT_SHADER, new RegExp(`uniform .* ${uniform};`))
@@ -33,6 +36,9 @@ test('normalizes filter values before writing uniforms', () => {
       tint: 200,
       fade: 1,
       overlayStrength: 1,
+      skinWhiten: 2,
+      blushStrength: 2,
+      blackProtect: 2,
       overlayColor: '#F5B9E4',
     }),
     {
@@ -43,6 +49,9 @@ test('normalizes filter values before writing uniforms', () => {
       tint: 100,
       fade: 0.5,
       overlayStrength: 0.45,
+      skinWhiten: 1,
+      blushStrength: 1,
+      blackProtect: 1,
       overlayColor: '#F5B9E4',
       overlayColorRgb: [245 / 255, 185 / 255, 228 / 255],
     },

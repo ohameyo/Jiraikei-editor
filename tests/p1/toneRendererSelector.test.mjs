@@ -69,7 +69,7 @@ test('uses CPU when the GPU switch is disabled', () => {
   assert.equal(selector.getDiagnostics().fallbackReason, 'gpu-disabled')
 })
 
-test('uses CPU for effects that are not migrated', () => {
+test('uses GPU for migrated portrait effects', () => {
   const cpu = createCpuSpy()
   const selector = new ToneRendererSelector({
     enabled: true,
@@ -79,11 +79,12 @@ test('uses CPU for effects that are not migrated', () => {
 
   selector.render({
     ...request,
-    filters: { ...request.filters, skinWhiten: 0.1 },
+    filters: { ...request.filters, skinWhiten: 0.2, blushStrength: 0.1, blackProtect: 0.1 },
   })
 
-  assert.equal(cpu.calls.length, 1)
-  assert.equal(selector.getDiagnostics().fallbackReason, 'effects-not-migrated')
+  assert.equal(cpu.calls.length, 0)
+  assert.equal(selector.getDiagnostics().selectedRenderer, 'gpu')
+  assert.equal(selector.getDiagnostics().fallbackReason, null)
 })
 
 test('uses CPU when WebGL2 is unavailable', () => {

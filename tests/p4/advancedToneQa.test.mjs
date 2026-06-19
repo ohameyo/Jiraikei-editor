@@ -44,6 +44,6 @@ test('builds advanced filters with the expected HSL shutdown boundary', () => {
   for (const scenario of ADVANCED_TONE_QA_SCENARIOS) {
     const filters = buildAdvancedToneQaFilters(scenario.id)
     const eligibility = getPassthroughEligibility(filters)
-    assert.equal(eligibility.reason, 'effects-not-migrated', scenario.id)
+    assert.equal(eligibility.reason, null, scenario.id)
   }
 })

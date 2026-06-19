@@ -760,16 +760,54 @@ button.is-active:hover {
 
 .polaroid-frame-btn {
   min-height: 94px;
-  padding: 10px;
+  padding: 10px 10px 12px;
   border: 1px solid rgba(82, 58, 78, 0.14);
   border-radius: 8px;
   background: rgba(255, 251, 254, 0.82);
   color: #382a36;
   font-weight: 700;
   display: grid;
-  place-items: center;
-  gap: 8px;
+  justify-items: center;
+  align-content: start;
+  align-items: start;
+  grid-template-rows: 84px minmax(28px, auto);
+  gap: 4px;
   overflow: hidden;
+  --polaroid-preview-width: 92px;
+  --polaroid-preview-height: 58px;
+  --polaroid-thumb-width: 82px;
+  --polaroid-thumb-height: 54px;
+}
+
+.polaroid-frame-preview {
+  display: grid;
+  place-items: center;
+  position: relative;
+  align-self: start;
+  justify-self: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(67, 44, 61, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+  box-sizing: border-box;
+  width: min(var(--polaroid-preview-width), calc(100% - 24px));
+  height: var(--polaroid-preview-height);
+  overflow: hidden;
+  padding: 4px;
+}
+
+.polaroid-frame-btn.is-portrait {
+  --polaroid-preview-width: 60px;
+  --polaroid-preview-height: 76px;
+  --polaroid-thumb-width: 46px;
+  --polaroid-thumb-height: 72px;
+}
+
+.polaroid-frame-btn.is-landscape {
+  --polaroid-preview-width: 92px;
+  --polaroid-preview-height: 58px;
+  --polaroid-thumb-width: 82px;
+  --polaroid-thumb-height: 54px;
 }
 
 .polaroid-frame-btn.is-active {
@@ -778,10 +816,30 @@ button.is-active:hover {
 }
 
 .polaroid-frame-thumb {
-  width: min(76px, 100%);
-  height: 58px;
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-top: 0;
+  align-self: center;
+  justify-self: center;
   object-fit: contain;
   filter: drop-shadow(0 8px 14px rgba(45, 32, 43, 0.16));
+  width: var(--polaroid-thumb-width);
+  height: var(--polaroid-thumb-height);
+  max-width: calc(100% - 8px);
+  max-height: calc(100% - 8px);
+  transform: translate(-50%, -50%);
+}
+
+.polaroid-frame-name {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  text-align: center;
+  line-height: 1.15;
 }
 
 .polaroid-action-row {
@@ -1001,6 +1059,10 @@ button.is-active:hover {
   font-size: 18px;
   line-height: 1;
   pointer-events: none;
+}
+
+.sticker-btn.is-loaded::before {
+  opacity: 0;
 }
 
 .sticker-btn img {
@@ -1475,6 +1537,36 @@ textarea {
   border-radius: 10px;
 }
 
+.overlay-guide {
+  position: absolute;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(97, 167, 255, 0.72);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.78);
+  transition: opacity 0.12s ease;
+}
+
+.overlay-guide.guide-x {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.overlay-guide.guide-y {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.overlay-guide.is-visible {
+  opacity: 1;
+}
+
 .overlay-preview {
   position: absolute;
   inset: 0;
@@ -1500,6 +1592,10 @@ textarea {
 .overlay-item.overlay-text.is-transforming .overlay-preview,
 .overlay-item.overlay-text.is-text-editing .overlay-preview {
   opacity: 1;
+}
+
+.overlay-preview.sticker-preview {
+  overflow: visible;
 }
 
 .overlay-preview img {
@@ -1594,7 +1690,7 @@ textarea {
 .overlay-handle::before {
   content: "";
   position: absolute;
-  inset: -12px;
+  inset: -16px;
   border-radius: 999px;
 }
 
@@ -2752,7 +2848,7 @@ html.is-lab-build .lab-footnote {
 
   .sticker-btn img {
     width: 100%;
-    height: 24px;
+    height: min(72%, 72px);
     object-fit: contain;
   }
 

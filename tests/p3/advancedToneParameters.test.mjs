@@ -45,17 +45,11 @@ test('advanced tone samples cover required visual risk cases', () => {
   }
 })
 
-test('portrait-dependent advanced effects stay on CPU until shader parity exists', () => {
-  for (const patch of [
-    { skinWhiten: 0.01 },
-    { blushStrength: 0.01 },
-    { blackProtect: 0.01 },
-  ]) {
-    assert.equal(
-      getPassthroughEligibility(patch).reason,
-      'effects-not-migrated',
-    )
-  }
+test('maintained portrait effects are GPU eligible after shader migration', () => {
+  assert.deepEqual(
+    getPassthroughEligibility({ skinWhiten: 0.01, blushStrength: 0.01, blackProtect: 0.01 }),
+    { eligible: true, reason: null },
+  )
 })
 
 test('legacy HSL values are ignored after HSL shutdown', () => {

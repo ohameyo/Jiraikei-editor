@@ -6,6 +6,9 @@ export const BASIC_TONE_RANGES = Object.freeze({
   tint: Object.freeze({ min: -100, default: 0, max: 100 }),
   fade: Object.freeze({ min: 0, default: 0, max: 0.5 }),
   overlayStrength: Object.freeze({ min: 0, default: 0, max: 0.45 }),
+  skinWhiten: Object.freeze({ min: 0, default: 0, max: 1 }),
+  blushStrength: Object.freeze({ min: 0, default: 0, max: 1 }),
+  blackProtect: Object.freeze({ min: 0, default: 0, max: 1 }),
 });
 
 const DEFAULT_OVERLAY_COLOR = '#e7d3ea';
@@ -56,5 +59,8 @@ export function normalizeBasicToneParameters(filters = {}) {
     ),
     overlayColor,
     overlayColorRgb: parseHexColor(overlayColor),
+    skinWhiten: normalizeNumber(filters.skinWhiten, BASIC_TONE_RANGES.skinWhiten),
+    blushStrength: normalizeNumber(filters.blushStrength, BASIC_TONE_RANGES.blushStrength),
+    blackProtect: normalizeNumber(filters.blackProtect, BASIC_TONE_RANGES.blackProtect),
   };
 }

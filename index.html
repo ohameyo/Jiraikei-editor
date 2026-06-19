@@ -6,8 +6,6 @@
     <title>Jirai-editor 地雷系编辑器</title>
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="preload" as="image" href="./assets/profile-avatar.png" />
-    <link rel="preload" as="image" href="./assets/polaroid_frame_previews/portrait-clean.png" />
-    <link rel="preload" as="image" href="./assets/polaroid_frame_previews/landscape-clean.png" />
     <script>
       document.documentElement.classList.toggle("is-lab-build", window.location.hostname.includes("jirai-editor-ux-lab"));
     </script>
@@ -208,7 +206,7 @@
     <div id="profileModal" class="profile-modal" aria-hidden="true">
       <div class="profile-card" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
         <button id="profileCloseBtn" class="profile-close-btn" type="button" aria-label="关闭简介卡片">×</button>
-        <img class="profile-avatar" src="./assets/profile-avatar.png" alt="meyo酱头像" loading="eager" decoding="async" />
+        <img id="profileAvatar" class="profile-avatar" src="./assets/profile-avatar.png" alt="meyo酱头像" loading="eager" decoding="async" />
         <div class="profile-name" id="profileTitle">meyo酱の碎碎念</div>
         <p class="profile-bio">兴趣使然的vibecoding产物，感谢老婆们使用，欢迎来小红书找我玩，你的任何反馈都将成为我前进的动力！</p>
         <a class="profile-link" href="https://xhslink.com/m/14CmyHZ06uD" target="_blank" rel="noopener noreferrer">进入我的主页</a>

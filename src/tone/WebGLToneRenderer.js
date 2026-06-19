@@ -11,6 +11,14 @@ const CONTEXT_ATTRIBUTES = {
   preserveDrawingBuffer: true,
 };
 
+const MAX_BLUSH_REGIONS = 4;
+
+function clamp(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, number));
+}
+
 export class WebGLToneRenderer {
   constructor({
     canvasFactory = () => document.createElement('canvas'),
@@ -66,7 +74,7 @@ export class WebGLToneRenderer {
     gl.bindVertexArray(this.vertexArray);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    this.updateToneUniforms(request.filters);
+    this.updateToneUniforms(request);
     const sourceKey = request.sourceKey ?? request.sourceCanvas;
     if (
       sourceKey !== this.lastSourceKey ||
@@ -179,6 +187,11 @@ export class WebGLToneRenderer {
       tint: gl.getUniformLocation(program, 'u_tint'),
       fade: gl.getUniformLocation(program, 'u_fade'),
       overlayStrength: gl.getUniformLocation(program, 'u_overlayStrength'),
+      skinWhiten: gl.getUniformLocation(program, 'u_skinWhiten'),
+      blushStrength: gl.getUniformLocation(program, 'u_blushStrength'),
+      blackProtect: gl.getUniformLocation(program, 'u_blackProtect'),
+      blushRegionCount: gl.getUniformLocation(program, 'u_blushRegionCount'),
+      blushRegions: gl.getUniformLocation(program, 'u_blushRegions[0]'),
       overlayColor: gl.getUniformLocation(program, 'u_overlayColor'),
     };
     this.diagnostics.programBuildCount += 1;
@@ -188,9 +201,64 @@ export class WebGLToneRenderer {
     return normalizeBasicToneParameters(filters);
   }
 
-  updateToneUniforms(filters) {
+  getPortraitToneUniforms(filters = {}, vision = {}, size = {}) {
+    const blushRegions = [];
+    const addRegion = (x, y, rx, ry) => {
+      if (blushRegions.length >= MAX_BLUSH_REGIONS) return;
+      const normalizedY = clamp(y, 0, 1);
+      blushRegions.push([
+        clamp(x, 0, 1),
+        1 - normalizedY,
+        clamp(rx, 0.01, 0.35),
+        clamp(ry, 0.01, 0.3),
+      ]);
+    };
+
+    if (Number(filters.blushManual ?? 0) > 0.5) {
+      if (Number(filters.blushLeftEnabled ?? 1) > 0.5) {
+        addRegion(filters.blushLeftX, filters.blushLeftY, filters.blushLeftRX, filters.blushLeftRY);
+      }
+      if (Number(filters.blushRightEnabled ?? 1) > 0.5) {
+        addRegion(filters.blushRightX, filters.blushRightY, filters.blushRightRX, filters.blushRightRY);
+      }
+      if (Number(filters.blushExtraEnabled ?? 0) > 0.5) {
+        if (Number(filters.blushExtraLeftEnabled ?? 1) > 0.5) {
+          addRegion(filters.blushExtraLeftX, filters.blushExtraLeftY, filters.blushExtraLeftRX, filters.blushExtraLeftRY);
+        }
+        if (Number(filters.blushExtraRightEnabled ?? 1) > 0.5) {
+          addRegion(filters.blushExtraRightX, filters.blushExtraRightY, filters.blushExtraRightRX, filters.blushExtraRightRY);
+        }
+      }
+      return { blushRegions };
+    }
+
+    const width = Math.max(1, Number(size.width) || 1);
+    const height = Math.max(1, Number(size.height) || 1);
+    const faceBoxes = Array.isArray(vision?.faceBoxes) ? vision.faceBoxes : [];
+    for (const box of faceBoxes) {
+      if (blushRegions.length >= MAX_BLUSH_REGIONS) break;
+      const x = Number(box?.x);
+      const y = Number(box?.y);
+      const w = Number(box?.width);
+      const h = Number(box?.height);
+      if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) continue;
+      const cy = (y + h * 0.44) / height;
+      addRegion((x + w * 0.37) / width, cy, Math.max(8, w * 0.115) / width, Math.max(8, h * 0.09) / height);
+      addRegion((x + w * 0.63) / width, cy, Math.max(8, w * 0.115) / width, Math.max(8, h * 0.09) / height);
+    }
+
+    return { blushRegions };
+  }
+
+  updateToneUniforms(request) {
     const gl = this.gl;
+    const filters = request.filters || {};
     const parameters = this.getToneParameters(filters);
+    const portrait = this.getPortraitToneUniforms(filters, request.vision, request.size);
+    const blushRegionData = new Float32Array(MAX_BLUSH_REGIONS * 4);
+    portrait.blushRegions.forEach((region, index) => {
+      blushRegionData.set(region, index * 4);
+    });
     gl.uniform1f(this.uniforms.brightness, parameters.brightness);
     gl.uniform1f(this.uniforms.contrast, parameters.contrast);
     gl.uniform1f(this.uniforms.saturation, parameters.saturation);
@@ -198,6 +266,11 @@ export class WebGLToneRenderer {
     gl.uniform1f(this.uniforms.tint, parameters.tint);
     gl.uniform1f(this.uniforms.fade, parameters.fade);
     gl.uniform1f(this.uniforms.overlayStrength, parameters.overlayStrength);
+    gl.uniform1f(this.uniforms.skinWhiten, parameters.skinWhiten);
+    gl.uniform1f(this.uniforms.blushStrength, parameters.blushStrength);
+    gl.uniform1f(this.uniforms.blackProtect, parameters.blackProtect);
+    gl.uniform1i(this.uniforms.blushRegionCount, portrait.blushRegions.length);
+    gl.uniform4fv(this.uniforms.blushRegions, blushRegionData);
     gl.uniform3fv(this.uniforms.overlayColor, parameters.overlayColorRgb);
     this.diagnostics.uniformUpdateCount += 1;
   }

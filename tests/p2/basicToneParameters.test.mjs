@@ -16,6 +16,9 @@ const defaults = {
   tint: 0,
   fade: 0,
   overlayStrength: 0,
+  skinWhiten: 0,
+  blushStrength: 0,
+  blackProtect: 0,
   overlayColor: '#e7d3ea',
 }
 
@@ -28,6 +31,9 @@ test('records production minimum, default, and maximum values', () => {
     tint: { min: -100, default: 0, max: 100 },
     fade: { min: 0, default: 0, max: 0.5 },
     overlayStrength: { min: 0, default: 0, max: 0.45 },
+    skinWhiten: { min: 0, default: 0, max: 1 },
+    blushStrength: { min: 0, default: 0, max: 1 },
+    blackProtect: { min: 0, default: 0, max: 1 },
   })
 })
 
@@ -45,6 +51,9 @@ test('normalizes migrated parameters to production control bounds', () => {
     tint: -200,
     fade: -1,
     overlayStrength: -1,
+    skinWhiten: -1,
+    blushStrength: -1,
+    blackProtect: -1,
   })
   assert.equal(below.brightness, 0.6)
   assert.equal(below.contrast, 0.7)
@@ -53,6 +62,9 @@ test('normalizes migrated parameters to production control bounds', () => {
   assert.equal(below.tint, -100)
   assert.equal(below.fade, 0)
   assert.equal(below.overlayStrength, 0)
+  assert.equal(below.skinWhiten, 0)
+  assert.equal(below.blushStrength, 0)
+  assert.equal(below.blackProtect, 0)
 
   const above = normalizeBasicToneParameters({
     brightness: 2,
@@ -62,6 +74,9 @@ test('normalizes migrated parameters to production control bounds', () => {
     tint: 200,
     fade: 1,
     overlayStrength: 1,
+    skinWhiten: 2,
+    blushStrength: 2,
+    blackProtect: 2,
   })
   assert.equal(above.brightness, 1.3)
   assert.equal(above.contrast, 1.4)
@@ -70,6 +85,9 @@ test('normalizes migrated parameters to production control bounds', () => {
   assert.equal(above.tint, 100)
   assert.equal(above.fade, 0.5)
   assert.equal(above.overlayStrength, 0.45)
+  assert.equal(above.skinWhiten, 1)
+  assert.equal(above.blushStrength, 1)
+  assert.equal(above.blackProtect, 1)
 })
 
 test('parses six-digit overlay colors and falls back safely', () => {
@@ -77,7 +95,7 @@ test('parses six-digit overlay colors and falls back safely', () => {
   assert.deepEqual(parseHexColor('bad'), [239 / 255, 212 / 255, 230 / 255])
 })
 
-test('allows migrated global filters and rejects non-migrated effects', () => {
+test('allows migrated global and portrait filters', () => {
   assert.deepEqual(
     getPassthroughEligibility({
       ...defaults,
@@ -88,18 +106,10 @@ test('allows migrated global filters and rejects non-migrated effects', () => {
       tint: 100,
       fade: 0.5,
       overlayStrength: 0.45,
+      skinWhiten: 0.55,
+      blushStrength: 0.45,
+      blackProtect: 0.45,
     }),
     { eligible: true, reason: null },
   )
-
-  for (const patch of [
-    { skinWhiten: 0.01 },
-    { blushStrength: 0.01 },
-    { blackProtect: 0.01 },
-  ]) {
-    assert.equal(
-      getPassthroughEligibility({ ...defaults, ...patch }).reason,
-      'effects-not-migrated',
-    )
-  }
 })

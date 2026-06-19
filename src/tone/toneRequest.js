@@ -1,8 +1,4 @@
-const NEUTRAL_FILTERS = Object.freeze({
-  skinWhiten: 0,
-  blushStrength: 0,
-  blackProtect: 0,
-});
+const NEUTRAL_FILTERS = Object.freeze({});
 
 const EPSILON = 1e-6;
 

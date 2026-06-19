@@ -7,6 +7,21 @@ import {
   isForcedWebGLToneFailure,
   isWebGLToneRequested,
 } from './tone/index.js';
+import {
+  getPreviewScaleLimits,
+  shouldDeferExpensiveToneRender,
+} from './tone/interactiveTonePolicy.js';
+import {
+  shouldCommitLayerControlOnEnd,
+  shouldQueueCanvasRenderForDirectManipulation,
+  shouldSuppressPostManipulationOverlayClearClick,
+} from './interaction/directManipulationPolicy.js';
+import {
+  summarizeAppInteractionExperience,
+} from './interaction/appInteractionExperiencePolicy.js';
+import {
+  shouldAutoEnterManualBlushFallback,
+} from './interaction/portraitFallbackPolicy.js';
 
 (function () {
   const FIXED_CANVAS = { width: 1080, height: 1350 };
@@ -101,6 +116,9 @@ import {
     'tint',
     'fade',
     'overlayStrength',
+    'skinWhiten',
+    'blushStrength',
+    'blackProtect',
   ]);
 
   const DEFAULT_FILTERS = {
@@ -398,7 +416,7 @@ import {
   const TEXT_FONT_ACTIVATION_SAMPLE = '今日の私、満点!';
   const FONT_LOAD_TIMEOUT_MS = 2600;
   const FONT_ASSET_VERSION = '20260514-textfonts-5';
-  const MOBILE_TEXT_FONT_IDS = new Set(['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc', 'nonbiri-2', 'haru-tegaki-12', 'shigoto-memogaki', 'kyouryuno-guratan']);
+  const MOBILE_TEXT_FONT_IDS = new Set(['mushin', 'zhaizai-marker', 'fusion-pixel-jp', 'fusion-pixel-sc']);
   const TEXT_FONT_WARMUP_ORDER = ['mushin', 'zhaizai-marker', 'nonbiri-2', 'haru-tegaki-12', 'shigoto-memogaki', 'kyouryuno-guratan', 'fusion-pixel-jp', 'fusion-pixel-sc', 'darts-font', 'nagino', 'wafu-pop'];
 
   function getFontPreviewSample(font) {
@@ -419,8 +437,22 @@ import {
     return Math.round(clamp((getTextFontWeightValue(layer) - 1000) / 100, 0, 5));
   }
 
+  function getRenderableTextFontFamily(layer) {
+    const fallbackFamily = TEXT_FONTS[0].family;
+    const configuredFont = TEXT_FONTS.find((font) => font.id === layer?.fontId)
+      || TEXT_FONTS.find((font) => font.family === layer?.fontFamily || font.mobileFamily === layer?.fontFamily);
+    if (!configuredFont) return layer?.fontFamily ?? fallbackFamily;
+    if (configuredFont.id === 'system' || !getRuntimeFontSrc(configuredFont)) {
+      return getRuntimeFontFamily(configuredFont) || layer?.fontFamily || fallbackFamily;
+    }
+    if (!loadedFontFaces.has(configuredFont.id) && fontFaceStatus.get(configuredFont.id) !== 'ready') {
+      return fallbackFamily;
+    }
+    return getRuntimeFontFamily(configuredFont) || layer?.fontFamily || fallbackFamily;
+  }
+
   function getCanvasTextFont(layer, fontSize = layer?.fontSize ?? 56) {
-    return `${getCssTextFontWeight(layer)} ${fontSize}px ${layer?.fontFamily ?? '"Avenir Next", sans-serif'}`;
+    return `${getCssTextFontWeight(layer)} ${fontSize}px ${getRenderableTextFontFamily(layer)}`;
   }
 
   const MOSAIC_TOOL_DEFAULTS = {
@@ -466,8 +498,10 @@ import {
   const PROCESSING_BADGE_PRIMED_VISIBLE_MS = 180;
   let stickerPacks = [];
   let isSliderDragging = false;
+  let isLayerControlSliderDragging = false;
   let isTextEditing = false;
   let isDirectManipulating = false;
+  let lastDirectManipulationEndedAt = 0;
   let activeTransformLayerId = null;
   let interactiveRenderPressure = 0;
   let sliderDragStartFilters = null;
@@ -478,6 +512,9 @@ import {
   let blushPreviewEnabled = false;
   let blushEditMode = false;
   let blushFallbackNoticeShown = false;
+  let p9QaRenderProbe = null;
+  let p11QaRenderProbe = null;
+  let p12QaRenderProbe = null;
   let polaroidEditor = null;
   const loadedFontFaces = new Set();
   const loadingFontFaces = new Map();
@@ -526,7 +563,7 @@ import {
     if (!font?.className) return false;
     if (!isMobileViewport()) return true;
     if (font.id === 'system') return true;
-    return MOBILE_TEXT_FONT_IDS.has(font.id) && fontFaceStatus.get(font.id) !== 'error';
+    return MOBILE_TEXT_FONT_IDS.has(font.id) && fontFaceStatus.get(font.id) === 'ready';
   }
 
   function mountFontWarmupProbe(font) {
@@ -550,7 +587,7 @@ import {
       return;
     }
     if (loadingFontFaces.has(font.id)) return loadingFontFaces.get(font.id);
-    if (document.fonts.check?.(`400 32px "${runtimeFace}"`, TEXT_FONT_ACTIVATION_SAMPLE)) {
+    if (!isMobileViewport() && document.fonts.check?.(`400 32px "${runtimeFace}"`, TEXT_FONT_ACTIVATION_SAMPLE)) {
       loadedFontFaces.add(font.id);
       fontFaceStatus.set(font.id, 'ready');
       return;
@@ -575,7 +612,7 @@ import {
         loadedFontFaces.add(font.id);
         fontFaceStatus.set(font.id, 'ready');
         refreshTextFontDependentPanels();
-        render(store.getState());
+        renderAfterAsyncAssetReady();
         return loadedFace;
       })
       .catch(() => {
@@ -584,7 +621,7 @@ import {
       .finally(() => {
         loadingFontFaces.delete(font.id);
         refreshTextFontDependentPanels();
-        render(store.getState());
+        renderAfterAsyncAssetReady();
       });
     loadingFontFaces.set(font.id, loadPromise);
     return loadPromise;
@@ -617,7 +654,7 @@ import {
       window.setTimeout(() => {
         runWhenIdle(() => {
           ensureTextFontLoaded(font)
-            .then(() => render(store.getState()))
+            .then(renderAfterAsyncAssetReady)
             .finally(() => {
               queuedFontPreviewWarmups.delete(font.id);
             });
@@ -2550,9 +2587,11 @@ import {
     if (!state.image.loaded || !state.canvas.width || !state.canvas.height) return 1;
     const mobilePreview = isMobileLayoutViewport();
     const lightweight = isSliderDragging || isDirectManipulating || isTextEditing;
-    const pressureScale = lightweight ? clamp(1 - interactiveRenderPressure * 0.08, 0.78, 1) : 1;
-    const maxSide = (lightweight ? (mobilePreview ? 720 : 980) : (mobilePreview ? 1100 : 1700)) * pressureScale;
-    const maxPixels = (lightweight ? (mobilePreview ? 420000 : 760000) : (mobilePreview ? 1100000 : 2200000)) * pressureScale;
+    const { maxSide, maxPixels } = getPreviewScaleLimits({
+      lightweight,
+      mobilePreview,
+      pressure: interactiveRenderPressure,
+    });
     const bySide = maxSide / Math.max(state.canvas.width, state.canvas.height);
     const byArea = Math.sqrt(maxPixels / Math.max(1, state.canvas.width * state.canvas.height));
     return clamp(Math.min(1, bySide, byArea), 0.12, 1);
@@ -2574,15 +2613,25 @@ import {
     const current = sliderPreviewFilters || state.filters || {};
     const start = sliderDragStartFilters;
     const brightness = clamp((current.brightness ?? 1) / Math.max(0.01, start.brightness ?? 1), 0.72, 1.32);
-    const contrast = clamp((current.contrast ?? 1) / Math.max(0.01, start.contrast ?? 1), 0.72, 1.42);
+    let contrast = clamp((current.contrast ?? 1) / Math.max(0.01, start.contrast ?? 1), 0.72, 1.42);
     let saturation = clamp((current.saturation ?? 1) / Math.max(0.01, start.saturation ?? 1), 0.45, 1.7);
     const temperatureDelta = clamp(((current.temperature ?? 0) - (start.temperature ?? 0)) / 100, -1, 1);
     const tintDelta = clamp(((current.tint ?? 0) - (start.tint ?? 0)) / 100, -1, 1);
     const fadeDelta = clamp((current.fade ?? 0) - (start.fade ?? 0), -0.5, 0.5);
-    const sepia = clamp(Math.max(temperatureDelta, 0) * 0.18 + Math.abs(tintDelta) * 0.08 + Math.max(fadeDelta, 0) * 0.16, 0, 0.34);
+    const skinDelta = clamp((current.skinWhiten ?? 0) - (start.skinWhiten ?? 0), -1, 1);
+    const blushDelta = clamp((current.blushStrength ?? 0) - (start.blushStrength ?? 0), -1, 1);
+    const blackProtectDelta = clamp((current.blackProtect ?? 0) - (start.blackProtect ?? 0), -1, 1);
+    let sepia = Math.max(temperatureDelta, 0) * 0.18 + Math.abs(tintDelta) * 0.08 + Math.max(fadeDelta, 0) * 0.16;
     let hueRotate = tintDelta * 10 - temperatureDelta * 8;
     let previewBrightness = brightness + Math.max(temperatureDelta, 0) * 0.03 + Math.max(fadeDelta, 0) * 0.08;
+    previewBrightness += skinDelta * 0.14 - blackProtectDelta * 0.03;
+    saturation += blushDelta * 0.24 - Math.max(skinDelta, 0) * 0.05;
+    contrast += blackProtectDelta * 0.06;
+    sepia += Math.max(blushDelta, 0) * 0.08;
+    hueRotate += blushDelta * 5;
     hueRotate = clamp(hueRotate, -28, 28);
+    sepia = clamp(sepia, 0, 0.34);
+    contrast = clamp(contrast, 0.72, 1.42);
     saturation = clamp(saturation, 0.35, 1.9);
     previewBrightness = clamp(previewBrightness, 0.72, 1.42);
     els.canvas.style.filter = `brightness(${previewBrightness}) contrast(${contrast}) saturate(${saturation}) sepia(${sepia}) hue-rotate(${hueRotate}deg)`;
@@ -2752,6 +2801,8 @@ import {
       const frameImage = POLAROID_FRAME_CACHE.get(polaroidFrame.src);
       if (frameImage) {
         ctx.drawImage(frameImage, placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
+      } else {
+        drawPolaroidFrameFallback(ctx, polaroidFrame, placement.frameRect, placement.photoRect);
       }
       return { canvas, renderState };
     }
@@ -3398,7 +3449,12 @@ import {
     const grid = document.createElement('div');
     grid.className = 'font-picker-grid';
     const visibleFonts = isMobileViewport() ? TEXT_FONTS.filter((font) => MOBILE_TEXT_FONT_IDS.has(font.id)) : TEXT_FONTS;
-    if (isMobileViewport()) visibleFonts.forEach((font) => mountFontWarmupProbe(font));
+    if (isMobileViewport()) {
+      visibleFonts.forEach((font) => mountFontWarmupProbe(font));
+      visibleFonts.forEach((font) => {
+        ensureTextFontLoaded(font).catch(() => {});
+      });
+    }
     visibleFonts.forEach((font) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -3419,7 +3475,7 @@ import {
       btn.append(name, sample);
       btn.onclick = () => {
         onInput(font.id);
-        ensureTextFontLoaded(font).then(() => render(store.getState()));
+        ensureTextFontLoaded(font).then(renderAfterAsyncAssetReady);
       };
       grid.appendChild(btn);
     });
@@ -3431,10 +3487,11 @@ import {
 
   function createOverlayLayer(overlayEl, store) {
     let interaction = null;
-    let pendingTransformCanvasFrame = 0;
+    let layerControlPreview = null;
     let pendingInteractionPreviewFrame = 0;
     let queuedInteractionPatch = null;
     const MIN_TOUCH_FRAME = { w: 54, h: 54 };
+    const SNAP_GUIDE_THRESHOLD = 0.018;
 
     function minOverlayFrame(bounds, minSize = MIN_TOUCH_FRAME) {
       if (!isMobileViewport()) return { w: 0, h: 0 };
@@ -3650,7 +3707,9 @@ import {
     }
 
     function startInteraction(event, mode, layer, frameRect) {
-      event.currentTarget?.setPointerCapture?.(event.pointerId);
+      try {
+        event.currentTarget?.setPointerCapture?.(event.pointerId);
+      } catch {}
       store.beginStep();
       isDirectManipulating = true;
       cancelQueuedRenderWork();
@@ -3695,6 +3754,7 @@ import {
         centerX,
         centerY,
         distance: Math.max(1, Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)),
+        angle: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX),
       };
     }
 
@@ -3712,6 +3772,7 @@ import {
       interaction.pinchStartWidth = currentPatch.width ?? interaction.startWidth;
       interaction.pinchStartHeight = currentPatch.height ?? interaction.startHeight;
       interaction.pinchStartFontSize = currentPatch.fontSize ?? interaction.startFontSize;
+      interaction.pinchStartAngle = pinch.angle;
     }
 
     function addInteractionPointer(event) {
@@ -3737,6 +3798,105 @@ import {
       if (!interaction?.pointers?.has(event.pointerId)) return false;
       interaction.pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
       return true;
+    }
+
+    function findOverlayItemForLayer(layerId) {
+      return Array.from(overlayEl.querySelectorAll('.overlay-item')).find((item) => item.dataset.layerId === layerId) || null;
+    }
+
+    function applyLayerControlPreviewElement(previewSession, patch) {
+      if (!previewSession?.element) return false;
+      previewSession.pendingPatch = { ...(previewSession.pendingPatch || {}), ...patch };
+      const layer = { ...previewSession.startLayer, ...previewSession.pendingPatch };
+      const element = previewSession.element;
+      const frameRect = previewSession.frameRect;
+      const previewSize = sizePx(layer, frameRect);
+      const minFrame = minOverlayFrame(frameRect);
+      const frameW = Math.max(previewSize.w, minFrame.w);
+      const frameH = Math.max(previewSize.h, minFrame.h);
+      const preview = element.querySelector('.overlay-preview');
+
+      element.classList.add('is-transforming');
+      element.style.opacity = `${layer.opacity ?? 1}`;
+      element.style.width = `${frameW}px`;
+      element.style.height = `${frameH}px`;
+      element.style.left = `${(layer.x ?? 0.5) * frameRect.width}px`;
+      element.style.top = `${(layer.y ?? 0.5) * frameRect.height}px`;
+      element.style.setProperty('--handle-scale-x', '1');
+      element.style.setProperty('--handle-scale-y', '1');
+      element.style.transform = `translate(-50%, -50%) rotate(${layer.rotation ?? 0}deg)`;
+
+      if (preview) {
+        if (layer.type === 'text') {
+          syncTextPreviewElement(preview, layer, frameRect);
+        } else {
+          positionOverlayPreviewElement(preview, previewSize.w, previewSize.h);
+        }
+      }
+      return true;
+    }
+
+    function beginLayerControlPreview(layerId) {
+      const state = store.getState();
+      const layer = state.layers.find((item) => item.id === layerId);
+      if (!layer) return false;
+      let element = findOverlayItemForLayer(layerId);
+      if (!element) {
+        renderOverlay();
+        element = findOverlayItemForLayer(layerId);
+      }
+      if (!element) return false;
+      layerControlPreview = {
+        id: layerId,
+        startLayer: { ...layer },
+        element,
+        frameRect: overlayEl.getBoundingClientRect(),
+        pendingPatch: null,
+      };
+      element.classList.add('is-transforming');
+      return true;
+    }
+
+    function previewLayerPatch(layerId, patch) {
+      if (!patch || !Object.keys(patch).length) return false;
+      if (!layerControlPreview || layerControlPreview.id !== layerId) beginLayerControlPreview(layerId);
+      if (!layerControlPreview || layerControlPreview.id !== layerId) return false;
+      return applyLayerControlPreviewElement(layerControlPreview, patch);
+    }
+
+    function finishLayerControlPreview() {
+      layerControlPreview = null;
+    }
+
+    function ensureOverlayGuide(axis) {
+      const className = axis === 'x' ? 'guide-x' : 'guide-y';
+      let guide = overlayEl.querySelector(`.overlay-guide.${className}`);
+      if (guide) return guide;
+      guide = document.createElement('div');
+      guide.className = `overlay-guide ${className}`;
+      overlayEl.appendChild(guide);
+      return guide;
+    }
+
+    function showSnapGuides({ x = false, y = false } = {}) {
+      ensureOverlayGuide('x').classList.toggle('is-visible', x);
+      ensureOverlayGuide('y').classList.toggle('is-visible', y);
+    }
+
+    function applySnapToInteractionPatch(patch) {
+      if (!patch || typeof patch !== 'object') return patch;
+      const nextPatch = { ...patch };
+      const snapped = { x: false, y: false };
+      if (typeof nextPatch.x === 'number' && Math.abs(nextPatch.x - 0.5) <= SNAP_GUIDE_THRESHOLD) {
+        nextPatch.x = 0.5;
+        snapped.x = true;
+      }
+      if (typeof nextPatch.y === 'number' && Math.abs(nextPatch.y - 0.5) <= SNAP_GUIDE_THRESHOLD) {
+        nextPatch.y = 0.5;
+        snapped.y = true;
+      }
+      showSnapGuides(snapped);
+      return nextPatch;
     }
 
     function applyInteractionPreview(patch) {
@@ -3777,16 +3937,17 @@ import {
 
       activeTransformLayerId = interaction.id;
       previewRenderCache.hiddenLayerId = interaction.id;
-      if (!pendingTransformCanvasFrame) {
-        pendingTransformCanvasFrame = window.requestAnimationFrame(() => {
-          pendingTransformCanvasFrame = 0;
-          requestRenderWithProcessingLead(store.getState());
-        });
-      }
+      shouldQueueCanvasRenderForDirectManipulation({
+        isDirectManipulating,
+        phase: 'preview',
+        hasPendingPatch: Boolean(interaction.pendingPatch),
+      });
     }
 
     function startBlushInteraction(event, side, mode, control, frameRect) {
-      event.currentTarget?.setPointerCapture?.(event.pointerId);
+      try {
+        event.currentTarget?.setPointerCapture?.(event.pointerId);
+      } catch {}
       store.beginStep();
       isDirectManipulating = true;
       const dx = event.clientX - frameRect.left - control.x;
@@ -3821,10 +3982,6 @@ import {
       }
       flushQueuedInteractionPreview();
       const current = interaction;
-      if (pendingTransformCanvasFrame) {
-        window.cancelAnimationFrame(pendingTransformCanvasFrame);
-        pendingTransformCanvasFrame = 0;
-      }
       activeTransformLayerId = null;
       previewRenderCache.hiddenLayerId = null;
       if (current?.kind === 'blush' && current.pendingPatch) {
@@ -3835,13 +3992,22 @@ import {
       }
       resetPreviewRenderCache();
       isDirectManipulating = false;
+      showSnapGuides();
       current?.pointers?.clear?.();
       interaction = null;
+      if (current?.kind === 'layer') lastDirectManipulationEndedAt = Date.now();
       const selectedLayer = store.getState().layers.find((layer) => layer.id === store.getState().selectedLayerId);
       if (selectedLayer && isMobileViewport()) {
         mobileLayerControlsExpanded = true;
       }
-      render(store.getState());
+      const shouldCommitCanvasRender = shouldQueueCanvasRenderForDirectManipulation({
+        isDirectManipulating: true,
+        phase: 'commit',
+        hasPendingPatch: Boolean(current?.pendingPatch),
+      });
+      if (shouldCommitCanvasRender || !current?.pendingPatch) {
+        render(store.getState());
+      }
       current?.element?.classList.remove('is-transforming');
     }
 
@@ -3875,7 +4041,8 @@ import {
     }
 
     function queueInteractionPreview(patch) {
-      queuedInteractionPatch = { ...(queuedInteractionPatch || {}), ...patch };
+      const nextPatch = interaction?.kind === 'layer' ? applySnapToInteractionPatch(patch) : patch;
+      queuedInteractionPatch = { ...(queuedInteractionPatch || {}), ...nextPatch };
       if (pendingInteractionPreviewFrame) return;
       pendingInteractionPreviewFrame = window.requestAnimationFrame(() => {
         pendingInteractionPreviewFrame = 0;
@@ -3956,7 +4123,7 @@ import {
         textBoxWidthPx: (layer.width ?? 0.44) * frameRect.width,
       });
       preview.textContent = '';
-      preview.style.fontFamily = layer.fontFamily ?? '"Avenir Next", sans-serif';
+      preview.style.fontFamily = getRenderableTextFontFamily(layer);
       preview.style.fontSize = `${fontSize}px`;
       preview.style.fontWeight = String(getCssTextFontWeight(layer));
       preview.style.width = `${layout.textWidth}px`;
@@ -3980,6 +4147,17 @@ import {
         row.style.textAlign = align;
         preview.appendChild(row);
       });
+    }
+
+    function positionOverlayPreviewElement(preview, width, height) {
+      if (!preview) return;
+      preview.style.width = `${width}px`;
+      preview.style.height = `${height}px`;
+      preview.style.left = '50%';
+      preview.style.top = '50%';
+      preview.style.right = 'auto';
+      preview.style.bottom = 'auto';
+      preview.style.transform = 'translate(-50%, -50%)';
     }
 
     function appendLayerPreview(item, layer, frameRect) {
@@ -4072,6 +4250,7 @@ import {
 
         const item = document.createElement('div');
         item.className = `overlay-item overlay-${layer.type}`;
+        item.dataset.layerId = layer.id;
         if (state.selectedLayerId === layer.id) item.classList.add('selected');
         if (layer.type === 'text' && state.selectedLayerId === layer.id && isTextEditing) item.classList.add('is-text-editing');
 
@@ -4097,11 +4276,7 @@ import {
         appendLayerPreview(item, layer, frameRect);
         const preview = item.querySelector('.overlay-preview');
         if (preview) {
-          preview.style.width = `${w}px`;
-          preview.style.height = `${h}px`;
-          preview.style.left = '50%';
-          preview.style.top = '50%';
-          preview.style.transform = 'translate(-50%, -50%)';
+          positionOverlayPreviewElement(preview, w, h);
         }
 
         item.onclick = (event) => {
@@ -4244,12 +4419,14 @@ import {
         const pinch = getPinchPoints();
         if (!pinch) return;
         const ratio = clamp(pinch.distance / Math.max(1, interaction.pinchStartDistance || pinch.distance), 0.2, 6);
+        const angleDelta = ((pinch.angle - (interaction.pinchStartAngle ?? pinch.angle)) * 180) / Math.PI;
         const centerDx = (pinch.centerX - (interaction.pinchStartCenterX ?? pinch.centerX)) / interaction.frameRect.width;
         const centerDy = (pinch.centerY - (interaction.pinchStartCenterY ?? pinch.centerY)) / interaction.frameRect.height;
         const patch = {
           x: clamp((interaction.pinchStartLayerX ?? interaction.startLayerX) + centerDx, 0, 1),
           y: clamp((interaction.pinchStartLayerY ?? interaction.startLayerY) + centerDy, 0, 1),
         };
+        patch.rotation = (interaction.startRotation ?? 0) + angleDelta;
         if (interaction.layerType === 'text') {
           const nextFontSize = clamp(Math.round((interaction.pinchStartFontSize ?? interaction.startFontSize ?? 56) * ratio), 12, 260);
           patch.fontSize = nextFontSize;
@@ -4366,13 +4543,26 @@ import {
     };
 
     overlayEl.onclick = () => {
+      if (shouldSuppressPostManipulationOverlayClearClick({
+        lastInteractionEndedAt: lastDirectManipulationEndedAt,
+        now: Date.now(),
+      })) return;
       resetPreviewRenderCache();
+      showSnapGuides();
       store.selectLayer(null);
       mobileLayerControlsExpanded = false;
       renderOverlay();
     };
 
-    return { render: renderOverlay, ensureManualBlushSetup, addExtraBlushGroup, finishInteraction };
+    return {
+      render: renderOverlay,
+      ensureManualBlushSetup,
+      addExtraBlushGroup,
+      finishInteraction,
+      beginLayerControlPreview,
+      previewLayerPatch,
+      finishLayerControlPreview,
+    };
   }
 
   function canvasToBlob(canvas, type = 'image/png', quality) {
@@ -4676,12 +4866,16 @@ import {
     if (POLAROID_FRAME_CACHE.has(frame.src)) return Promise.resolve(POLAROID_FRAME_CACHE.get(frame.src));
     return new Promise((resolve, reject) => {
       const img = new Image();
+      img.decoding = 'async';
       img.onload = () => {
         POLAROID_FRAME_CACHE.set(frame.src, img);
+        if (store.getState().polaroid?.enabled && store.getState().polaroid.frameId === frame.id) {
+          renderAfterAsyncAssetReady();
+        }
         resolve(img);
       };
       img.onerror = reject;
-      img.src = frame.src;
+      img.src = resolveAssetUrl(frame.src);
     });
   }
 
@@ -4743,6 +4937,32 @@ import {
     ctx.clip();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  function drawPolaroidFrameFallback(ctx, frame, frameRect, photoRect) {
+    if (!ctx || !frameRect || !photoRect) return;
+    const outerRadius = Math.min(frameRect.width, frameRect.height) * 0.04;
+    const innerRadius = Math.min(photoRect.width, photoRect.height) * 0.02;
+    ctx.save();
+    ctx.fillStyle = '#fffdfd';
+    ctx.strokeStyle = 'rgba(95, 72, 89, 0.12)';
+    ctx.lineWidth = Math.max(1, Math.min(frameRect.width, frameRect.height) * 0.003);
+    ctx.shadowColor = 'rgba(41, 28, 39, 0.12)';
+    ctx.shadowBlur = Math.max(8, Math.min(frameRect.width, frameRect.height) * 0.025);
+    ctx.shadowOffsetY = Math.max(4, Math.min(frameRect.width, frameRect.height) * 0.008);
+    ctx.beginPath();
+    drawRoundedRectPath(ctx, frameRect.x, frameRect.y, frameRect.width, frameRect.height, outerRadius);
+    drawRoundedRectPath(ctx, photoRect.x, photoRect.y, photoRect.width, photoRect.height, innerRadius);
+    ctx.fill('evenodd');
+    ctx.shadowColor = 'transparent';
+    ctx.beginPath();
+    drawRoundedRectPath(ctx, frameRect.x, frameRect.y, frameRect.width, frameRect.height, outerRadius);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(95, 72, 89, 0.08)';
+    ctx.beginPath();
+    drawRoundedRectPath(ctx, photoRect.x, photoRect.y, photoRect.width, photoRect.height, innerRadius);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -4829,6 +5049,7 @@ import {
     mobileProfileBtn: document.getElementById('mobileProfileBtn'),
     profileModal: document.getElementById('profileModal'),
     profileCloseBtn: document.getElementById('profileCloseBtn'),
+    profileAvatar: document.getElementById('profileAvatar'),
 
     sidebarNav: document.getElementById('sidebarNav'),
     polaroidModal: document.getElementById('polaroidModal'),
@@ -4867,6 +5088,37 @@ import {
     if (!els.profileModal) return;
     els.profileModal.classList.remove('show');
     els.profileModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function syncProfileAvatarAsset() {
+    if (!els.profileAvatar) return;
+    const avatarSrc = resolveAssetUrl('./assets/profile-avatar.png', '20260619-profile-avatar-1');
+    const fallbackSrc = resolveAssetUrl('./assets/logo.png', '20260619-profile-avatar-1');
+    els.profileAvatar.onerror = () => {
+      if (els.profileAvatar.src === fallbackSrc) return;
+      els.profileAvatar.src = fallbackSrc;
+    };
+    els.profileAvatar.src = avatarSrc;
+  }
+
+  function scheduleFirstScreenWarmups() {
+    runWhenIdle(() => {
+      preloadStickerPreviewImages();
+    }, isMobileViewport() ? 1600 : 900);
+    runWhenIdle(() => {
+      preloadStickerImages();
+    }, isMobileViewport() ? 4200 : 2200);
+    runWhenIdle(() => preloadPolaroidFrameImages(), isMobileViewport() ? 2400 : 1400);
+    runWhenIdle(() => {
+      ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(renderAfterAsyncAssetReady);
+    }, isMobileViewport() ? 1800 : 1100);
+    runWhenIdle(() => {
+      if (isMobileViewport()) {
+        ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === 'mushin')).then(renderAfterAsyncAssetReady);
+      } else {
+        preloadTextFonts().then(renderAfterAsyncAssetReady);
+      }
+    }, isMobileViewport() ? 3200 : 2000);
   }
 
   const COMPARE_LONG_PRESS_MS = 220;
@@ -5060,14 +5312,24 @@ import {
 
   function getStickerRenderImage(layer, state = store.getState()) {
     const sourceImage = STICKER_IMAGE_CACHE.get(layer.src);
-    if (!isHandDrawnStickerLayer(layer)) return sourceImage;
-    return getHandDrawnRecoloredImage(layer.src, sourceImage, getHandDrawnStickerColorId(state), 'full');
+    const previewImage = layer.previewSrc ? STICKER_PREVIEW_CACHE.get(layer.previewSrc) : null;
+    if (!isHandDrawnStickerLayer(layer)) {
+      if (!sourceImage && previewImage) return previewImage;
+      return sourceImage;
+    }
+    const stickerImage = sourceImage || previewImage;
+    const stickerSourceUrl = sourceImage ? layer.src : (layer.previewSrc || layer.src);
+    return getHandDrawnRecoloredImage(stickerSourceUrl, stickerImage, getHandDrawnStickerColorId(state), sourceImage ? 'full' : 'preview');
   }
 
   function getStickerOverlaySrc(layer, state = store.getState()) {
-    if (!isHandDrawnStickerLayer(layer)) return layer.src;
+    if (!isHandDrawnStickerLayer(layer)) {
+      if (!STICKER_IMAGE_CACHE.has(layer.src) && layer.previewSrc) return layer.previewSrc;
+      return layer.src;
+    }
     const image = getStickerRenderImage(layer, state);
     if (image instanceof HTMLCanvasElement) return image.toDataURL('image/png');
+    if (!STICKER_IMAGE_CACHE.has(layer.src) && layer.previewSrc) return layer.previewSrc;
     return layer.src;
   }
 
@@ -5194,7 +5456,7 @@ import {
     const state = store.getState();
     const canvasWidth = Math.max(1, state.canvas?.width || FIXED_CANVAS.width);
     const canvasHeight = Math.max(1, state.canvas?.height || FIXED_CANVAS.height);
-    const img = STICKER_IMAGE_CACHE.get(sticker.src);
+    const img = STICKER_IMAGE_CACHE.get(sticker.src) || STICKER_PREVIEW_CACHE.get(sticker.previewSrc || '');
     const ratio = img && img.naturalWidth > 0 && img.naturalHeight > 0 ? img.naturalHeight / img.naturalWidth : 1;
     let widthNorm = 0.18;
     let heightNorm = (widthNorm * canvasWidth * ratio) / canvasHeight;
@@ -5206,6 +5468,8 @@ import {
       type: 'sticker',
       name: `贴纸：${getStickerLayerName(sticker, state)}`,
       src: sticker.src,
+      previewSrc: sticker.previewSrc || null,
+      previewFallbackSrc: sticker.previewFallbackSrc || null,
       stickerId: sticker.id || null,
       packId: sticker.packId || 'user-pack',
       source: sticker.packId === HAND_DRAWN_PACK_ID ? 'hand-drawn' : 'user',
@@ -5223,7 +5487,7 @@ import {
         .then((loadedImg) => {
           STICKER_IMAGE_CACHE.set(sticker.src, loadedImg);
           if (sticker.fallbackSrc) STICKER_IMAGE_CACHE.set(sticker.fallbackSrc, loadedImg);
-          render(store.getState());
+          renderAfterAsyncAssetReady();
         })
         .catch(() => {});
     }
@@ -5349,11 +5613,7 @@ import {
         placement.frameRect.height
       );
     } else {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(45, 31, 42, 0.14)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
-      ctx.restore();
+      drawPolaroidFrameFallback(ctx, polaroidEditor.frame, placement.frameRect, placement.photoRect);
     }
     if (polaroidEditor.loading) {
       ctx.save();
@@ -5499,7 +5759,11 @@ import {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'polaroid-frame-btn';
+      btn.classList.add(orientation === 'portrait' ? 'is-portrait' : 'is-landscape');
       btn.classList.toggle('is-active', state.polaroid?.enabled && state.polaroid.frameId === frame.id);
+
+      const preview = document.createElement('span');
+      preview.className = 'polaroid-frame-preview';
 
       const thumb = document.createElement('img');
       thumb.className = 'polaroid-frame-thumb';
@@ -5507,10 +5771,14 @@ import {
       thumb.loading = 'eager';
       thumb.decoding = 'async';
       thumb.setAttribute('fetchpriority', 'high');
+      thumb.onload = () => btn.classList.add('is-loaded');
+      thumb.onerror = () => btn.classList.add('is-error');
       thumb.src = resolveAssetUrl(frame.previewSrc || frame.src, POLAROID_FRAME_PREVIEW_VERSION);
-      btn.appendChild(thumb);
+      preview.appendChild(thumb);
+      btn.appendChild(preview);
 
       const label = document.createElement('span');
+      label.className = 'polaroid-frame-name';
       label.textContent = frame.name;
       btn.appendChild(label);
 
@@ -5604,6 +5872,8 @@ import {
         const previewSrc = sticker.previewSrc || sticker.src;
         const displaySrc = getStickerPreviewDisplaySrc(sticker, store.getState());
         img.onload = () => {
+          btn.classList.remove('is-error');
+          btn.classList.add('is-loaded');
           if (img.dataset.recolored === '1') return;
           const loadedPreviewSrc = sticker.previewSrc || sticker.src;
           if (img.src === loadedPreviewSrc && !STICKER_PREVIEW_CACHE.has(loadedPreviewSrc)) STICKER_PREVIEW_CACHE.set(loadedPreviewSrc, img);
@@ -5617,7 +5887,11 @@ import {
           }
         };
         img.onerror = () => {
-          if (!sticker.previewFallbackSrc || img.src === sticker.previewFallbackSrc) return;
+          if (!sticker.previewFallbackSrc || img.src === sticker.previewFallbackSrc) {
+            btn.classList.remove('is-loaded');
+            btn.classList.add('is-error');
+            return;
+          }
           img.src = sticker.previewFallbackSrc;
         };
         img.src = displaySrc;
@@ -5874,16 +6148,53 @@ import {
     els.addGridMosaicBtn?.classList.toggle('is-active', mosaicToolState.variant === 'grid-glass');
   }
 
+  function makeLayerPreviewSlider({ layer, label, min, max, step, value, patchForValue }) {
+    let latestPatch = null;
+    return makeSlider({
+      label,
+      min,
+      max,
+      step,
+      value,
+      commitOnEnd: true,
+      onBegin: () => {
+        isLayerControlSliderDragging = true;
+        store.beginStep();
+        overlayController.beginLayerControlPreview?.(layer.id);
+      },
+      onPreview: (v) => {
+        latestPatch = patchForValue(v);
+        overlayController.previewLayerPatch?.(layer.id, latestPatch);
+      },
+      onInput: (v) => {
+        const patch = latestPatch || patchForValue(v);
+        if (
+          shouldCommitLayerControlOnEnd({
+            isSliderDragging: false,
+            phase: 'commit',
+            hasPreviewPatch: Boolean(patch && Object.keys(patch).length),
+          })
+        ) {
+          store.updateLayer(layer.id, patch);
+        }
+      },
+      onEnd: () => {
+        isLayerControlSliderDragging = false;
+        overlayController.finishLayerControlPreview?.();
+      },
+    });
+  }
+
   function pushSharedLayerControls(layer, node) {
     node.appendChild(
-      makeSlider({
+      makeLayerPreviewSlider({
+        layer,
         label: '不透明度',
         min: 0,
         max: 1,
         step: 0.01,
         value: layer.opacity ?? 1,
-        onBegin: () => store.beginStep(),
-        onInput: (v) => store.updateLayer(layer.id, { opacity: v }),
+        patchForValue: (v) => ({ opacity: v }),
       })
     );
   }
@@ -5919,14 +6230,14 @@ import {
 
     if (selected.type === 'sticker') {
       els.layerControls.appendChild(
-        makeSlider({
+        makeLayerPreviewSlider({
+          layer: selected,
           label: '缩放',
           min: 0.05,
           max: 0.8,
           step: 0.01,
           value: selected.width ?? 0.2,
-          onBegin: () => store.beginStep(),
-          onInput: (v) => store.updateLayer(selected.id, { width: v }),
+          patchForValue: (v) => ({ width: v }),
         })
       );
     }
@@ -6060,51 +6371,47 @@ import {
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeLayerPreviewSlider({
+          layer: selected,
           label: '字号',
           min: 16,
           max: 180,
           step: 1,
           value: selected.fontSize ?? 56,
-          commitOnEnd: false,
-          onBegin: () => store.beginStep(),
-          onInput: (v) => store.updateLayer(selected.id, { fontSize: v }),
+          patchForValue: (v) => ({ fontSize: v }),
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeLayerPreviewSlider({
+          layer: selected,
           label: '字重',
           min: 100,
           max: 1500,
           step: 100,
           value: getTextFontWeightValue(selected),
-          commitOnEnd: false,
-          onBegin: () => store.beginStep(),
-          onInput: (v) => store.updateLayer(selected.id, { fontWeight: getTextFontWeightValue({ fontWeight: v }) }),
+          patchForValue: (v) => ({ fontWeight: getTextFontWeightValue({ fontWeight: v }) }),
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeLayerPreviewSlider({
+          layer: selected,
           label: '字间距',
           min: -24,
           max: 36,
           step: 1,
           value: selected.letterSpacing ?? 0,
-          commitOnEnd: false,
-          onBegin: () => store.beginStep(),
-          onInput: (v) => store.updateLayer(selected.id, { letterSpacing: v }),
+          patchForValue: (v) => ({ letterSpacing: v }),
         })
       );
       els.layerControls.appendChild(
-        makeSlider({
+        makeLayerPreviewSlider({
+          layer: selected,
           label: '行间距',
           min: 0.8,
           max: 2,
           step: 0.02,
           value: selected.lineHeight ?? 1.22,
-          commitOnEnd: false,
-          onBegin: () => store.beginStep(),
-          onInput: (v) => store.updateLayer(selected.id, { lineHeight: v }),
+          patchForValue: (v) => ({ lineHeight: v }),
         })
       );
       els.layerControls.appendChild(
@@ -6115,36 +6422,36 @@ import {
           makeColorInput({ label: '背景颜色', value: selected.bgColor ?? '#2a1d2a', onInput: (v) => store.updateLayer(selected.id, { bgColor: v }, true) })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeLayerPreviewSlider({
+            layer: selected,
             label: '背景透明度',
             min: 0,
             max: 1,
             step: 0.01,
             value: selected.bgOpacity ?? 0,
-            onBegin: () => store.beginStep(),
-            onInput: (v) => store.updateLayer(selected.id, { bgOpacity: v }),
+            patchForValue: (v) => ({ bgOpacity: v }),
           })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeLayerPreviewSlider({
+            layer: selected,
             label: '背景留白',
             min: 0,
             max: 40,
             step: 1,
             value: selected.bgPadding ?? 18,
-            onBegin: () => store.beginStep(),
-            onInput: (v) => store.updateLayer(selected.id, { bgPadding: v }),
+            patchForValue: (v) => ({ bgPadding: v }),
           })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeLayerPreviewSlider({
+            layer: selected,
             label: '背景圆角',
             min: 0,
             max: 40,
             step: 1,
             value: selected.bgRadius ?? 16,
-            onBegin: () => store.beginStep(),
-            onInput: (v) => store.updateLayer(selected.id, { bgRadius: v }),
+            patchForValue: (v) => ({ bgRadius: v }),
           })
         );
       }
@@ -6153,15 +6460,14 @@ import {
           makeColorInput({ label: '描边颜色', value: selected.strokeColor ?? '#e170c7', onInput: (v) => store.updateLayer(selected.id, { strokeColor: v }, true) })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeLayerPreviewSlider({
+            layer: selected,
             label: '描边宽度',
             min: 0,
             max: 16,
             step: 1,
             value: selected.strokeWidth ?? 4,
-            commitOnEnd: false,
-            onBegin: () => store.beginStep(),
-            onInput: (v) => store.updateLayer(selected.id, { strokeWidth: v }),
+            patchForValue: (v) => ({ strokeWidth: v }),
           })
         );
       }
@@ -6170,14 +6476,14 @@ import {
           makeColorInput({ label: '阴影颜色', value: selected.shadowColor ?? '#2f2532', onInput: (v) => store.updateLayer(selected.id, { shadowColor: v }, true) })
         );
         els.layerControls.appendChild(
-          makeSlider({
+          makeLayerPreviewSlider({
+            layer: selected,
             label: '阴影强度',
             min: 0,
             max: 40,
             step: 1,
             value: selected.shadowBlur ?? 8,
-            onBegin: () => store.beginStep(),
-            onInput: (v) => store.updateLayer(selected.id, { shadowBlur: v }),
+            patchForValue: (v) => ({ shadowBlur: v }),
           })
         );
       }
@@ -6342,6 +6648,30 @@ import {
   }
 
   function render(state) {
+    if (p9QaRenderProbe?.active) {
+      p9QaRenderProbe.events.push({
+        isSliderDragging,
+        isTextEditing,
+        isDirectManipulating,
+        skinWhiten: Number(state.filters?.skinWhiten ?? 0),
+      });
+    }
+    if (p11QaRenderProbe?.active) {
+      p11QaRenderProbe.events.push({
+        isDirectManipulating,
+        selectedLayerId: state.selectedLayerId || null,
+        renderToken: Number(state.renderToken || 0),
+      });
+    }
+    if (p12QaRenderProbe?.active) {
+      p12QaRenderProbe.events.push({
+        isSliderDragging,
+        isLayerControlSliderDragging,
+        isDirectManipulating,
+        selectedLayerId: state.selectedLayerId || null,
+        renderToken: Number(state.renderToken || 0),
+      });
+    }
     const renderStartedAt = performance.now();
     syncCanvasFrameSize();
     try {
@@ -6397,20 +6727,23 @@ import {
     const selectedForControls = state.layers.find((layer) => layer.id === state.selectedLayerId);
     const layerControlsKey = `${activeTool}|${state.selectedLayerId || ''}|${selectedForControls?.type || ''}|${state.layers.length}`;
     const mustRefreshLayerControls = layerControlsKey !== lastLayerControlsKey;
+    const allowLayerPanelRefresh = !isDirectManipulating;
     if (!isSliderDragging && !isTextEditing) {
       if (!isDirectManipulating) {
         renderFilterControls(state);
       }
-      if (!isDirectManipulating || mustRefreshLayerControls) {
-        renderLayerControls(state);
-        lastLayerControlsKey = layerControlsKey;
-      }
-      if (!isDirectManipulating) {
+      if (allowLayerPanelRefresh) {
+        if (!isDirectManipulating || mustRefreshLayerControls) {
+          renderLayerControls(state);
+          lastLayerControlsKey = layerControlsKey;
+        }
         renderLayerList(state);
       }
     }
     if (!isSliderDragging && !isTextEditing) {
-      renderMobileLayerDock(state);
+      if (allowLayerPanelRefresh) {
+        renderMobileLayerDock(state);
+      }
       renderMosaicToolButtons();
       if (activeTool === 'polaroid' || state.polaroid?.enabled) renderPolaroidPanel(state);
     }
@@ -6437,6 +6770,10 @@ import {
   }
 
   function requestRenderWithProcessingLead(state) {
+    if (isSliderDragging || isTextEditing || isDirectManipulating) {
+      scheduleRender(state);
+      return;
+    }
     const shouldWaitForBadgePaint = primeProcessingBadgeForRender();
     if (!shouldWaitForBadgePaint) {
       render(state);
@@ -6447,11 +6784,38 @@ import {
     });
   }
 
+  function renderAfterAsyncAssetReady() {
+    const state = store.getState();
+    if (isSliderDragging || isTextEditing || isDirectManipulating) {
+      scheduleRender(state);
+      return;
+    }
+    render(state);
+  }
+
   function scheduleRender(state) {
     pendingRenderState = state;
     syncStickerPanelColor(state);
     applyCanvasCssInteractionPreview(state);
+    if (isLayerControlSliderDragging) return;
     if (isDirectManipulating) return;
+    const deferExpensiveToneRender = shouldDeferExpensiveToneRender({
+      isSliderDragging,
+      filters: sliderPreviewFilters || state.filters,
+      webglToneRequested,
+      polaroidEnabled: state.polaroid?.enabled,
+    });
+    if (deferExpensiveToneRender) {
+      if (pendingRenderTimer) {
+        window.clearTimeout(pendingRenderTimer);
+        pendingRenderTimer = 0;
+      }
+      if (pendingRenderFrame) {
+        window.cancelAnimationFrame(pendingRenderFrame);
+        pendingRenderFrame = 0;
+      }
+      return;
+    }
     const lightweight = isSliderDragging || isTextEditing;
     const now = performance.now();
     const minGap = lightweight ? (isMobileViewport() ? MOBILE_LIGHTWEIGHT_RENDER_MS : DESKTOP_LIGHTWEIGHT_RENDER_MS) : 0;
@@ -6476,6 +6840,17 @@ import {
       const renderingLightweight = isSliderDragging || isTextEditing;
       const renderStartedAt = performance.now();
       const renderedState = pendingRenderState || store.getState();
+      const shouldSkipExpensiveRender = shouldDeferExpensiveToneRender({
+        isSliderDragging,
+        filters: sliderPreviewFilters || renderedState.filters,
+        webglToneRequested,
+        polaroidEnabled: renderedState.polaroid?.enabled,
+      });
+      if (shouldSkipExpensiveRender) {
+        applyCanvasCssInteractionPreview(renderedState);
+        pendingRenderState = null;
+        return;
+      }
       render(renderedState);
       if (isSliderDragging) {
         const renderCost = performance.now() - renderStartedAt;
@@ -6565,7 +6940,16 @@ import {
           if (currentImportToken !== imageImportToken) return;
           if (store.getState().image.element !== image) return;
           store.setVisionData(portrait);
-          if (!portrait.autoBlushDetected) enterManualBlushFallback();
+          if (!portrait.autoBlushDetected && shouldAutoEnterManualBlushFallback({
+            isCurrentImport: currentImportToken === imageImportToken,
+            isSameImage: store.getState().image.element === image,
+            activeTool,
+            layerCount: store.getState().layers.length,
+            hasSelectedLayer: Boolean(store.getState().selectedLayerId),
+            isSliderDragging,
+            isTextEditing,
+            isDirectManipulating,
+          })) enterManualBlushFallback();
         });
       } catch (error) {
         console.error('Image import failed:', error);
@@ -7088,8 +7472,8 @@ import {
         item.imageLoaded &&
         item.activeTool === 'filters' &&
         item.activeFilterPanel === 'portrait' &&
-        item.selectedRenderer === 'cpu' &&
-        item.fallbackReason === 'effects-not-migrated' &&
+        item.selectedRenderer === 'gpu' &&
+        item.fallbackReason === null &&
         item.previewBytes > 1000 &&
         item.exportBytes > 1000
       );
@@ -7107,44 +7491,902 @@ import {
     }
   }
 
+  async function runP9QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p9qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p9QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    try {
+      const scenario = ADVANCED_TONE_VISUAL_QA_SCENARIOS.find((item) => item.fixtureIds.length > 0);
+      const fixtureId = scenario?.fixtureIds?.[0];
+      if (!scenario || !fixtureId) throw new Error('No P9 QA fixture available');
+      await window.__JIRAI_V3_QA__.loadFixture({ fixtureId, scenarioId: scenario.id });
+      await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+
+      const before = toneRuntime.getDiagnostics().cpuFallbackCount;
+      const dragStartState = store.getState();
+      const nextBlackProtect = clamp(Number(dragStartState.filters.blackProtect ?? 0) + 0.2, 0, 1);
+      const renderEvents = [];
+      p9QaRenderProbe = { active: true, events: renderEvents };
+      isSliderDragging = true;
+      sliderDragStartFilters = { ...dragStartState.filters };
+      sliderPreviewFilters = { ...dragStartState.filters, blackProtect: nextBlackProtect };
+      activeSliderFilterKey = 'blackProtect';
+
+      scheduleRender({
+        ...dragStartState,
+        filters: sliderPreviewFilters,
+        toneToken: Number(dragStartState.toneToken || 0) + 0.5,
+      });
+      await new Promise((resolve) => window.setTimeout(resolve, Math.max(MOBILE_LIGHTWEIGHT_RENDER_MS, DESKTOP_LIGHTWEIGHT_RENDER_MS) + 80));
+      const during = toneRuntime.getDiagnostics().cpuFallbackCount;
+      const cssPreviewApplied = Boolean(els.canvas.style.filter);
+      p9QaRenderProbe = null;
+
+      isSliderDragging = false;
+      sliderDragStartFilters = null;
+      sliderPreviewFilters = null;
+      activeSliderFilterKey = null;
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      if (els?.canvas) els.canvas.style.filter = '';
+      store.setFilters({ blackProtect: nextBlackProtect }, 'original', false);
+      cancelQueuedRenderWork();
+      render(store.getState());
+      const afterDiagnostics = toneRuntime.getDiagnostics();
+      const after = afterDiagnostics.cpuFallbackCount;
+
+      const cpuStableDuringDrag = during === before;
+      const cpuRenderedAfterCommit = after > during;
+      const gpuRenderedAfterCommit = webglToneRequested && afterDiagnostics.selectedRenderer === 'gpu';
+      const gpuPreviewEligible = webglToneRequested && getGpuToneEligibility({ ...dragStartState.filters, blackProtect: nextBlackProtect }).eligible;
+      resultNode.textContent = JSON.stringify({
+        passed:
+          cpuStableDuringDrag &&
+          (webglToneRequested ? gpuRenderedAfterCommit : cpuRenderedAfterCommit) &&
+          (cssPreviewApplied || gpuPreviewEligible),
+        fixtureId,
+        scenarioId: scenario.id,
+        beforeCpuFallbackCount: before,
+        duringCpuFallbackCount: during,
+        afterCpuFallbackCount: after,
+        cpuStableDuringDrag,
+        cpuRenderedAfterCommit,
+        gpuRenderedAfterCommit,
+        gpuPreviewEligible,
+        cssPreviewApplied,
+        renderEvents,
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP10QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p10qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p10QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P10 QA fixture available');
+      const before = toneRuntime.getDiagnostics();
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.setVisionData({
+        faceBoxes: [{ ...fixture.faceBox }],
+        faceLandmarks: [],
+        autoBlushDetected: true,
+      });
+      store.setFilters({
+        ...DEFAULT_FILTERS,
+        skinWhiten: 0.55,
+        blushStrength: 0,
+        blackProtect: 0,
+      }, 'original', false);
+      activeFilterPanel = 'portrait';
+      setActiveTool('filters');
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      render(store.getState());
+      const after = toneRuntime.getDiagnostics();
+      const skinWhitenGpuSelected = after.selectedRenderer === 'gpu';
+      const cpuStableForSkinWhiten = after.cpuFallbackCount === before.cpuFallbackCount;
+      const gpuRenderedSkinWhiten = after.gpuRenderCount > before.gpuRenderCount;
+      resultNode.textContent = JSON.stringify({
+        passed: skinWhitenGpuSelected && cpuStableForSkinWhiten && gpuRenderedSkinWhiten,
+        fixtureId: fixture.id,
+        beforeCpuFallbackCount: before.cpuFallbackCount,
+        afterCpuFallbackCount: after.cpuFallbackCount,
+        beforeGpuRenderCount: before.gpuRenderCount,
+        afterGpuRenderCount: after.gpuRenderCount,
+        selectedRenderer: after.selectedRenderer,
+        fallbackReason: after.fallbackReason,
+        skinWhitenGpuSelected,
+        cpuStableForSkinWhiten,
+        gpuRenderedSkinWhiten,
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP11QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p11qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p11QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    const waitForFrame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+    const pointer = (type, target, x, y) => {
+      const EventCtor = typeof PointerEvent === 'function' ? PointerEvent : MouseEvent;
+      target.dispatchEvent(new EventCtor(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        pointerId: 11,
+        pointerType: 'touch',
+        isPrimary: true,
+      }));
+    };
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P11 QA fixture available');
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.addLayer({
+        type: 'text',
+        name: 'P11 文字层',
+        content: 'P11',
+        x: 0.42,
+        y: 0.45,
+        width: 0.24,
+        height: 0.08,
+        fontSize: 68,
+        strokeWidth: 3,
+        color: '#ffeef5',
+      });
+      const layerId = store.getState().selectedLayerId;
+      setActiveTool('text');
+      render(store.getState());
+      overlayController.render();
+      await waitForFrame();
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+
+      const item = els.overlayLayer.querySelector(`.overlay-item[data-layer-id="${layerId}"], .overlay-item.overlay-text`);
+      if (!item) throw new Error('P11 overlay item was not rendered');
+      const rect = item.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+      const renderEvents = [];
+      p11QaRenderProbe = { active: true, events: renderEvents };
+
+      pointer('pointerdown', item, startX, startY);
+      pointer('pointermove', els.overlayLayer, startX + 96, startY + 42);
+      await waitForFrame();
+      await waitForFrame();
+      const renderEventsDuringDrag = renderEvents.filter((event) => event.isDirectManipulating).length;
+      const layerDuringDrag = store.getState().layers.find((layer) => layer.id === layerId);
+      const storeStableDuringDrag =
+        Math.abs(Number(layerDuringDrag?.x ?? 0) - 0.42) < 0.0001 &&
+        Math.abs(Number(layerDuringDrag?.y ?? 0) - 0.45) < 0.0001;
+
+      pointer('pointerup', els.overlayLayer, startX + 96, startY + 42);
+      await waitForFrame();
+      await waitForFrame();
+      p11QaRenderProbe = null;
+
+      const committedLayer = store.getState().layers.find((layer) => layer.id === layerId);
+      const committedLayerPosition = {
+        x: Number((committedLayer?.x ?? 0).toFixed(4)),
+        y: Number((committedLayer?.y ?? 0).toFixed(4)),
+      };
+      const committedMoved =
+        Math.abs(Number(committedLayer?.x ?? 0) - 0.42) > 0.01 ||
+        Math.abs(Number(committedLayer?.y ?? 0) - 0.45) > 0.01;
+      const commitRendered = renderEvents.some((event) => !event.isDirectManipulating);
+
+      resultNode.textContent = JSON.stringify({
+        passed: renderEventsDuringDrag === 0 && storeStableDuringDrag && committedMoved && commitRendered,
+        renderEventsDuringDrag,
+        totalRenderEvents: renderEvents.length,
+        storeStableDuringDrag,
+        committedMoved,
+        commitRendered,
+        committedLayerPosition,
+        renderEvents,
+      }, null, 2);
+    } catch (error) {
+      p11QaRenderProbe = null;
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP12QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p12qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p12QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    const waitForFrame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P12 QA fixture available');
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.addLayer({
+        type: 'text',
+        name: 'P12 文字层',
+        content: 'P12',
+        x: 0.46,
+        y: 0.44,
+        width: 0.26,
+        height: 0.08,
+        fontSize: 64,
+        strokeWidth: 3,
+        color: '#ffeef5',
+      });
+      const layerId = store.getState().selectedLayerId;
+      setActiveTool('text');
+      render(store.getState());
+      overlayController.render();
+      await waitForFrame();
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+
+      const renderEvents = [];
+      p12QaRenderProbe = { active: true, events: renderEvents };
+      isSliderDragging = true;
+      isLayerControlSliderDragging = true;
+      overlayController.beginLayerControlPreview?.(layerId);
+      overlayController.previewLayerPatch?.(layerId, { fontSize: 118 });
+      await waitForFrame();
+      await waitForFrame();
+
+      const renderEventsDuringLayerControlDrag = renderEvents.filter((event) => event.isSliderDragging).length;
+      const layerDuringDrag = store.getState().layers.find((layer) => layer.id === layerId);
+      const storeStableDuringLayerControlDrag = Number(layerDuringDrag?.fontSize ?? 0) === 64;
+      const overlayPreviewVisible = Boolean(
+        els.overlayLayer.querySelector(`.overlay-item[data-layer-id="${layerId}"].is-transforming`)
+      );
+
+      isSliderDragging = false;
+      isLayerControlSliderDragging = false;
+      store.updateLayer(layerId, { fontSize: 118 });
+      overlayController.finishLayerControlPreview?.();
+      render(store.getState());
+      await waitForFrame();
+      p12QaRenderProbe = null;
+
+      const committedLayer = store.getState().layers.find((layer) => layer.id === layerId);
+      const committedFontSize = Number(committedLayer?.fontSize ?? 0);
+      const commitRendered = renderEvents.some((event) => !event.isSliderDragging);
+
+      resultNode.textContent = JSON.stringify({
+        passed:
+          renderEventsDuringLayerControlDrag === 0 &&
+          storeStableDuringLayerControlDrag &&
+          overlayPreviewVisible &&
+          committedFontSize === 118 &&
+          commitRendered,
+        renderEventsDuringLayerControlDrag,
+        totalRenderEvents: renderEvents.length,
+        storeStableDuringLayerControlDrag,
+        overlayPreviewVisible,
+        committedFontSize,
+        commitRendered,
+        renderEvents,
+      }, null, 2);
+    } catch (error) {
+      isSliderDragging = false;
+      isLayerControlSliderDragging = false;
+      p12QaRenderProbe = null;
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP13QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p13qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p13QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P13 QA fixture available');
+      const before = toneRuntime.getDiagnostics();
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.setVisionData({
+        faceBoxes: [{ ...fixture.faceBox }],
+        faceLandmarks: [],
+        autoBlushDetected: true,
+      });
+      store.setFilters({
+        ...DEFAULT_FILTERS,
+        skinWhiten: 0,
+        blushStrength: 0.55,
+        blackProtect: 0,
+      }, 'original', false);
+      activeFilterPanel = 'portrait';
+      setActiveTool('filters');
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      render(store.getState());
+      const after = toneRuntime.getDiagnostics();
+      const blushStrengthGpuSelected = after.selectedRenderer === 'gpu';
+      const cpuStableForBlushStrength = after.cpuFallbackCount === before.cpuFallbackCount;
+      const gpuRenderedBlushStrength = after.gpuRenderCount > before.gpuRenderCount;
+      resultNode.textContent = JSON.stringify({
+        passed: blushStrengthGpuSelected && cpuStableForBlushStrength && gpuRenderedBlushStrength,
+        fixtureId: fixture.id,
+        beforeCpuFallbackCount: before.cpuFallbackCount,
+        afterCpuFallbackCount: after.cpuFallbackCount,
+        beforeGpuRenderCount: before.gpuRenderCount,
+        afterGpuRenderCount: after.gpuRenderCount,
+        selectedRenderer: after.selectedRenderer,
+        fallbackReason: after.fallbackReason,
+        blushStrengthGpuSelected,
+        cpuStableForBlushStrength,
+        gpuRenderedBlushStrength,
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP14QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p14qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p14QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P14 QA fixture available');
+      const before = toneRuntime.getDiagnostics();
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.setVisionData({
+        faceBoxes: [{ ...fixture.faceBox }],
+        faceLandmarks: [],
+        autoBlushDetected: true,
+      });
+      store.setFilters({
+        ...DEFAULT_FILTERS,
+        skinWhiten: 0,
+        blushStrength: 0,
+        blackProtect: 0.72,
+      }, 'original', false);
+      activeFilterPanel = 'portrait';
+      setActiveTool('filters');
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      render(store.getState());
+      const after = toneRuntime.getDiagnostics();
+      const blackProtectGpuSelected = after.selectedRenderer === 'gpu';
+      const cpuStableForBlackProtect = after.cpuFallbackCount === before.cpuFallbackCount;
+      const gpuRenderedBlackProtect = after.gpuRenderCount > before.gpuRenderCount;
+      resultNode.textContent = JSON.stringify({
+        passed: blackProtectGpuSelected && cpuStableForBlackProtect && gpuRenderedBlackProtect,
+        fixtureId: fixture.id,
+        beforeCpuFallbackCount: before.cpuFallbackCount,
+        afterCpuFallbackCount: after.cpuFallbackCount,
+        beforeGpuRenderCount: before.gpuRenderCount,
+        afterGpuRenderCount: after.gpuRenderCount,
+        selectedRenderer: after.selectedRenderer,
+        fallbackReason: after.fallbackReason,
+        blackProtectGpuSelected,
+        cpuStableForBlackProtect,
+        gpuRenderedBlackProtect,
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP15QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p15qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p15QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    const waitForFrame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+    const waitForPreview = () =>
+      new Promise((resolve) =>
+        window.setTimeout(resolve, Math.max(MOBILE_LIGHTWEIGHT_RENDER_MS, DESKTOP_LIGHTWEIGHT_RENDER_MS) + 80)
+      );
+    const pointer = (type, target, x, y) => {
+      const EventCtor = typeof PointerEvent === 'function' ? PointerEvent : MouseEvent;
+      target.dispatchEvent(new EventCtor(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        pointerId: 15,
+        pointerType: 'touch',
+        isPrimary: true,
+      }));
+    };
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P15 QA fixture available');
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.setVisionData({
+        faceBoxes: [{ ...fixture.faceBox }],
+        faceLandmarks: [],
+        autoBlushDetected: true,
+      });
+      store.setFilters({
+        ...DEFAULT_FILTERS,
+        skinWhiten: 0.34,
+        blushStrength: 0.42,
+        blackProtect: 0.68,
+      }, 'original', false);
+      activeFilterPanel = 'portrait';
+      setActiveTool('filters');
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      render(store.getState());
+      await waitForFrame();
+
+      const toneBefore = toneRuntime.getDiagnostics();
+      const toneStartState = store.getState();
+      const nextSkinWhiten = clamp(Number(toneStartState.filters.skinWhiten ?? 0) + 0.18, 0, 1);
+      const previewFilters = { ...toneStartState.filters, skinWhiten: nextSkinWhiten };
+      isSliderDragging = true;
+      sliderDragStartFilters = { ...toneStartState.filters };
+      sliderPreviewFilters = previewFilters;
+      activeSliderFilterKey = 'skinWhiten';
+      queueGpuTonePreview(previewFilters);
+      await waitForFrame();
+      await waitForFrame();
+      await waitForPreview();
+      const toneDuring = toneRuntime.getDiagnostics();
+      isSliderDragging = false;
+      sliderDragStartFilters = null;
+      sliderPreviewFilters = null;
+      activeSliderFilterKey = null;
+      cancelGpuTonePreview();
+      if (els?.canvas) els.canvas.style.filter = '';
+      store.setFilters({ skinWhiten: nextSkinWhiten }, 'original', false);
+      cancelQueuedRenderWork();
+      render(store.getState());
+      const toneAfter = toneRuntime.getDiagnostics();
+      const tone = {
+        cpuFallbacksDuringPreview: toneDuring.cpuFallbackCount - toneBefore.cpuFallbackCount,
+        gpuRendersDuringPreview: toneDuring.gpuRenderCount - toneBefore.gpuRenderCount,
+        cpuFallbacksAfterCommit: toneAfter.cpuFallbackCount - toneDuring.cpuFallbackCount,
+        gpuRendersAfterCommit: toneAfter.gpuRenderCount - toneDuring.gpuRenderCount,
+        selectedRendererAfterCommit: toneAfter.selectedRenderer,
+        fallbackReasonAfterCommit: toneAfter.fallbackReason,
+      };
+
+      store.addLayer({
+        type: 'text',
+        name: 'P15 文字层',
+        content: 'P15',
+        x: 0.42,
+        y: 0.45,
+        width: 0.24,
+        height: 0.08,
+        fontSize: 68,
+        strokeWidth: 3,
+        color: '#ffeef5',
+      });
+      const layerId = store.getState().selectedLayerId;
+      setActiveTool('text');
+      render(store.getState());
+      overlayController.render();
+      await waitForFrame();
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+
+      const item = els.overlayLayer.querySelector(`.overlay-item[data-layer-id="${layerId}"], .overlay-item.overlay-text`);
+      if (!item) throw new Error('P15 overlay item was not rendered');
+      const rect = item.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+      const moveRenderEvents = [];
+      p11QaRenderProbe = { active: true, events: moveRenderEvents };
+      pointer('pointerdown', item, startX, startY);
+      pointer('pointermove', els.overlayLayer, startX + 88, startY + 34);
+      await waitForFrame();
+      await waitForFrame();
+      const moveEventsDuringDrag = moveRenderEvents.filter((event) => event.isDirectManipulating).length;
+      const layerDuringMove = store.getState().layers.find((layer) => layer.id === layerId);
+      const moveStoreStable =
+        Math.abs(Number(layerDuringMove?.x ?? 0) - 0.42) < 0.0001 &&
+        Math.abs(Number(layerDuringMove?.y ?? 0) - 0.45) < 0.0001;
+      pointer('pointerup', els.overlayLayer, startX + 88, startY + 34);
+      await waitForFrame();
+      await waitForFrame();
+      p11QaRenderProbe = null;
+      const movedLayer = store.getState().layers.find((layer) => layer.id === layerId);
+      const layerMove = {
+        renderEventsDuringDrag: moveEventsDuringDrag,
+        totalRenderEvents: moveRenderEvents.length,
+        storeStableDuringDrag: moveStoreStable,
+        committed:
+          Math.abs(Number(movedLayer?.x ?? 0) - 0.42) > 0.01 ||
+          Math.abs(Number(movedLayer?.y ?? 0) - 0.45) > 0.01,
+        commitRendered: moveRenderEvents.some((event) => !event.isDirectManipulating),
+      };
+
+      const controlRenderEvents = [];
+      p12QaRenderProbe = { active: true, events: controlRenderEvents };
+      isSliderDragging = true;
+      isLayerControlSliderDragging = true;
+      overlayController.beginLayerControlPreview?.(layerId);
+      overlayController.previewLayerPatch?.(layerId, { fontSize: 116 });
+      await waitForFrame();
+      await waitForFrame();
+      const controlEventsDuringDrag = controlRenderEvents.filter((event) => event.isSliderDragging).length;
+      const layerDuringControl = store.getState().layers.find((layer) => layer.id === layerId);
+      const controlStoreStable = Number(layerDuringControl?.fontSize ?? 0) === 68;
+      const overlayPreviewVisible = Boolean(
+        els.overlayLayer.querySelector(`.overlay-item[data-layer-id="${layerId}"].is-transforming`)
+      );
+      isSliderDragging = false;
+      isLayerControlSliderDragging = false;
+      store.updateLayer(layerId, { fontSize: 116 });
+      overlayController.finishLayerControlPreview?.();
+      render(store.getState());
+      await waitForFrame();
+      p12QaRenderProbe = null;
+      const controlledLayer = store.getState().layers.find((layer) => layer.id === layerId);
+      const layerControl = {
+        renderEventsDuringDrag: controlEventsDuringDrag,
+        totalRenderEvents: controlRenderEvents.length,
+        storeStableDuringDrag: controlStoreStable,
+        overlayPreviewVisible,
+        committed: Number(controlledLayer?.fontSize ?? 0) === 116,
+        commitRendered: controlRenderEvents.some((event) => !event.isSliderDragging),
+      };
+
+      const summary = summarizeAppInteractionExperience({ tone, layerMove, layerControl });
+      resultNode.textContent = JSON.stringify({
+        passed: summary.passed,
+        fixtureId: fixture.id,
+        tonePreviewInstant: summary.tonePreviewInstant,
+        layerMoveInstant: summary.layerMoveInstant,
+        layerControlInstant: summary.layerControlInstant,
+        tone,
+        layerMove,
+        layerControl,
+        targets: summary.targets,
+      }, null, 2);
+    } catch (error) {
+      isSliderDragging = false;
+      isLayerControlSliderDragging = false;
+      isDirectManipulating = false;
+      sliderDragStartFilters = null;
+      sliderPreviewFilters = null;
+      activeSliderFilterKey = null;
+      p11QaRenderProbe = null;
+      p12QaRenderProbe = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      overlayController.finishLayerControlPreview?.();
+      overlayController.finishInteraction?.();
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
+  async function runP16QaFromQuery() {
+    if (!new URLSearchParams(window.location.search).has('v3p16qa')) return;
+    const resultNode = document.createElement('pre');
+    resultNode.id = 'p16QaResult';
+    resultNode.textContent = 'running';
+    resultNode.style.position = 'fixed';
+    resultNode.style.left = '8px';
+    resultNode.style.right = '8px';
+    resultNode.style.bottom = '8px';
+    resultNode.style.zIndex = '9999';
+    resultNode.style.maxHeight = '45vh';
+    resultNode.style.overflow = 'auto';
+    resultNode.style.padding = '12px';
+    resultNode.style.background = 'rgba(255,255,255,0.96)';
+    resultNode.style.border = '1px solid #eadfea';
+    resultNode.style.borderRadius = '12px';
+    document.body.appendChild(resultNode);
+
+    const readPixel = (canvas, x, y) => {
+      const sx = clamp(Math.round(x), 0, canvas.width - 1);
+      const sy = clamp(Math.round(y), 0, canvas.height - 1);
+      const data = canvas.getContext('2d').getImageData(sx, sy, 1, 1).data;
+      const luma = data[0] * 0.299 + data[1] * 0.587 + data[2] * 0.114;
+      return {
+        r: data[0],
+        g: data[1],
+        b: data[2],
+        luma,
+        pinkScore: data[0] + data[2] - data[1] * 1.45,
+      };
+    };
+
+    try {
+      const fixture = ADVANCED_TONE_FIXTURES.find((item) => item.id === 'fair-skin-black-hair') || ADVANCED_TONE_FIXTURES[0];
+      if (!fixture) throw new Error('No P16 QA fixture available');
+      const fixtureCanvas = createAdvancedToneFixtureCanvas(fixture, document, 1);
+      const image = await loadImageFromUrl(fixtureCanvas.toDataURL('image/png'));
+      overlayController.finishInteraction?.();
+      blushEditMode = false;
+      blushPreviewEnabled = false;
+      store.setImage(image);
+      store.setVisionData({
+        faceBoxes: [{ ...fixture.faceBox }],
+        faceLandmarks: [],
+        autoBlushDetected: true,
+      });
+
+      const cheekY = (fixture.faceBox.y + fixture.faceBox.height * 0.42) / fixture.height;
+      const leftCheekX = (fixture.faceBox.x + fixture.faceBox.width * 0.38) / fixture.width;
+      const rightCheekX = (fixture.faceBox.x + fixture.faceBox.width * 0.62) / fixture.width;
+      const manualFilters = {
+        ...DEFAULT_FILTERS,
+        brightness: 1.08,
+        contrast: 1.02,
+        saturation: 0.82,
+        tint: 10,
+        fade: 0.12,
+        overlayStrength: 0.18,
+        overlayColor: '#F5B9E4',
+        skinWhiten: 0.18,
+        blushStrength: 1,
+        blackProtect: 0.98,
+        blushManual: 1,
+        blushLeftEnabled: 1,
+        blushRightEnabled: 1,
+        blushLeftX: leftCheekX,
+        blushLeftY: cheekY,
+        blushLeftRX: 0.07,
+        blushLeftRY: 0.045,
+        blushRightX: rightCheekX,
+        blushRightY: cheekY,
+        blushRightRX: 0.07,
+        blushRightRY: 0.045,
+        blushExtraEnabled: 0,
+      };
+      store.setFilters(manualFilters, 'original', false);
+      activeFilterPanel = 'portrait';
+      setActiveTool('filters');
+      pendingRenderState = null;
+      cancelQueuedRenderWork();
+      cancelGpuTonePreview();
+      render(store.getState());
+
+      const outputCanvas = renderEditedCanvas(store.getState(), true, { mode: 'export' });
+      const diagnostics = toneRuntime.getDiagnostics();
+      store.setFilters({ blushStrength: 0 }, 'original', false);
+      const noBlushCanvas = renderEditedCanvas(store.getState(), true, { mode: 'export' });
+      store.setFilters({ blushStrength: manualFilters.blushStrength, blackProtect: 0 }, 'original', false);
+      const noProtectCanvas = renderEditedCanvas(store.getState(), true, { mode: 'export' });
+      const leftCheek = readPixel(outputCanvas, manualFilters.blushLeftX * outputCanvas.width, manualFilters.blushLeftY * outputCanvas.height);
+      const rightCheek = readPixel(outputCanvas, manualFilters.blushRightX * outputCanvas.width, manualFilters.blushRightY * outputCanvas.height);
+      const shoulder = readPixel(outputCanvas, manualFilters.blushLeftX * outputCanvas.width, clamp(manualFilters.blushLeftY + 0.28, 0, 1) * outputCanvas.height);
+      const leftCheekBase = readPixel(noBlushCanvas, manualFilters.blushLeftX * noBlushCanvas.width, manualFilters.blushLeftY * noBlushCanvas.height);
+      const rightCheekBase = readPixel(noBlushCanvas, manualFilters.blushRightX * noBlushCanvas.width, manualFilters.blushRightY * noBlushCanvas.height);
+      const shoulderBase = readPixel(noBlushCanvas, manualFilters.blushLeftX * noBlushCanvas.width, clamp(manualFilters.blushLeftY + 0.28, 0, 1) * noBlushCanvas.height);
+      const blackHairX = 0.5 * outputCanvas.width;
+      const blackHairY = 0.17 * outputCanvas.height;
+      const blackHair = readPixel(outputCanvas, blackHairX, blackHairY);
+      const blackHairUnprotected = readPixel(noProtectCanvas, blackHairX, blackHairY);
+      const leftCheekLift = leftCheek.pinkScore - leftCheekBase.pinkScore;
+      const rightCheekLift = rightCheek.pinkScore - rightCheekBase.pinkScore;
+      const shoulderLift = shoulder.pinkScore - shoulderBase.pinkScore;
+      const faceBlushLift = Math.min(leftCheekLift, rightCheekLift);
+      const manualBlushOnFace = faceBlushLift > 8 && faceBlushLift > shoulderLift + 12;
+      const blackProtectPreservedDark = blackHair.luma + 8 < blackHairUnprotected.luma;
+      resultNode.textContent = JSON.stringify({
+        passed: diagnostics.selectedRenderer === 'gpu' && manualBlushOnFace && blackProtectPreservedDark,
+        fixtureId: fixture.id,
+        selectedRenderer: diagnostics.selectedRenderer,
+        fallbackReason: diagnostics.fallbackReason,
+        manualBlushOnFace,
+        blackProtectPreservedDark,
+        samples: {
+          leftCheek,
+          rightCheek,
+          shoulder,
+          leftCheekBase,
+          rightCheekBase,
+          shoulderBase,
+          blackHair,
+          blackHairUnprotected,
+        },
+        deltas: {
+          leftCheekLift,
+          rightCheekLift,
+          shoulderLift,
+          blackHairLumaDrop: blackHairUnprotected.luma - blackHair.luma,
+        },
+        manualBlush: {
+          leftX: manualFilters.blushLeftX,
+          leftY: manualFilters.blushLeftY,
+          rightX: manualFilters.blushRightX,
+          rightY: manualFilters.blushRightY,
+        },
+      }, null, 2);
+    } catch (error) {
+      resultNode.textContent = JSON.stringify({
+        passed: false,
+        error: error instanceof Error ? error.message : String(error),
+      }, null, 2);
+    }
+  }
+
   async function init() {
     trackEvent('app_open', { referrerType: document.referrer ? 'external_or_internal' : 'direct' });
     syncViewportMode();
+    syncProfileAvatarAsset();
     setupBrandSubtitleTyping();
     setupQaTestHooks();
     bindEvents();
     store.subscribe(scheduleRender);
     buildPixelStickerPack();
-    preloadStickerPreviewImages();
-    if (isMobileViewport()) {
-      if (activeTool === 'stickers') ensureStickerPanelRendered();
-      if (activeTool === 'polaroid') {
-        ensurePolaroidPanelRendered();
-        preloadPolaroidFrameImages();
-      }
-      if (activeTool === 'text') ensureTextTemplatesRendered();
-    } else {
-      ensureStickerPanelRendered();
+    if (activeTool === 'stickers') ensureStickerPanelRendered();
+    if (activeTool === 'polaroid') {
       ensurePolaroidPanelRendered();
-      ensureTextTemplatesRendered();
+      preloadPolaroidFrameImages();
     }
+    if (activeTool === 'text') ensureTextTemplatesRendered();
     render(store.getState());
     runP5QaFromQuery();
-
-    runWhenIdle(() => {
-      ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(() => render(store.getState()));
-    });
-    runWhenIdle(() => {
-      preloadStickerImages();
-    }, isMobileViewport() ? 2200 : 1200);
-    runWhenIdle(() => preloadPolaroidFrameImages(), 900);
-    runWhenIdle(() => {
-      if (isMobileViewport()) {
-        ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === 'mushin')).then(() => render(store.getState()));
-      } else {
-        preloadTextFonts().then(() => render(store.getState()));
-      }
-    }, isMobileViewport() ? 500 : 1800);
+    runP9QaFromQuery();
+    runP10QaFromQuery();
+    runP11QaFromQuery();
+    runP12QaFromQuery();
+    runP13QaFromQuery();
+    runP14QaFromQuery();
+    runP15QaFromQuery();
+    runP16QaFromQuery();
+    scheduleFirstScreenWarmups();
   }
 
   init();

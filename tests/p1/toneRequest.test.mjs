@@ -49,7 +49,7 @@ test('normalizes one shared preview or export tone request', () => {
   assert.equal(Object.isFrozen(request), true)
 })
 
-test('allows migrated global tone effects and rejects unsupported effects', () => {
+test('allows migrated global and portrait tone effects', () => {
   assert.deepEqual(getPassthroughEligibility(originalFilters), {
     eligible: true,
     reason: null,
@@ -60,8 +60,8 @@ test('allows migrated global tone effects and rejects unsupported effects', () =
     true,
   )
   assert.equal(
-    getPassthroughEligibility({ ...originalFilters, blushStrength: 0.1 }).reason,
-    'effects-not-migrated',
+    getPassthroughEligibility({ ...originalFilters, blackProtect: 0.1 }).eligible,
+    true,
   )
   assert.equal(
     getPassthroughEligibility({ ...originalFilters, hsl_red_s: -1 }).eligible,
