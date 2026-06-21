@@ -4,13 +4,13 @@ import test from 'node:test'
 
 const textureFrames = [
   {
-    id: 'texture-charm-square',
+    id: 'texture-band-square',
     name: '1:1 蕾丝星星',
     width: 1280,
     height: 1280,
   },
   {
-    id: 'texture-charm-vertical',
+    id: 'texture-band-vertical',
     name: '竖版4:3 蕾丝星星',
     width: 960,
     height: 1280,
@@ -28,13 +28,13 @@ const textureFrames = [
     height: 1280,
   },
   {
-    id: 'texture-band-square',
+    id: 'texture-charm-square',
     name: '1:1 韩系波点',
     width: 1280,
     height: 1280,
   },
   {
-    id: 'texture-band-vertical',
+    id: 'texture-charm-vertical',
     name: '竖版4:3 韩系波点',
     width: 960,
     height: 1280,
@@ -57,6 +57,10 @@ test('transparent texture templates are registered as top overlays with full-can
     await access(new URL(`../../assets/polaroid_frame_previews/${frame.id}.png`, import.meta.url))
   }
 
+  assert.match(
+    app,
+    /textureBandSquare:[\s\S]*?name:\s*'1:1 蕾丝星星'[\s\S]*?textureBandVertical:[\s\S]*?name:\s*'竖版4:3 蕾丝星星'[\s\S]*?textureGlowSquare:[\s\S]*?name:\s*'1:1 蕾丝爱心'[\s\S]*?textureGlowVertical:[\s\S]*?name:\s*'竖版4:3 蕾丝爱心'[\s\S]*?textureCharmSquare:[\s\S]*?name:\s*'1:1 韩系波点'[\s\S]*?textureCharmVertical:[\s\S]*?name:\s*'竖版4:3 韩系波点'/
+  )
   assert.doesNotMatch(app, /id:\s*'doodle-(heart|bow|minimal)-(square|vertical)'/)
   assert.doesNotMatch(app, /name:\s*'.*(星心|蝴蝶结|清透)覆膜'/)
 })

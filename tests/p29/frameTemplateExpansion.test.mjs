@@ -9,12 +9,12 @@ const stylesUrl = new URL('../../styles.css', import.meta.url)
 const expectedFrameIds = [
   'portrait-clean',
   'landscape-clean',
-  'texture-charm-square',
-  'texture-charm-vertical',
-  'texture-glow-square',
-  'texture-glow-vertical',
   'texture-band-square',
   'texture-band-vertical',
+  'texture-glow-square',
+  'texture-glow-vertical',
+  'texture-charm-square',
+  'texture-charm-vertical',
 ]
 
 test('frame page exposes polaroid plus three square and three vertical frame templates', async () => {
@@ -37,6 +37,10 @@ test('frame page exposes polaroid plus three square and three vertical frame tem
   assert.match(app, /name:\s*'竖版4:3 蕾丝爱心'/)
   assert.match(app, /name:\s*'1:1 韩系波点'/)
   assert.match(app, /name:\s*'竖版4:3 韩系波点'/)
+  assert.match(
+    app,
+    /textureBandSquare:[\s\S]*?name:\s*'1:1 蕾丝星星'[\s\S]*?textureBandVertical:[\s\S]*?name:\s*'竖版4:3 蕾丝星星'[\s\S]*?textureGlowSquare:[\s\S]*?name:\s*'1:1 蕾丝爱心'[\s\S]*?textureGlowVertical:[\s\S]*?name:\s*'竖版4:3 蕾丝爱心'[\s\S]*?textureCharmSquare:[\s\S]*?name:\s*'1:1 韩系波点'[\s\S]*?textureCharmVertical:[\s\S]*?name:\s*'竖版4:3 韩系波点'/
+  )
   assert.doesNotMatch(app, /id:\s*'doodle-(heart|bow|minimal)-(square|vertical)'/)
   assert.doesNotMatch(app, /name:\s*'.*(星心|蝴蝶结|清透)覆膜'/)
 })
