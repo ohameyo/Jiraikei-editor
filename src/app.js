@@ -320,7 +320,8 @@ import {
   const USER_STICKER_VERSION = '20260619-face-cover-1';
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
   const STICKER_PREVIEW_VERSION = '20260619-face-cover-1';
-  const POLAROID_FRAME_PREVIEW_VERSION = '20260621-texture-templates-1';
+  const POLAROID_FRAME_VERSION = '20260621-replaced-lace-textures-1';
+  const POLAROID_FRAME_PREVIEW_VERSION = POLAROID_FRAME_VERSION;
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
   const HAND_DRAWN_STICKER_COLORS = [
     { id: 'pink', label: '粉', color: '#f15ac6', title: '粉色' },
@@ -564,25 +565,7 @@ import {
 
   function drawTextureFrameImage(ctx, frameImage, frame, frameRect) {
     if (!ctx || !frameImage || !frameRect) return;
-    if (frame?.renderMode !== 'texture') {
-      ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
-      return;
-    }
-    const sourceCropY = 1;
-    const sourceWidth = frameImage.naturalWidth || frameImage.width;
-    const sourceHeightRaw = frameImage.naturalHeight || frameImage.height;
-    const sourceHeight = Math.max(1, sourceHeightRaw - sourceCropY);
-    ctx.drawImage(
-      frameImage,
-      0,
-      sourceCropY,
-      sourceWidth,
-      sourceHeight,
-      frameRect.x,
-      frameRect.y,
-      frameRect.width,
-      frameRect.height
-    );
+    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
   }
 
   const STICKER_IMAGE_CACHE = new Map();
@@ -4977,7 +4960,7 @@ import {
         resolve(img);
       };
       img.onerror = reject;
-      img.src = resolveAssetUrl(frame.src);
+      img.src = resolveAssetUrl(frame.src, POLAROID_FRAME_VERSION);
     });
   }
 

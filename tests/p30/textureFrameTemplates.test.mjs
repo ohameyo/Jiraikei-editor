@@ -93,16 +93,23 @@ test('texture photo sources are matted before drawing to avoid transparent edge 
   assert.match(app, /const sourceImage = getPolaroidPhotoSourceForFrame\(image, frame\);[\s\S]*?ctx\.drawImage\(sourceImage, dx, dy, dw, dh\);/)
 })
 
-test('texture frame images crop one source pixel from the top without adding a matte strip', async () => {
+test('texture frame images draw without top crop or matte strip', async () => {
   const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
 
   assert.match(app, /function drawTextureFrameImage\(ctx, frameImage, frame, frameRect\)/)
-  assert.match(app, /if \(frame\?\.renderMode !== 'texture'\) \{[\s\S]*?ctx\.drawImage\(frameImage, frameRect\.x, frameRect\.y, frameRect\.width, frameRect\.height\);[\s\S]*?return;/)
-  assert.match(app, /const sourceCropY = 1;/)
-  assert.match(app, /const sourceHeight = Math\.max\(1, sourceHeightRaw - sourceCropY\);/)
-  assert.match(app, /ctx\.drawImage\(\s*frameImage,\s*0,\s*sourceCropY,\s*sourceWidth,\s*sourceHeight,\s*frameRect\.x,\s*frameRect\.y,\s*frameRect\.width,\s*frameRect\.height\s*\);/)
+  assert.match(app, /ctx\.drawImage\(frameImage, frameRect\.x, frameRect\.y, frameRect\.width, frameRect\.height\);/)
+  assert.doesNotMatch(app, /sourceCropY/)
+  assert.doesNotMatch(app, /sourceHeightRaw/)
   assert.doesNotMatch(app, /topMatteHeight/)
   assert.doesNotMatch(app, /globalAlpha = 0\.78/)
   assert.match(app, /drawTextureFrameImage\(ctx, frameImage, polaroidFrame, placement\.frameRect\);/)
   assert.match(app, /drawTextureFrameImage\(ctx, polaroidEditor\.frameImage, polaroidEditor\.frame, placement\.frameRect\);/)
+})
+
+test('texture frame source and preview assets share a cache-busting version', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+
+  assert.match(app, /const POLAROID_FRAME_VERSION = '20260621-replaced-lace-textures-1';/)
+  assert.match(app, /const POLAROID_FRAME_PREVIEW_VERSION = POLAROID_FRAME_VERSION;/)
+  assert.match(app, /img\.src = resolveAssetUrl\(frame\.src, POLAROID_FRAME_VERSION\);/)
 })
