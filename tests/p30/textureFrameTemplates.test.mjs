@@ -4,6 +4,42 @@ import test from 'node:test'
 
 const textureFrames = [
   {
+    id: 'doodle-heart-square',
+    name: '1:1 星心覆膜',
+    width: 1280,
+    height: 1280,
+  },
+  {
+    id: 'doodle-heart-vertical',
+    name: '竖版4:3 星心覆膜',
+    width: 960,
+    height: 1280,
+  },
+  {
+    id: 'doodle-bow-square',
+    name: '1:1 蝴蝶结覆膜',
+    width: 1280,
+    height: 1280,
+  },
+  {
+    id: 'doodle-bow-vertical',
+    name: '竖版4:3 蝴蝶结覆膜',
+    width: 960,
+    height: 1280,
+  },
+  {
+    id: 'doodle-minimal-square',
+    name: '1:1 清透覆膜',
+    width: 1280,
+    height: 1280,
+  },
+  {
+    id: 'doodle-minimal-vertical',
+    name: '竖版4:3 清透覆膜',
+    width: 960,
+    height: 1280,
+  },
+  {
     id: 'texture-charm-square',
     name: '1:1 吊饰纹理',
     width: 1280,
@@ -56,6 +92,15 @@ test('transparent texture templates are registered as top overlays with full-can
     await access(new URL(`../../assets/polaroid_frames/${frame.id}.png`, import.meta.url))
     await access(new URL(`../../assets/polaroid_frame_previews/${frame.id}.png`, import.meta.url))
   }
+})
+
+test('texture template cards use a dark preview plate so pale overlay art is visible', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../../styles.css', import.meta.url), 'utf8')
+
+  assert.match(app, /if \(frame\.renderMode === 'texture'\) btn\.classList\.add\('is-texture'\);/)
+  assert.match(styles, /\.polaroid-frame-btn\.is-texture\s+\.polaroid-frame-preview\s*\{[\s\S]*background:\s*#211620/)
+  assert.match(styles, /\.polaroid-frame-btn\.is-texture\s+\.polaroid-frame-preview\s*\{[\s\S]*border-color:\s*rgba\(255,\s*255,\s*255,\s*0\.12\)/)
 })
 
 test('texture frames skip the polaroid paper fallback when their overlay asset is still loading', async () => {

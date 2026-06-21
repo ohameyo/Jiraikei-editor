@@ -31,12 +31,12 @@ test('frame page exposes polaroid plus three square and three vertical frame tem
     await access(new URL(`../../assets/polaroid_frame_previews/${id}.png`, import.meta.url))
   }
 
-  assert.match(app, /name:\s*'1:1 星心相框'/)
-  assert.match(app, /name:\s*'竖版4:3 星心相框'/)
-  assert.match(app, /name:\s*'1:1 蝴蝶结相框'/)
-  assert.match(app, /name:\s*'竖版4:3 蝴蝶结相框'/)
-  assert.match(app, /name:\s*'1:1 清透相框'/)
-  assert.match(app, /name:\s*'竖版4:3 清透相框'/)
+  assert.match(app, /name:\s*'1:1 星心覆膜'/)
+  assert.match(app, /name:\s*'竖版4:3 星心覆膜'/)
+  assert.match(app, /name:\s*'1:1 蝴蝶结覆膜'/)
+  assert.match(app, /name:\s*'竖版4:3 蝴蝶结覆膜'/)
+  assert.match(app, /name:\s*'1:1 清透覆膜'/)
+  assert.match(app, /name:\s*'竖版4:3 清透覆膜'/)
 })
 
 test('frame controls stay conditional and use frame language', async () => {
