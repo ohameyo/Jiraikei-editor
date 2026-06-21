@@ -82,3 +82,13 @@ test('texture frames skip the polaroid paper fallback when their overlay asset i
   assert.match(app, /if \(shouldDrawPolaroidPaperFallback\(polaroidFrame\)\) \{\s*drawPolaroidFrameFallback/)
   assert.match(app, /if \(shouldDrawPolaroidPaperFallback\(polaroidEditor\.frame\)\) \{\s*drawPolaroidFrameFallback/)
 })
+
+test('texture photo sources are matted before drawing to avoid transparent edge seams', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+
+  assert.match(app, /const POLAROID_MATTED_PHOTO_CACHE = new WeakMap\(\);/)
+  assert.match(app, /function getPolaroidPhotoSourceForFrame\(image, frame\)/)
+  assert.match(app, /if \(frame\?\.renderMode !== 'texture'\) return image;/)
+  assert.match(app, /matteCtx\.fillStyle = '#f2ecf3';[\s\S]*?matteCtx\.fillRect\(0, 0, width, height\);[\s\S]*?matteCtx\.drawImage\(image, 0, 0, width, height\);/)
+  assert.match(app, /const sourceImage = getPolaroidPhotoSourceForFrame\(image, frame\);[\s\S]*?ctx\.drawImage\(sourceImage, dx, dy, dw, dh\);/)
+})

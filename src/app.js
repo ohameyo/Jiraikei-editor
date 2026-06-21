@@ -566,6 +566,7 @@ import {
   const STICKER_PREVIEW_CACHE = new Map();
   const HAND_DRAWN_RECOLOR_CACHE = new Map();
   const POLAROID_FRAME_CACHE = new Map();
+  const POLAROID_MATTED_PHOTO_CACHE = new WeakMap();
   const MOBILE_SLIDER_COMMIT_MS = 64;
   const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
   const DESKTOP_SLIDER_COMMIT_MS = 16;
@@ -4998,13 +4999,32 @@ import {
     };
   }
 
+  function getPolaroidPhotoSourceForFrame(image, frame) {
+    if (frame?.renderMode !== 'texture') return image;
+    const width = Math.max(1, Math.round(image?.naturalWidth || image?.width || 0));
+    const height = Math.max(1, Math.round(image?.naturalHeight || image?.height || 0));
+    const cached = POLAROID_MATTED_PHOTO_CACHE.get(image);
+    if (cached?.width === width && cached?.height === height) return cached.canvas;
+    const matteCanvas = document.createElement('canvas');
+    matteCanvas.width = width;
+    matteCanvas.height = height;
+    const matteCtx = matteCanvas.getContext('2d');
+    if (!matteCtx) return image;
+    matteCtx.fillStyle = '#f2ecf3';
+    matteCtx.fillRect(0, 0, width, height);
+    matteCtx.drawImage(image, 0, 0, width, height);
+    POLAROID_MATTED_PHOTO_CACHE.set(image, { width, height, canvas: matteCanvas });
+    return matteCanvas;
+  }
+
   function drawPhotoIntoPolaroidWindow(ctx, image, frame, transform, targetRect = null) {
     if (!image || !frame) return;
+    const sourceImage = getPolaroidPhotoSourceForFrame(image, frame);
     const photoWindow = frame.photoWindow;
     const windowRect = targetRect || photoWindow;
     const scaleX = windowRect.width / photoWindow.width;
     const scaleY = windowRect.height / photoWindow.height;
-    const normalized = clampPolaroidPhotoTransform(frame, image.naturalWidth || image.width, image.naturalHeight || image.height, transform);
+    const normalized = clampPolaroidPhotoTransform(frame, sourceImage.naturalWidth || sourceImage.width, sourceImage.naturalHeight || sourceImage.height, transform);
     const dx = windowRect.x + normalized.offsetX * scaleX;
     const dy = windowRect.y + normalized.offsetY * scaleY;
     const dw = normalized.drawWidth * scaleX;
@@ -5014,7 +5034,7 @@ import {
     ctx.rect(windowRect.x, windowRect.y, windowRect.width, windowRect.height);
     ctx.clip();
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(image, dx, dy, dw, dh);
+    ctx.drawImage(sourceImage, dx, dy, dw, dh);
     ctx.restore();
   }
 
