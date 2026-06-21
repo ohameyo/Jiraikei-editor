@@ -4,74 +4,38 @@ import test from 'node:test'
 
 const textureFrames = [
   {
-    id: 'doodle-heart-square',
-    name: '1:1 星心覆膜',
-    width: 1280,
-    height: 1280,
-  },
-  {
-    id: 'doodle-heart-vertical',
-    name: '竖版4:3 星心覆膜',
-    width: 960,
-    height: 1280,
-  },
-  {
-    id: 'doodle-bow-square',
-    name: '1:1 蝴蝶结覆膜',
-    width: 1280,
-    height: 1280,
-  },
-  {
-    id: 'doodle-bow-vertical',
-    name: '竖版4:3 蝴蝶结覆膜',
-    width: 960,
-    height: 1280,
-  },
-  {
-    id: 'doodle-minimal-square',
-    name: '1:1 清透覆膜',
-    width: 1280,
-    height: 1280,
-  },
-  {
-    id: 'doodle-minimal-vertical',
-    name: '竖版4:3 清透覆膜',
-    width: 960,
-    height: 1280,
-  },
-  {
     id: 'texture-charm-square',
-    name: '1:1 吊饰纹理',
+    name: '1:1 蕾丝星星',
     width: 1280,
     height: 1280,
   },
   {
     id: 'texture-charm-vertical',
-    name: '竖版4:3 吊饰纹理',
+    name: '竖版4:3 蕾丝星星',
     width: 960,
     height: 1280,
   },
   {
     id: 'texture-glow-square',
-    name: '1:1 清透纹理',
+    name: '1:1 蕾丝爱心',
     width: 1280,
     height: 1280,
   },
   {
     id: 'texture-glow-vertical',
-    name: '竖版4:3 清透纹理',
+    name: '竖版4:3 蕾丝爱心',
     width: 960,
     height: 1280,
   },
   {
     id: 'texture-band-square',
-    name: '1:1 腰封纹理',
+    name: '1:1 韩系波点',
     width: 1280,
     height: 1280,
   },
   {
     id: 'texture-band-vertical',
-    name: '竖版4:3 腰封纹理',
+    name: '竖版4:3 韩系波点',
     width: 960,
     height: 1280,
   },
@@ -92,6 +56,9 @@ test('transparent texture templates are registered as top overlays with full-can
     await access(new URL(`../../assets/polaroid_frames/${frame.id}.png`, import.meta.url))
     await access(new URL(`../../assets/polaroid_frame_previews/${frame.id}.png`, import.meta.url))
   }
+
+  assert.doesNotMatch(app, /id:\s*'doodle-(heart|bow|minimal)-(square|vertical)'/)
+  assert.doesNotMatch(app, /name:\s*'.*(星心|蝴蝶结|清透)覆膜'/)
 })
 
 test('texture template cards use a dark preview plate so pale overlay art is visible', async () => {

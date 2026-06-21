@@ -9,12 +9,12 @@ const stylesUrl = new URL('../../styles.css', import.meta.url)
 const expectedFrameIds = [
   'portrait-clean',
   'landscape-clean',
-  'doodle-heart-square',
-  'doodle-heart-vertical',
-  'doodle-bow-square',
-  'doodle-bow-vertical',
-  'doodle-minimal-square',
-  'doodle-minimal-vertical',
+  'texture-charm-square',
+  'texture-charm-vertical',
+  'texture-glow-square',
+  'texture-glow-vertical',
+  'texture-band-square',
+  'texture-band-vertical',
 ]
 
 test('frame page exposes polaroid plus three square and three vertical frame templates', async () => {
@@ -31,12 +31,14 @@ test('frame page exposes polaroid plus three square and three vertical frame tem
     await access(new URL(`../../assets/polaroid_frame_previews/${id}.png`, import.meta.url))
   }
 
-  assert.match(app, /name:\s*'1:1 星心覆膜'/)
-  assert.match(app, /name:\s*'竖版4:3 星心覆膜'/)
-  assert.match(app, /name:\s*'1:1 蝴蝶结覆膜'/)
-  assert.match(app, /name:\s*'竖版4:3 蝴蝶结覆膜'/)
-  assert.match(app, /name:\s*'1:1 清透覆膜'/)
-  assert.match(app, /name:\s*'竖版4:3 清透覆膜'/)
+  assert.match(app, /name:\s*'1:1 蕾丝星星'/)
+  assert.match(app, /name:\s*'竖版4:3 蕾丝星星'/)
+  assert.match(app, /name:\s*'1:1 蕾丝爱心'/)
+  assert.match(app, /name:\s*'竖版4:3 蕾丝爱心'/)
+  assert.match(app, /name:\s*'1:1 韩系波点'/)
+  assert.match(app, /name:\s*'竖版4:3 韩系波点'/)
+  assert.doesNotMatch(app, /id:\s*'doodle-(heart|bow|minimal)-(square|vertical)'/)
+  assert.doesNotMatch(app, /name:\s*'.*(星心|蝴蝶结|清透)覆膜'/)
 })
 
 test('frame controls stay conditional and use frame language', async () => {
