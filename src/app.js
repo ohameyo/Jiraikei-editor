@@ -320,7 +320,7 @@ import {
   const USER_STICKER_VERSION = '20260619-face-cover-1';
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
   const STICKER_PREVIEW_VERSION = '20260619-face-cover-1';
-  const POLAROID_FRAME_PREVIEW_VERSION = '20260621-frame-templates-1';
+  const POLAROID_FRAME_PREVIEW_VERSION = '20260621-texture-templates-1';
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
   const HAND_DRAWN_STICKER_COLORS = [
     { id: 'pink', label: '粉', color: '#f15ac6', title: '粉色' },
@@ -543,6 +543,72 @@ import {
       previewShape: 'portrait',
       photoWindow: { x: 72, y: 96, width: 816, height: 1088 },
     },
+    textureCharmSquare: {
+      id: 'texture-charm-square',
+      name: '1:1 吊饰纹理',
+      src: './assets/polaroid_frames/texture-charm-square.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-charm-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 1280, height: 1280 },
+    },
+    textureCharmVertical: {
+      id: 'texture-charm-vertical',
+      name: '竖版4:3 吊饰纹理',
+      src: './assets/polaroid_frames/texture-charm-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-charm-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 960, height: 1280 },
+    },
+    textureGlowSquare: {
+      id: 'texture-glow-square',
+      name: '1:1 清透纹理',
+      src: './assets/polaroid_frames/texture-glow-square.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-glow-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 1280, height: 1280 },
+    },
+    textureGlowVertical: {
+      id: 'texture-glow-vertical',
+      name: '竖版4:3 清透纹理',
+      src: './assets/polaroid_frames/texture-glow-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-glow-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 960, height: 1280 },
+    },
+    textureBandSquare: {
+      id: 'texture-band-square',
+      name: '1:1 腰封纹理',
+      src: './assets/polaroid_frames/texture-band-square.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-band-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 1280, height: 1280 },
+    },
+    textureBandVertical: {
+      id: 'texture-band-vertical',
+      name: '竖版4:3 腰封纹理',
+      src: './assets/polaroid_frames/texture-band-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/texture-band-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      renderMode: 'texture',
+      photoWindow: { x: 0, y: 0, width: 960, height: 1280 },
+    },
   };
 
   function getPolaroidFramePreviewClass(frame) {
@@ -550,6 +616,10 @@ import {
     const aspect = frame.width / frame.height;
     if (Math.abs(aspect - 1) < 0.08) return 'is-square';
     return aspect < 1 ? 'is-portrait' : 'is-landscape';
+  }
+
+  function shouldDrawPolaroidPaperFallback(frame) {
+    return frame?.renderMode !== 'texture';
   }
 
   const STICKER_IMAGE_CACHE = new Map();
@@ -2869,7 +2939,7 @@ import {
       const frameImage = POLAROID_FRAME_CACHE.get(polaroidFrame.src);
       if (frameImage) {
         ctx.drawImage(frameImage, placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
-      } else {
+      } else if (shouldDrawPolaroidPaperFallback(polaroidFrame)) {
         drawPolaroidFrameFallback(ctx, polaroidFrame, placement.frameRect, placement.photoRect);
       }
       return { canvas, renderState };
@@ -5680,7 +5750,7 @@ import {
         placement.frameRect.width,
         placement.frameRect.height
       );
-    } else {
+    } else if (shouldDrawPolaroidPaperFallback(polaroidEditor.frame)) {
       drawPolaroidFrameFallback(ctx, polaroidEditor.frame, placement.frameRect, placement.photoRect);
     }
     if (polaroidEditor.loading) {
