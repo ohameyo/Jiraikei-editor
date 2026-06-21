@@ -562,6 +562,23 @@ import {
     return frame?.renderMode !== 'texture';
   }
 
+  function drawTextureFrameImage(ctx, frameImage, frame, frameRect) {
+    if (!ctx || !frameImage || !frameRect) return;
+    if (frame?.renderMode !== 'texture') {
+      ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+      return;
+    }
+    const topMatteHeight = Math.min(frameRect.height * 0.14, frameRect.height);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(frameRect.x, frameRect.y, frameRect.width, topMatteHeight);
+    ctx.clip();
+    ctx.globalAlpha = 0.78;
+    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+    ctx.restore();
+    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+  }
+
   const STICKER_IMAGE_CACHE = new Map();
   const STICKER_PREVIEW_CACHE = new Map();
   const HAND_DRAWN_RECOLOR_CACHE = new Map();
@@ -2879,7 +2896,7 @@ import {
       drawPhotoIntoPolaroidWindow(ctx, photoImage, polaroidFrame, renderState.polaroid.photoTransform, placement.photoRect);
       const frameImage = POLAROID_FRAME_CACHE.get(polaroidFrame.src);
       if (frameImage) {
-        ctx.drawImage(frameImage, placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
+        drawTextureFrameImage(ctx, frameImage, polaroidFrame, placement.frameRect);
       } else if (shouldDrawPolaroidPaperFallback(polaroidFrame)) {
         drawPolaroidFrameFallback(ctx, polaroidFrame, placement.frameRect, placement.photoRect);
       }
@@ -5703,13 +5720,7 @@ import {
       placement.photoRect
     );
     if (polaroidEditor.frameImage) {
-      ctx.drawImage(
-        polaroidEditor.frameImage,
-        placement.frameRect.x,
-        placement.frameRect.y,
-        placement.frameRect.width,
-        placement.frameRect.height
-      );
+      drawTextureFrameImage(ctx, polaroidEditor.frameImage, polaroidEditor.frame, placement.frameRect);
     } else if (shouldDrawPolaroidPaperFallback(polaroidEditor.frame)) {
       drawPolaroidFrameFallback(ctx, polaroidEditor.frame, placement.frameRect, placement.photoRect);
     }
