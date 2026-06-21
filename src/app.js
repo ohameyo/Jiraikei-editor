@@ -320,7 +320,7 @@ import {
   const USER_STICKER_VERSION = '20260619-face-cover-1';
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
   const STICKER_PREVIEW_VERSION = '20260619-face-cover-1';
-  const POLAROID_FRAME_PREVIEW_VERSION = '20260514-preview-thumbs-1';
+  const POLAROID_FRAME_PREVIEW_VERSION = '20260621-frame-templates-1';
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
   const HAND_DRAWN_STICKER_COLORS = [
     { id: 'pink', label: '粉', color: '#f15ac6', title: '粉色' },
@@ -483,7 +483,74 @@ import {
       height: 705,
       photoWindow: { x: 103, y: 56, width: 798, height: 593 },
     },
+    doodleHeartSquare: {
+      id: 'doodle-heart-square',
+      name: '1:1 星心相框',
+      src: './assets/polaroid_frames/doodle-heart-square.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-heart-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      photoWindow: { x: 96, y: 96, width: 1088, height: 1088 },
+    },
+    doodleHeartVertical: {
+      id: 'doodle-heart-vertical',
+      name: '竖版4:3 星心相框',
+      src: './assets/polaroid_frames/doodle-heart-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-heart-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      photoWindow: { x: 72, y: 96, width: 816, height: 1088 },
+    },
+    doodleBowSquare: {
+      id: 'doodle-bow-square',
+      name: '1:1 蝴蝶结相框',
+      src: './assets/polaroid_frames/doodle-bow-square.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-bow-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      photoWindow: { x: 96, y: 96, width: 1088, height: 1088 },
+    },
+    doodleBowVertical: {
+      id: 'doodle-bow-vertical',
+      name: '竖版4:3 蝴蝶结相框',
+      src: './assets/polaroid_frames/doodle-bow-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-bow-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      photoWindow: { x: 72, y: 96, width: 816, height: 1088 },
+    },
+    doodleMinimalSquare: {
+      id: 'doodle-minimal-square',
+      name: '1:1 清透相框',
+      src: './assets/polaroid_frames/doodle-minimal-square.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-minimal-square.png',
+      width: 1280,
+      height: 1280,
+      previewShape: 'square',
+      photoWindow: { x: 96, y: 96, width: 1088, height: 1088 },
+    },
+    doodleMinimalVertical: {
+      id: 'doodle-minimal-vertical',
+      name: '竖版4:3 清透相框',
+      src: './assets/polaroid_frames/doodle-minimal-vertical.png',
+      previewSrc: './assets/polaroid_frame_previews/doodle-minimal-vertical.png',
+      width: 960,
+      height: 1280,
+      previewShape: 'portrait',
+      photoWindow: { x: 72, y: 96, width: 816, height: 1088 },
+    },
   };
+
+  function getPolaroidFramePreviewClass(frame) {
+    if (frame.previewShape) return `is-${frame.previewShape}`;
+    const aspect = frame.width / frame.height;
+    if (Math.abs(aspect - 1) < 0.08) return 'is-square';
+    return aspect < 1 ? 'is-portrait' : 'is-landscape';
+  }
 
   const STICKER_IMAGE_CACHE = new Map();
   const STICKER_PREVIEW_CACHE = new Map();
@@ -5760,7 +5827,7 @@ import {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'polaroid-frame-btn';
-      btn.classList.add(orientation === 'portrait' ? 'is-portrait' : 'is-landscape');
+      btn.classList.add(getPolaroidFramePreviewClass(frame));
       btn.classList.toggle('is-active', state.polaroid?.enabled && state.polaroid.frameId === frame.id);
 
       const preview = document.createElement('span');
@@ -5805,7 +5872,7 @@ import {
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
       closeBtn.className = 'polaroid-action-btn polaroid-close-btn';
-      closeBtn.textContent = '关闭拍立得';
+      closeBtn.textContent = '关闭相框';
       closeBtn.onclick = (event) => {
         event.preventDefault();
         event.stopPropagation();

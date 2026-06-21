@@ -810,6 +810,13 @@ button.is-active:hover {
   --polaroid-thumb-height: 54px;
 }
 
+.polaroid-frame-btn.is-square {
+  --polaroid-preview-width: 76px;
+  --polaroid-preview-height: 76px;
+  --polaroid-thumb-width: 70px;
+  --polaroid-thumb-height: 70px;
+}
+
 .polaroid-frame-btn.is-active {
   color: #fff;
   background: #211620;
