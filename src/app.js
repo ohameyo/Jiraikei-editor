@@ -568,15 +568,21 @@ import {
       ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
       return;
     }
-    const topMatteHeight = Math.min(frameRect.height * 0.14, frameRect.height);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(frameRect.x, frameRect.y, frameRect.width, topMatteHeight);
-    ctx.clip();
-    ctx.globalAlpha = 0.78;
-    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
-    ctx.restore();
-    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+    const sourceCropY = 1;
+    const sourceWidth = frameImage.naturalWidth || frameImage.width;
+    const sourceHeightRaw = frameImage.naturalHeight || frameImage.height;
+    const sourceHeight = Math.max(1, sourceHeightRaw - sourceCropY);
+    ctx.drawImage(
+      frameImage,
+      0,
+      sourceCropY,
+      sourceWidth,
+      sourceHeight,
+      frameRect.x,
+      frameRect.y,
+      frameRect.width,
+      frameRect.height
+    );
   }
 
   const STICKER_IMAGE_CACHE = new Map();
