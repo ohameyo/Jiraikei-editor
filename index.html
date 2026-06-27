@@ -9,6 +9,27 @@
     <script>
       document.documentElement.classList.toggle("is-lab-build", window.location.hostname.includes("jirai-editor-ux-lab"));
     </script>
+    <script>
+      (() => {
+        const isEditableTarget = (target) => {
+          const element = target instanceof Element ? target : target?.parentElement;
+          return Boolean(element?.closest?.("input, textarea, select, [contenteditable='true']"));
+        };
+
+        const preventPageGesture = (event) => {
+          if (isEditableTarget(event.target)) return;
+          event.preventDefault();
+        };
+
+        document.addEventListener("gesturestart", preventPageGesture, { passive: false });
+        document.addEventListener("gesturechange", preventPageGesture, { passive: false });
+        document.addEventListener("gestureend", preventPageGesture, { passive: false });
+        document.addEventListener("touchmove", (event) => {
+          if (event.touches.length > 1 && !isEditableTarget(event.target)) event.preventDefault();
+        }, { passive: false });
+        document.addEventListener("dblclick", preventPageGesture, { passive: false });
+      })();
+    </script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
