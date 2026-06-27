@@ -861,6 +861,30 @@ import {
     };
   }
 
+  function getSourceCanvasSize(source, fallback = FIXED_CANVAS) {
+    return {
+      width: Math.max(1, Math.round(source?.naturalWidth || source?.width || fallback?.width || FIXED_CANVAS.width)),
+      height: Math.max(1, Math.round(source?.naturalHeight || source?.height || fallback?.height || FIXED_CANVAS.height)),
+    };
+  }
+
+  function getPolaroidPhotoCanvasSize(polaroid, fallbackCanvas) {
+    if (polaroid?.photoCanvasSize?.width && polaroid?.photoCanvasSize?.height) {
+      return getSourceCanvasSize(polaroid.photoCanvasSize, fallbackCanvas);
+    }
+    if (polaroid?.photoCanvas) return getSourceCanvasSize(polaroid.photoCanvas, fallbackCanvas);
+    return getSourceCanvasSize(fallbackCanvas, FIXED_CANVAS);
+  }
+
+  function createPolaroidPhotoRenderState(state) {
+    const photoCanvasSize = getPolaroidPhotoCanvasSize(state.polaroid, state.canvas);
+    return {
+      ...state,
+      canvas: photoCanvasSize,
+      polaroid: { enabled: false },
+    };
+  }
+
   function createHistorySnapshot(state) {
     return {
       image: {
@@ -890,6 +914,7 @@ import {
             frameOrientation: state.polaroid.frameOrientation || null,
             photoTransform: { ...(state.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
             photoCanvas: state.polaroid.photoCanvas || null,
+            photoCanvasSize: state.polaroid.photoCanvasSize ? { ...state.polaroid.photoCanvasSize } : null,
             baseSnapshot: state.polaroid.baseSnapshot || null,
           }
         : null,
@@ -933,6 +958,7 @@ import {
         frameOrientation: null,
         photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
         photoCanvas: null,
+        photoCanvasSize: null,
         baseSnapshot: null,
       },
       compareMode: false,
@@ -985,6 +1011,7 @@ import {
             frameOrientation: snapshot.polaroid.frameOrientation || null,
             photoTransform: { ...(snapshot.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
             photoCanvas: snapshot.polaroid.photoCanvas || null,
+            photoCanvasSize: snapshot.polaroid.photoCanvasSize ? { ...snapshot.polaroid.photoCanvasSize } : null,
             baseSnapshot: snapshot.polaroid.baseSnapshot || snapshot.polaroid.snapshot || null,
           }
         : {
@@ -993,6 +1020,7 @@ import {
             frameOrientation: null,
             photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
             photoCanvas: null,
+            photoCanvasSize: null,
             baseSnapshot: null,
           };
       state.compareMode = Boolean(snapshot.compareMode);
@@ -1094,6 +1122,7 @@ import {
           frameOrientation: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
+          photoCanvasSize: null,
           baseSnapshot: null,
         };
         state.compareMode = false;
@@ -1140,7 +1169,8 @@ import {
         if (presetId !== null) state.activePresetId = presetId;
         const changesOnlyPanelState = Object.keys(partial || {}).every((key) => key === 'hslActiveChannel');
         if (!changesOnlyPanelState && state.polaroid?.enabled && state.image.loaded) {
-          state.polaroid.photoCanvas = renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true).canvas;
+          state.polaroid.photoCanvas = renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true).canvas;
+          state.polaroid.photoCanvasSize = getSourceCanvasSize(state.polaroid.photoCanvas, state.polaroid.photoCanvasSize || state.canvas);
           if (state.polaroid.baseSnapshot) {
             state.polaroid.baseSnapshot = {
               ...state.polaroid.baseSnapshot,
@@ -1175,6 +1205,7 @@ import {
           frameOrientation: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
+          photoCanvasSize: null,
           baseSnapshot: null,
         };
         state.compareMode = false;
@@ -1266,6 +1297,12 @@ import {
       },
       setPolaroidMode(config) {
         pushHistory();
+        const frame = getPolaroidFrameConfig(config.frameId);
+        const baseSnapshot = createPolaroidBaseSnapshot(state);
+        const photoCanvasSize = getPolaroidPhotoCanvasSize(
+          { photoCanvas: config.photoCanvas, photoCanvasSize: config.photoCanvasSize },
+          state.canvas
+        );
         state.polaroid = {
           enabled: true,
           frameId: config.frameId,
@@ -1276,8 +1313,13 @@ import {
             offsetY: Number(config.photoTransform?.offsetY ?? 0),
           },
           photoCanvas: config.photoCanvas || null,
-          baseSnapshot: createPolaroidBaseSnapshot(state),
+          photoCanvasSize,
+          baseSnapshot,
         };
+        if (frame) {
+          state.canvas.width = frame.width;
+          state.canvas.height = frame.height;
+        }
         bumpToneRenderToken();
         notify();
       },
@@ -1291,6 +1333,7 @@ import {
           frameOrientation: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
+          photoCanvasSize: null,
           baseSnapshot: null,
         };
         resetPreviewRenderCache();
@@ -2832,8 +2875,9 @@ import {
     const frame = renderState.polaroid?.enabled ? getPolaroidFrameConfig(renderState.polaroid.frameId) : null;
     if (!frame) return null;
     const placement = getPolaroidPlacement(frame, canvasWidth, canvasHeight);
-    const sourceWidth = Math.max(1, renderState.polaroid.photoCanvas?.width || renderState.canvas?.width || canvasWidth || 1);
-    const sourceHeight = Math.max(1, renderState.polaroid.photoCanvas?.height || renderState.canvas?.height || canvasHeight || 1);
+    const photoCanvasSize = getPolaroidPhotoCanvasSize(renderState.polaroid, renderState.canvas);
+    const sourceWidth = Math.max(1, renderState.polaroid.photoCanvas?.width || photoCanvasSize.width || renderState.canvas?.width || canvasWidth || 1);
+    const sourceHeight = Math.max(1, renderState.polaroid.photoCanvas?.height || photoCanvasSize.height || renderState.canvas?.height || canvasHeight || 1);
     const normalized = clampPolaroidPhotoTransform(frame, sourceWidth, sourceHeight, renderState.polaroid.photoTransform);
     const scaleX = placement.photoRect.width / frame.photoWindow.width;
     const scaleY = placement.photoRect.height / frame.photoWindow.height;
@@ -6323,6 +6367,22 @@ import {
     title.textContent = getLayerDisplayName(selected, state);
     els.layerControls.appendChild(title);
 
+    const layerIndex = state.layers.findIndex((layer) => layer.id === selected.id);
+    const orderActions = document.createElement('div');
+    orderActions.className = 'inline-actions two-col';
+    const moveUpBtn = document.createElement('button');
+    moveUpBtn.type = 'button';
+    moveUpBtn.textContent = '上移图层';
+    moveUpBtn.disabled = layerIndex < 0 || layerIndex >= state.layers.length - 1;
+    moveUpBtn.onclick = () => store.moveLayer(selected.id, 1);
+    const moveDownBtn = document.createElement('button');
+    moveDownBtn.type = 'button';
+    moveDownBtn.textContent = '下移图层';
+    moveDownBtn.disabled = layerIndex <= 0;
+    moveDownBtn.onclick = () => store.moveLayer(selected.id, -1);
+    orderActions.append(moveUpBtn, moveDownBtn);
+    els.layerControls.appendChild(orderActions);
+
     if (selected.type !== 'mosaic') {
       pushSharedLayerControls(selected, els.layerControls);
     }
@@ -6713,6 +6773,7 @@ import {
     if (!hasLayers) return;
 
     [...state.layers].reverse().forEach((layer) => {
+      const layerIndex = state.layers.findIndex((item) => item.id === layer.id);
       const row = document.createElement('div');
       row.className = 'mobile-layer-row';
       if (state.selectedLayerId === layer.id) row.classList.add('selected');
@@ -6735,13 +6796,29 @@ import {
       toggleBtn.textContent = layer.visible ? '隐' : '显';
       toggleBtn.onclick = () => store.updateLayer(layer.id, { visible: !layer.visible }, true);
 
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.className = 'mobile-layer-action';
+      upBtn.textContent = '↑';
+      upBtn.title = '上移图层';
+      upBtn.disabled = layerIndex < 0 || layerIndex >= state.layers.length - 1;
+      upBtn.onclick = () => store.moveLayer(layer.id, 1);
+
+      const downBtn = document.createElement('button');
+      downBtn.type = 'button';
+      downBtn.className = 'mobile-layer-action';
+      downBtn.textContent = '↓';
+      downBtn.title = '下移图层';
+      downBtn.disabled = layerIndex <= 0;
+      downBtn.onclick = () => store.moveLayer(layer.id, -1);
+
       const deleteBtn = document.createElement('button');
       deleteBtn.type = 'button';
       deleteBtn.className = 'mobile-layer-action';
       deleteBtn.textContent = '×';
       deleteBtn.onclick = () => store.removeLayer(layer.id);
 
-      row.append(selectBtn, toggleBtn, deleteBtn);
+      row.append(selectBtn, toggleBtn, upBtn, downBtn, deleteBtn);
       els.mobileLayerMenu.appendChild(row);
     });
   }
@@ -7267,7 +7344,8 @@ import {
       els.polaroidConfirmBtn.onclick = () => {
         if (!polaroidEditor?.open) return;
         const state = store.getState();
-        const photoCanvas = renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true).canvas;
+        const photoCanvas = renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true).canvas;
+        const photoCanvasSize = getSourceCanvasSize(photoCanvas, state.canvas);
         const finalTransform = convertPolaroidTransformBetweenSources(polaroidEditor.transform, polaroidEditor.filteredImage || polaroidEditor.image, photoCanvas);
         const finalClampedTransform = clampPolaroidPhotoTransform(
           polaroidEditor.frame,
@@ -7284,6 +7362,7 @@ import {
             offsetY: finalClampedTransform.offsetY,
           },
           photoCanvas,
+          photoCanvasSize,
         });
         closePolaroidEditor();
       };
