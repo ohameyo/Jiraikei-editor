@@ -7365,8 +7365,29 @@ import {
       };
     }
     if (els.polaroidConfirmBtn) {
-      els.polaroidConfirmBtn.onclick = () => {
+      els.polaroidConfirmBtn.onclick = async () => {
         if (!polaroidEditor?.open) return;
+        const confirmBtn = els.polaroidConfirmBtn;
+        const originalText = confirmBtn.textContent;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '素材加载中';
+        const editor = polaroidEditor;
+        const frameImage = editor.frameImage || await loadPolaroidFrameImage(editor.frame.id).catch(() => null);
+        if (!polaroidEditor?.open || polaroidEditor.frame?.id !== editor.frame.id) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+          return;
+        }
+        if (!frameImage && !shouldDrawPolaroidPaperFallback(editor.frame)) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+          alert('相框素材加载失败，请重新点一次相框。');
+          return;
+        }
+        if (frameImage) {
+          polaroidEditor.frameImage = frameImage;
+          POLAROID_FRAME_CACHE.set(editor.frame.src, frameImage);
+        }
         const state = store.getState();
         const photoCanvas = renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true).canvas;
         const photoCanvasSize = getSourceCanvasSize(photoCanvas, state.canvas);

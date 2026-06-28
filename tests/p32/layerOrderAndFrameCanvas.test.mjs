@@ -80,3 +80,15 @@ test('compare before image uses the frame photo window instead of stretching to 
   assert.match(body, /drawPhotoIntoPolaroidWindow\(ctx, renderState\.image\.element, polaroidFrame, sourceTransform, placement\.photoRect\);/);
   assert.match(body, /convertPolaroidTransformBetweenSources\([\s\S]*?renderState\.polaroid\.photoCanvas \|\| renderState\.polaroid\.photoCanvasSize \|\| renderState\.canvas,[\s\S]*?renderState\.image\.element/);
 });
+
+test('confirming a texture frame waits for the frame asset before applying it', async () => {
+  const app = await readFile(appPath, 'utf8');
+  const start = app.indexOf('els.polaroidConfirmBtn.onclick');
+  const end = app.indexOf('if (els.polaroidCancelBtn)');
+  const body = app.slice(start, end);
+
+  assert.match(body, /els\.polaroidConfirmBtn\.onclick = async \(\) => \{/);
+  assert.match(body, /await loadPolaroidFrameImage\(editor\.frame\.id\)\.catch\(\(\) => null\)/);
+  assert.match(body, /if \(!frameImage && !shouldDrawPolaroidPaperFallback\(editor\.frame\)\) \{/);
+  assert.match(body, /POLAROID_FRAME_CACHE\.set\(editor\.frame\.src, frameImage\);/);
+});
