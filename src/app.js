@@ -5828,6 +5828,12 @@ import {
     updateRangeInputProgress(els.polaroidScaleInput);
   }
 
+  function resetPolaroidConfirmButton() {
+    if (!els.polaroidConfirmBtn) return;
+    els.polaroidConfirmBtn.disabled = false;
+    els.polaroidConfirmBtn.textContent = '确认';
+  }
+
   function openPolaroidEditor(frameOrientation) {
     const state = store.getState();
     if (!state.image.loaded || !state.image.element) {
@@ -5840,6 +5846,7 @@ import {
     primeProcessingBadgeForRender();
     els.polaroidModal?.classList.add('show');
     els.polaroidModal?.setAttribute('aria-hidden', 'false');
+    resetPolaroidConfirmButton();
     const sameActiveFrame = state.polaroid?.enabled && state.polaroid.frameId === frame.id;
     const baseSource = state.polaroid?.enabled && state.polaroid.photoCanvas ? state.polaroid.photoCanvas : state.image.element;
     const baseTransform = sameActiveFrame
@@ -5912,6 +5919,7 @@ import {
   }
 
   function closePolaroidEditor() {
+    resetPolaroidConfirmButton();
     polaroidEditor = null;
     els.polaroidModal?.classList.remove('show');
     els.polaroidModal?.setAttribute('aria-hidden', 'true');
@@ -7371,45 +7379,51 @@ import {
         const originalText = confirmBtn.textContent;
         confirmBtn.disabled = true;
         confirmBtn.textContent = '素材加载中';
-        const editor = polaroidEditor;
-        const frameImage = editor.frameImage || await loadPolaroidFrameImage(editor.frame.id).catch(() => null);
-        if (!polaroidEditor?.open || polaroidEditor.frame?.id !== editor.frame.id) {
-          confirmBtn.disabled = false;
-          confirmBtn.textContent = originalText;
-          return;
+        let didApply = false;
+        try {
+          const editor = polaroidEditor;
+          const frameImage = editor.frameImage || await loadPolaroidFrameImage(editor.frame.id).catch(() => null);
+          if (!polaroidEditor?.open || polaroidEditor.frame?.id !== editor.frame.id) return;
+          if (!frameImage && !shouldDrawPolaroidPaperFallback(editor.frame)) {
+            alert('相框素材加载失败，请重新点一次相框。');
+            return;
+          }
+          if (frameImage) {
+            polaroidEditor.frameImage = frameImage;
+            POLAROID_FRAME_CACHE.set(editor.frame.src, frameImage);
+          }
+          const state = store.getState();
+          const photoCanvas = renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true).canvas;
+          const photoCanvasSize = getSourceCanvasSize(photoCanvas, state.canvas);
+          const finalTransform = convertPolaroidTransformBetweenSources(polaroidEditor.transform, polaroidEditor.filteredImage || polaroidEditor.image, photoCanvas);
+          const finalClampedTransform = clampPolaroidPhotoTransform(
+            polaroidEditor.frame,
+            photoCanvas.width,
+            photoCanvas.height,
+            finalTransform
+          );
+          store.setPolaroidMode({
+            frameId: polaroidEditor.frame.id,
+            frameOrientation: Object.keys(POLAROID_FRAMES).find((key) => POLAROID_FRAMES[key].id === polaroidEditor.frame.id) || null,
+            photoTransform: {
+              scale: finalClampedTransform.scale,
+              offsetX: finalClampedTransform.offsetX,
+              offsetY: finalClampedTransform.offsetY,
+            },
+            photoCanvas,
+            photoCanvasSize,
+          });
+          didApply = true;
+          closePolaroidEditor();
+        } catch (error) {
+          console.error('Polaroid confirm failed:', error);
+          alert('相框应用失败，请重新点一次确认。');
+        } finally {
+          if (!didApply && confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+          }
         }
-        if (!frameImage && !shouldDrawPolaroidPaperFallback(editor.frame)) {
-          confirmBtn.disabled = false;
-          confirmBtn.textContent = originalText;
-          alert('相框素材加载失败，请重新点一次相框。');
-          return;
-        }
-        if (frameImage) {
-          polaroidEditor.frameImage = frameImage;
-          POLAROID_FRAME_CACHE.set(editor.frame.src, frameImage);
-        }
-        const state = store.getState();
-        const photoCanvas = renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true).canvas;
-        const photoCanvasSize = getSourceCanvasSize(photoCanvas, state.canvas);
-        const finalTransform = convertPolaroidTransformBetweenSources(polaroidEditor.transform, polaroidEditor.filteredImage || polaroidEditor.image, photoCanvas);
-        const finalClampedTransform = clampPolaroidPhotoTransform(
-          polaroidEditor.frame,
-          photoCanvas.width,
-          photoCanvas.height,
-          finalTransform
-        );
-        store.setPolaroidMode({
-          frameId: polaroidEditor.frame.id,
-          frameOrientation: Object.keys(POLAROID_FRAMES).find((key) => POLAROID_FRAMES[key].id === polaroidEditor.frame.id) || null,
-          photoTransform: {
-            scale: finalClampedTransform.scale,
-            offsetX: finalClampedTransform.offsetX,
-            offsetY: finalClampedTransform.offsetY,
-          },
-          photoCanvas,
-          photoCanvasSize,
-        });
-        closePolaroidEditor();
       };
     }
     if (els.polaroidCancelBtn) {

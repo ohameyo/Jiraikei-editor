@@ -91,4 +91,26 @@ test('confirming a texture frame waits for the frame asset before applying it', 
   assert.match(body, /await loadPolaroidFrameImage\(editor\.frame\.id\)\.catch\(\(\) => null\)/);
   assert.match(body, /if \(!frameImage && !shouldDrawPolaroidPaperFallback\(editor\.frame\)\) \{/);
   assert.match(body, /POLAROID_FRAME_CACHE\.set\(editor\.frame\.src, frameImage\);/);
+  assert.match(body, /try \{/);
+  assert.match(body, /finally \{/);
+  assert.match(body, /confirmBtn\.disabled = false;/);
+  assert.match(body, /confirmBtn\.textContent = originalText;/);
+});
+
+test('frame editor resets the confirm button when reopened or closed', async () => {
+  const app = await readFile(appPath, 'utf8');
+  const resetStart = app.indexOf('function resetPolaroidConfirmButton');
+  const resetEnd = app.indexOf('function openPolaroidEditor', resetStart);
+  const resetBody = app.slice(resetStart, resetEnd);
+  const openStart = app.indexOf('function openPolaroidEditor');
+  const openEnd = app.indexOf('function closePolaroidEditor', openStart);
+  const openBody = app.slice(openStart, openEnd);
+  const closeStart = app.indexOf('function closePolaroidEditor');
+  const closeEnd = app.indexOf('function renderPolaroidPanel', closeStart);
+  const closeBody = app.slice(closeStart, closeEnd);
+
+  assert.match(resetBody, /els\.polaroidConfirmBtn\.disabled = false;/);
+  assert.match(resetBody, /els\.polaroidConfirmBtn\.textContent = '确认';/);
+  assert.match(openBody, /resetPolaroidConfirmButton\(\);/);
+  assert.match(closeBody, /resetPolaroidConfirmButton\(\);/);
 });
