@@ -1459,45 +1459,51 @@ import {
     const regions = buildBlushRegions(faceBoxes, faceLandmarks, canvasWidth, canvasHeight);
     const region = regions[0];
     if (!region) return null;
+    const radius = Math.max(1, Math.min(region.rx, region.ry));
     return {
       regions,
-      left: { x: region.leftX, y: region.cy, rx: region.rx, ry: region.ry, enabled: true },
-      right: { x: region.rightX, y: region.cy, rx: region.rx, ry: region.ry, enabled: true },
+      left: { x: region.leftX, y: region.cy, rx: radius, ry: radius, enabled: true },
+      right: { x: region.rightX, y: region.cy, rx: radius, ry: radius, enabled: true },
     };
+  }
+
+  function makeCircularBlushControl(control) {
+    const radius = Math.max(1, Math.min(control.rx, control.ry));
+    return { ...control, rx: radius, ry: radius };
   }
 
   function getBlushControlsFromFilters(filters, canvasWidth, canvasHeight) {
     const controls = {
-      left: {
+      left: makeCircularBlushControl({
         x: clamp(Number(filters.blushLeftX ?? DEFAULT_FILTERS.blushLeftX), 0, 1) * canvasWidth,
         y: clamp(Number(filters.blushLeftY ?? 0.45), 0, 1) * canvasHeight,
         rx: clamp(Number(filters.blushLeftRX ?? DEFAULT_FILTERS.blushLeftRX), 0.01, 0.25) * canvasWidth,
         ry: clamp(Number(filters.blushLeftRY ?? DEFAULT_FILTERS.blushLeftRY), 0.01, 0.2) * canvasHeight,
         enabled: Number(filters.blushLeftEnabled ?? 1) > 0.5,
-      },
-      right: {
+      }),
+      right: makeCircularBlushControl({
         x: clamp(Number(filters.blushRightX ?? DEFAULT_FILTERS.blushRightX), 0, 1) * canvasWidth,
         y: clamp(Number(filters.blushRightY ?? 0.45), 0, 1) * canvasHeight,
         rx: clamp(Number(filters.blushRightRX ?? DEFAULT_FILTERS.blushRightRX), 0.01, 0.25) * canvasWidth,
         ry: clamp(Number(filters.blushRightRY ?? DEFAULT_FILTERS.blushRightRY), 0.01, 0.2) * canvasHeight,
         enabled: Number(filters.blushRightEnabled ?? 1) > 0.5,
-      },
+      }),
     };
     if (Number(filters.blushExtraEnabled ?? 0) > 0.5) {
-      controls.extraLeft = {
+      controls.extraLeft = makeCircularBlushControl({
         x: clamp(Number(filters.blushExtraLeftX ?? DEFAULT_FILTERS.blushExtraLeftX), 0, 1) * canvasWidth,
         y: clamp(Number(filters.blushExtraLeftY ?? DEFAULT_FILTERS.blushExtraLeftY), 0, 1) * canvasHeight,
         rx: clamp(Number(filters.blushExtraLeftRX ?? DEFAULT_FILTERS.blushExtraLeftRX), 0.01, 0.25) * canvasWidth,
         ry: clamp(Number(filters.blushExtraLeftRY ?? DEFAULT_FILTERS.blushExtraLeftRY), 0.01, 0.2) * canvasHeight,
         enabled: Number(filters.blushExtraLeftEnabled ?? 1) > 0.5,
-      };
-      controls.extraRight = {
+      });
+      controls.extraRight = makeCircularBlushControl({
         x: clamp(Number(filters.blushExtraRightX ?? DEFAULT_FILTERS.blushExtraRightX), 0, 1) * canvasWidth,
         y: clamp(Number(filters.blushExtraRightY ?? DEFAULT_FILTERS.blushExtraRightY), 0, 1) * canvasHeight,
         rx: clamp(Number(filters.blushExtraRightRX ?? DEFAULT_FILTERS.blushExtraRightRX), 0.01, 0.25) * canvasWidth,
         ry: clamp(Number(filters.blushExtraRightRY ?? DEFAULT_FILTERS.blushExtraRightRY), 0.01, 0.2) * canvasHeight,
         enabled: Number(filters.blushExtraRightEnabled ?? 1) > 0.5,
-      };
+      });
     }
     return controls;
   }
@@ -1513,13 +1519,18 @@ import {
     if (!controls) return [];
     if (Array.isArray(controls.regions) && controls.regions.length) {
       return controls.regions
-        .map((region) => ({
-          leftX: Number(region.leftX),
-          rightX: Number(region.rightX),
-          cy: Number(region.cy),
-          rx: Number(region.rx),
-          ry: Number(region.ry),
-        }))
+        .map((region) => {
+          const rx = Number(region.rx);
+          const ry = Number(region.ry);
+          const radius = Math.max(1, Math.min(rx, ry));
+          return {
+            leftX: Number(region.leftX),
+            rightX: Number(region.rightX),
+            cy: Number(region.cy),
+            rx: radius,
+            ry: radius,
+          };
+        })
         .filter((region) =>
           [region.leftX, region.rightX, region.cy, region.rx, region.ry].every(Number.isFinite) &&
           region.rx > 0 &&
@@ -2972,51 +2983,49 @@ import {
       ctx.rect(placement.frameRect.x, placement.frameRect.y, placement.frameRect.width, placement.frameRect.height);
       ctx.clip();
     }
-    const preMosaic = document.createElement('canvas');
-    preMosaic.width = ctx.canvas.width;
-    preMosaic.height = ctx.canvas.height;
-    preMosaic.getContext('2d').drawImage(ctx.canvas, 0, 0);
-
     renderState.layers
-      .filter((layer) => layer.visible && layer.id !== skipLayerId && layer.type === 'mosaic')
+      .filter((layer) => layer.visible && layer.id !== skipLayerId)
       .forEach((layer) => {
-        ctx.save();
-        ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
-        if (layer.variant === 'frosted') {
-          applyFrostedBlurMosaic(ctx, preMosaic, layer);
-        } else {
-          applyGridGlassMosaic(ctx, preMosaic, layer);
+        if (layer.type === 'mosaic') {
+          const preMosaic = document.createElement('canvas');
+          preMosaic.width = ctx.canvas.width;
+          preMosaic.height = ctx.canvas.height;
+          preMosaic.getContext('2d').drawImage(ctx.canvas, 0, 0);
+          ctx.save();
+          ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
+          if (layer.variant === 'frosted') {
+            applyFrostedBlurMosaic(ctx, preMosaic, layer);
+          } else {
+            applyGridGlassMosaic(ctx, preMosaic, layer);
+          }
+          ctx.restore();
+          return;
         }
-        ctx.restore();
-      });
 
-    renderState.layers
-      .filter((layer) => layer.visible && layer.id !== skipLayerId && layer.type === 'sticker')
-      .forEach((layer) => {
-        const metrics = getStickerMetrics(layer, ctx.canvas.width, ctx.canvas.height);
-        const w = metrics.w;
-        const h = metrics.h;
+        if (layer.type === 'sticker') {
+          const metrics = getStickerMetrics(layer, ctx.canvas.width, ctx.canvas.height);
+          const w = metrics.w;
+          const h = metrics.h;
+          const x = (layer.x ?? 0.5) * ctx.canvas.width;
+          const y = (layer.y ?? 0.5) * ctx.canvas.height;
+          const img = getStickerRenderImage(layer, renderState);
+          if (!isDrawableImage(img)) return;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(((layer.rotation ?? 0) * Math.PI) / 180);
+          ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+          ctx.restore();
+          return;
+        }
+
+        if (layer.type !== 'text') return;
+        ctx.save();
+        ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
         const x = (layer.x ?? 0.5) * ctx.canvas.width;
         const y = (layer.y ?? 0.5) * ctx.canvas.height;
-        const img = getStickerRenderImage(layer, renderState);
-        if (!isDrawableImage(img)) return;
-        ctx.save();
         ctx.translate(x, y);
         ctx.rotate(((layer.rotation ?? 0) * Math.PI) / 180);
-        ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
-        ctx.drawImage(img, -w / 2, -h / 2, w, h);
-        ctx.restore();
-      });
-
-    renderState.layers
-      .filter((layer) => layer.visible && layer.id !== skipLayerId && layer.type === 'text')
-      .forEach((layer) => {
-        const x = (layer.x ?? 0.5) * ctx.canvas.width;
-        const y = (layer.y ?? 0.5) * ctx.canvas.height;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(((layer.rotation ?? 0) * Math.PI) / 180);
-        ctx.globalAlpha = clamp(layer.opacity ?? 1, 0, 1);
         ctx.font = getCanvasTextFont(layer);
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
@@ -5817,7 +5826,7 @@ import {
     els.polaroidModal?.classList.add('show');
     els.polaroidModal?.setAttribute('aria-hidden', 'false');
     const sameActiveFrame = state.polaroid?.enabled && state.polaroid.frameId === frame.id;
-    const baseSource = sameActiveFrame && state.polaroid.photoCanvas ? state.polaroid.photoCanvas : state.image.element;
+    const baseSource = state.polaroid?.enabled && state.polaroid.photoCanvas ? state.polaroid.photoCanvas : state.image.element;
     const baseTransform = sameActiveFrame
       ? convertPolaroidTransformBetweenSources(state.polaroid.photoTransform, state.polaroid.photoCanvas || state.image.element, baseSource)
       : computeCoverTransform(baseSource.naturalWidth || baseSource.width, baseSource.naturalHeight || baseSource.height, frame.photoWindow.width, frame.photoWindow.height);
@@ -5855,7 +5864,7 @@ import {
       });
 
     Promise.resolve()
-      .then(() => renderToneBaseCanvas({ ...state, polaroid: { enabled: false } }, true, { usePreviewScale: true }).canvas)
+      .then(() => renderToneBaseCanvas(createPolaroidPhotoRenderState(state), true, { usePreviewScale: true }).canvas)
       .then((filteredImage) => {
         if (!polaroidEditor?.open || polaroidEditor.frame?.id !== frame.id) return;
         const previousSource = polaroidEditor.filteredImage || polaroidEditor.image;

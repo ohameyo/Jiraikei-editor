@@ -33,3 +33,38 @@ test('applying a frame resizes the edit canvas to the frame while preserving pho
   assert.match(app, /state\.polaroid\.photoCanvas = renderToneBaseCanvas\(createPolaroidPhotoRenderState\(state\), true\)\.canvas;/);
   assert.match(app, /state\.canvas\.width = frame\.width;\s*state\.canvas\.height = frame\.height;/);
 });
+
+test('switching frames while a frame is active keeps using the original photo source', async () => {
+  const app = await readFile(appPath, 'utf8');
+
+  assert.match(
+    app,
+    /const baseSource = state\.polaroid\?\.enabled && state\.polaroid\.photoCanvas \? state\.polaroid\.photoCanvas : state\.image\.element;/
+  );
+  assert.match(
+    app,
+    /\.then\(\(\) => renderToneBaseCanvas\(createPolaroidPhotoRenderState\(state\), true, \{ usePreviewScale: true \}\)\.canvas\)/
+  );
+});
+
+test('layer rendering follows the actual layer array order instead of type buckets', async () => {
+  const app = await readFile(appPath, 'utf8');
+  const start = app.indexOf('function drawLayerStack');
+  const end = app.indexOf('function renderEditedCanvas');
+  const body = app.slice(start, end);
+
+  assert.match(body, /renderState\.layers\s*\.\s*filter\(\(layer\) => layer\.visible && layer\.id !== skipLayerId\)/);
+  assert.doesNotMatch(body, /layer\.type === 'mosaic'\)\s*\.forEach/);
+  assert.doesNotMatch(body, /layer\.type === 'sticker'\)\s*\.forEach/);
+  assert.doesNotMatch(body, /layer\.type === 'text'\)\s*\.forEach/);
+});
+
+test('blush selections are normalized to circles across image ratios', async () => {
+  const app = await readFile(appPath, 'utf8');
+
+  assert.match(app, /function makeCircularBlushControl\(control\)/);
+  assert.match(app, /const radius = Math\.max\(1, Math\.min\(control\.rx, control\.ry\)\);/);
+  assert.match(app, /left: makeCircularBlushControl\(\{/);
+  assert.match(app, /right: makeCircularBlushControl\(\{/);
+  assert.match(app, /rx: radius,\s*ry: radius,/);
+});
