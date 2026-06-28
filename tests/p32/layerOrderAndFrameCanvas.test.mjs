@@ -68,3 +68,15 @@ test('blush selections are normalized to circles across image ratios', async () 
   assert.match(app, /right: makeCircularBlushControl\(\{/);
   assert.match(app, /rx: radius,\s*ry: radius,/);
 });
+
+test('compare before image uses the frame photo window instead of stretching to frame canvas', async () => {
+  const app = await readFile(appPath, 'utf8');
+  const start = app.indexOf('function renderOriginalCanvas');
+  const end = app.indexOf('function drawCanvasContain');
+  const body = app.slice(start, end);
+
+  assert.match(body, /const polaroidFrame = renderState\.polaroid\?\.enabled \? getPolaroidFrameConfig\(renderState\.polaroid\.frameId\) : null;/);
+  assert.match(body, /const placement = getPolaroidPlacement\(polaroidFrame, canvas\.width, canvas\.height\);/);
+  assert.match(body, /drawPhotoIntoPolaroidWindow\(ctx, renderState\.image\.element, polaroidFrame, sourceTransform, placement\.photoRect\);/);
+  assert.match(body, /convertPolaroidTransformBetweenSources\([\s\S]*?renderState\.polaroid\.photoCanvas \|\| renderState\.polaroid\.photoCanvasSize \|\| renderState\.canvas,[\s\S]*?renderState\.image\.element/);
+});

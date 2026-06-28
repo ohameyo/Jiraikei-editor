@@ -3083,6 +3083,21 @@ import {
     if (renderState.image.loaded && renderState.image.element) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = options.usePreviewScale ? 'medium' : 'high';
+      const polaroidFrame = renderState.polaroid?.enabled ? getPolaroidFrameConfig(renderState.polaroid.frameId) : null;
+      if (polaroidFrame) {
+        if (!transparent) {
+          ctx.fillStyle = '#f2ecf3';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        const placement = getPolaroidPlacement(polaroidFrame, canvas.width, canvas.height);
+        const sourceTransform = convertPolaroidTransformBetweenSources(
+          renderState.polaroid.photoTransform,
+          renderState.polaroid.photoCanvas || renderState.polaroid.photoCanvasSize || renderState.canvas,
+          renderState.image.element
+        );
+        drawPhotoIntoPolaroidWindow(ctx, renderState.image.element, polaroidFrame, sourceTransform, placement.photoRect);
+        return canvas;
+      }
       ctx.drawImage(renderState.image.element, 0, 0, canvas.width, canvas.height);
     }
     return canvas;
