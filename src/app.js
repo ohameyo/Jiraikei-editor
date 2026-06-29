@@ -1995,6 +1995,7 @@ import {
     const s = clamp(filters.saturation, 0, 1.8);
     const skinWhiten = clamp(filters.skinWhiten ?? 0, 0, 1);
     const blushStrength = clamp(filters.blushStrength ?? 0, 0, 1);
+    const manualBlushActive = Number(filters.blushManual ?? 0) > 0.5;
     const faceBoxes = vision.faceBoxes || [];
     const personMaskCanvas = null;
     const baseCtx = baseCanvas.getContext('2d');
@@ -2129,18 +2130,35 @@ import {
         }
       }
 
-      if (skinWhiten > 0 || blushStrength > 0) {
-        if (skinMask > 0.01) {
-          const faceContextWhitenScale = hasFaceBoxes ? 1 : 0.45;
-          const w = skinWhiten * faceWeight * faceContextWhitenScale;
-          r = lerp(r, 255, 0.2 * w);
-          g = lerp(g, 248, 0.18 * w);
-          bl = lerp(bl, 255, 0.22 * w);
-          const blush = blushStrength * faceWeight * getBlushRegionWeight(px, py, blushRegions);
-          r += 22 * blush;
-          g -= 5 * blush;
-          bl += 12 * blush;
-          g = lerp(g, (r + bl) * 0.5, 0.06 * w);
+      if (skinWhiten > 0 && skinMask > 0.01) {
+        const faceContextWhitenScale = hasFaceBoxes ? 1 : 0.45;
+        const w = skinWhiten * faceWeight * faceContextWhitenScale;
+        r = lerp(r, 255, 0.2 * w);
+        g = lerp(g, 248, 0.18 * w);
+        bl = lerp(bl, 255, 0.22 * w);
+        g = lerp(g, (r + bl) * 0.5, 0.06 * w);
+      }
+
+      if (blushStrength > 0) {
+        const blushRegionWeight = getBlushRegionWeight(px, py, blushRegions);
+        if (blushRegionWeight > 0.001) {
+          const originalChroma = (Math.max(or, og, ob) - Math.min(or, og, ob)) / 255;
+          const manualLumaMask = smoothstep(52, 112, oLuma) * (1 - smoothstep(230, 250, oLuma));
+          const manualChromaGuard = 1 - smoothstep(0.46, 0.72, originalChroma);
+          const manualRegionToneMask = clamp(
+            Math.max(skinAreaMask, manualLumaMask * manualChromaGuard * 0.42),
+            0,
+            1
+          );
+          const blushPlacementWeight = manualBlushActive
+            ? manualRegionToneMask
+            : skinMask;
+          const blush = blushStrength * blushPlacementWeight * blushRegionWeight;
+          if (blush > 0.001) {
+            r += 22 * blush;
+            g -= 5 * blush;
+            bl += 12 * blush;
+          }
         }
       }
       data[i] = clamp(r, 0, 255);

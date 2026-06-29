@@ -27,6 +27,39 @@ test('manual blush controls are converted into normalized WebGL blush regions', 
   assert.deepEqual(regions[1].map((value) => Number(value.toFixed(3))), [0.57, 0.83, 0.058, 0.036])
 })
 
+test('extra manual blush group is controlled by the same WebGL blush strength uniform', () => {
+  const renderer = new WebGLToneRenderer()
+  const regions = renderer.getPortraitToneUniforms({
+    blushManual: 1,
+    blushLeftEnabled: 1,
+    blushRightEnabled: 1,
+    blushLeftX: 0.34,
+    blushLeftY: 0.42,
+    blushLeftRX: 0.07,
+    blushLeftRY: 0.07,
+    blushRightX: 0.62,
+    blushRightY: 0.42,
+    blushRightRX: 0.07,
+    blushRightRY: 0.07,
+    blushExtraEnabled: 1,
+    blushExtraLeftEnabled: 1,
+    blushExtraRightEnabled: 1,
+    blushExtraLeftX: 0.22,
+    blushExtraLeftY: 0.68,
+    blushExtraLeftRX: 0.05,
+    blushExtraLeftRY: 0.05,
+    blushExtraRightX: 0.82,
+    blushExtraRightY: 0.68,
+    blushExtraRightRX: 0.05,
+    blushExtraRightRY: 0.05,
+  }).blushRegions
+
+  assert.equal(regions.length, 4)
+  assert.deepEqual(regions[2].map((value) => Number(value.toFixed(3))), [0.22, 0.32, 0.05, 0.05])
+  assert.deepEqual(regions[3].map((value) => Number(value.toFixed(3))), [0.82, 0.32, 0.05, 0.05])
+  assert.match(PASSTHROUGH_FRAGMENT_SHADER, /float blush = clamp\(u_blushStrength, 0\.0, 1\.0\) \* blushMask/)
+})
+
 test('face boxes are converted into cheek regions when blush is automatic', () => {
   const renderer = new WebGLToneRenderer()
   const uniforms = renderer.getPortraitToneUniforms(
