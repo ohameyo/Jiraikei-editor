@@ -175,6 +175,40 @@ test('material cms maps Feishu Bitable rows to existing formal material source k
   assert.equal(isMaterialVisible(buildMaterialCmsPayload([rows[2]]).items[Object.keys(buildMaterialCmsPayload([rows[2]]).items)[0]]), false);
 });
 
+test('material cms uses Feishu view row order as the display order', () => {
+  const rows = normalizeFeishuBitableRows([
+    {
+      record_id: 'recA',
+      中文显示名: '第一行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '1',
+      英文文件名: 'first.png',
+    },
+    {
+      record_id: 'recB',
+      中文显示名: '第二行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '',
+      英文文件名: 'second.png',
+    },
+    {
+      record_id: 'recC',
+      中文显示名: '第三行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '2',
+      英文文件名: 'third.png',
+    },
+  ]);
+
+  assert.deepEqual(rows.map((row) => row.排序), [1, 2, 3]);
+});
+
 test('material cms leaves new Feishu rows without manual material id as additions', () => {
   const [row] = normalizeFeishuBitableRows([
     {

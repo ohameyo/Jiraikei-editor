@@ -185,7 +185,7 @@ export function feishuRecordListToRows(envelope) {
 
 export function normalizeFeishuBitableRows(rowsOrEnvelope) {
   const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
-  return rows.map((row) => {
+  return rows.map((row, index) => {
     const type = normalizeFeishuSelect(row.一级分类 || row.类型);
     const group = normalizeFeishuGroup(type, row.二级分类 || row.分组);
     const fileName = toText(row.英文文件名 || row.素材文件);
@@ -196,7 +196,7 @@ export function normalizeFeishuBitableRows(rowsOrEnvelope) {
       类型: type,
       分组: group,
       状态: normalizeFeishuSelect(row.状态),
-      排序: row.排序,
+      排序: index + 1,
       素材文件: fileName,
       预览图: previewPath,
       作者: toText(row.作者),
