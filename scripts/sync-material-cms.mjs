@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   buildMaterialCmsPayload,
   feishuRecordListToRows,
+  getFeishuMaterialIdBackfills,
   normalizeFeishuBitableRows,
   parseFeishuBaseUrl,
 } from '../src/materialCms.js';
@@ -206,14 +207,47 @@ async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, 
   }
 }
 
+async function backfillFeishuMaterialIds({ rows, baseToken, tableId, larkCli, idMap }) {
+  const backfills = getFeishuMaterialIdBackfills(rows, idMap);
+  for (const backfill of backfills) {
+    // --backfill-material-ids uses lark-cli base +record-upsert because each row needs a different material id.
+    await runLarkCli(larkCli, [
+      'base',
+      '+record-upsert',
+      '--base-token',
+      baseToken,
+      '--table-id',
+      tableId,
+      '--record-id',
+      backfill.recordId,
+      '--json',
+      JSON.stringify({ 素材ID: backfill.materialId }),
+      '--format',
+      'json',
+      '--as',
+      'user',
+    ]);
+  }
+  return backfills;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const idMapPath = resolve(repoRoot, args['id-map'] || 'data/material-cms-id-map.json');
   const outPath = resolve(repoRoot, args.out || 'src/materialCmsData.js');
+  const existingIdMap = await readJsonIfExists(idMapPath, {});
   let rows;
   let feishuSource = null;
   if (args['feishu-url']) {
     feishuSource = await fetchFeishuRows(args);
+    if (args['backfill-material-ids']) {
+      const backfills = await backfillFeishuMaterialIds({
+        ...feishuSource,
+        idMap: existingIdMap,
+      });
+      console.log(`Backfilled ${backfills.length} missing material IDs.`);
+      if (backfills.length) feishuSource = await fetchFeishuRows(args);
+    }
     rows = feishuSource.normalizedRows;
     if (args['download-assets']) {
       await downloadFeishuAssets({
@@ -226,7 +260,6 @@ async function main() {
     const source = await readFile(inputPath, 'utf8');
     rows = parseRows(source, inputPath);
   }
-  const existingIdMap = await readJsonIfExists(idMapPath, {});
   const payload = buildMaterialCmsPayload(rows, existingIdMap);
 
   await mkdir(dirname(outPath), { recursive: true });

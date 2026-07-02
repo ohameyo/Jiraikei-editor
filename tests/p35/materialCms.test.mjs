@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildMaterialCmsPayload,
   findMaterialCmsOverride,
+  getFeishuMaterialIdBackfills,
   getNewCmsMaterials,
   isMaterialVisible,
   normalizeFeishuBitableRows,
@@ -209,10 +210,11 @@ test('material cms uses Feishu view row order as the display order', () => {
   assert.deepEqual(rows.map((row) => row.排序), [1, 2, 3]);
 });
 
-test('material cms leaves new Feishu rows without manual material id as additions', () => {
+test('material cms leaves generated Feishu material ids as additions', () => {
   const [row] = normalizeFeishuBitableRows([
     {
       record_id: 'recNew',
+      素材ID: 'mat-sticker-fixed',
       中文显示名: '新增黑蝴蝶',
       一级分类: ['贴纸'],
       二级分类: ['挡脸贴纸'],
@@ -228,6 +230,33 @@ test('material cms leaves new Feishu rows without manual material id as addition
   assert.match(item.id, /^mat-sticker-/);
   assert.equal(item.src, './assets/user_stickers/black-bow.png');
   assert.deepEqual(getNewCmsMaterials(payload.items, 'sticker').map((newItem) => newItem.title), ['新增黑蝴蝶']);
+});
+
+test('material cms creates Feishu material id backfills for blank material ids', () => {
+  const backfills = getFeishuMaterialIdBackfills([
+    {
+      record_id: 'recFilled',
+      素材ID: 'lab-face-cover-sel_01-png',
+      中文显示名: '已有 ID',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'sel_01.png',
+    },
+    {
+      record_id: 'recBlank',
+      素材ID: '',
+      中文显示名: '新增贴纸',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'new.png',
+    },
+  ]);
+
+  assert.equal(backfills.length, 1);
+  assert.equal(backfills[0].recordId, 'recBlank');
+  assert.match(backfills[0].materialId, /^mat-sticker-[a-z0-9]+$/);
 });
 
 test('material cms parses Feishu Bitable URL parameters', () => {

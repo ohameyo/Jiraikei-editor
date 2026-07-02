@@ -142,7 +142,7 @@ function inferFeishuSourceKey(row) {
   const type = normalizeFeishuSelect(row.一级分类 || row.类型);
   const group = normalizeFeishuSelect(row.二级分类 || row.分组);
   const fileName = toText(row.英文文件名 || row.素材文件);
-  if (!materialId) return '';
+  if (!materialId || !materialId.startsWith('lab-')) return '';
   if (type === '贴纸' && fileName) {
     return group === '手绘贴纸' ? `sticker:hand-drawn:${fileName}` : `sticker:user:${fileName}`;
   }
@@ -362,4 +362,16 @@ export function buildMaterialCmsPayload(rows, existingIdMap = {}) {
     if (item) items[item.id] = item;
   });
   return { items, idMap };
+}
+
+export function getFeishuMaterialIdBackfills(rowsOrEnvelope, existingIdMap = {}) {
+  const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
+  const normalizedRows = normalizeFeishuBitableRows(rows);
+  return rows.map((row, index) => {
+    if (toText(row.素材ID)) return null;
+    const recordId = toText(row.record_id);
+    if (!recordId) return null;
+    const materialId = createMaterialStableId(normalizedRows[index], existingIdMap, index);
+    return { recordId, materialId };
+  }).filter(Boolean);
 }
