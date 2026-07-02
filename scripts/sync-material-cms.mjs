@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { copyFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -136,22 +136,27 @@ function localAssetTarget(path) {
   if (!path) return '';
   const cleanPath = String(path).replace(/^\.\//, '');
   if (!cleanPath.startsWith('assets/')) return '';
-  return resolve(repoRoot, cleanPath);
+  return cleanPath;
 }
 
 function materialAssetTargets(row) {
   const fileName = String(row.素材文件 || '').trim();
-  if (!fileName) return [];
+  const previewPath = String(row.预览图 || '').trim();
+  const fallbackFileName = fileName || basename(previewPath);
+  const normalizedPreviewPath = localAssetTarget(previewPath);
+  const previewTarget = normalizedPreviewPath || (fallbackFileName ? `assets/sticker_previews/user/${fallbackFileName}` : '');
+  const framePreviewTarget = normalizedPreviewPath || (fallbackFileName ? `assets/polaroid_frame_previews/${fallbackFileName}` : '');
+  if (!fallbackFileName) return [];
   if (row.类型 === '贴纸') {
     return [
-      `assets/user_stickers/${fileName}`,
-      row.预览图 || `assets/sticker_previews/user/${fileName}`,
+      `assets/user_stickers/${fallbackFileName}`,
+      previewTarget,
     ];
   }
   if (row.类型 === '相框') {
     return [
-      `assets/polaroid_frames/${fileName}`,
-      row.预览图 || `assets/polaroid_frame_previews/${fileName}`,
+      `assets/polaroid_frames/${fallbackFileName}`,
+      framePreviewTarget,
     ];
   }
   return [];
@@ -168,8 +173,9 @@ async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, 
       .filter(Boolean);
     const [sourceTarget, ...copyTargets] = targets;
     if (!sourceTarget) continue;
-    await mkdir(dirname(sourceTarget), { recursive: true });
-    if (overwrite || !existsSync(sourceTarget)) {
+    const sourcePath = resolve(repoRoot, sourceTarget);
+    await mkdir(dirname(sourcePath), { recursive: true });
+    if (overwrite || !existsSync(sourcePath)) {
       // Downloads attachments with lark-cli base +record-download-attachment.
       await runLarkCli(larkCli, [
         'base',
@@ -192,9 +198,10 @@ async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, 
       ]);
     }
     for (const copyTarget of copyTargets) {
-      if (copyTarget === sourceTarget || (!overwrite && existsSync(copyTarget))) continue;
-      await mkdir(dirname(copyTarget), { recursive: true });
-      await copyFile(sourceTarget, copyTarget);
+      const copyPath = resolve(repoRoot, copyTarget);
+      if (copyTarget === sourceTarget || (!overwrite && existsSync(copyPath))) continue;
+      await mkdir(dirname(copyPath), { recursive: true });
+      await copyFile(sourcePath, copyPath);
     }
   }
 }

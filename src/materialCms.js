@@ -52,6 +52,7 @@ function toText(value) {
 }
 
 function toNumber(value, fallback = 0) {
+  if (value === undefined || value === null || String(value).trim() === '') return fallback;
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
@@ -317,9 +318,11 @@ export function normalizeMaterialRow(row, index = 0, idMap = {}) {
   if (sourceKey) item.sourceKey = sourceKey;
 
   if (type === 'sticker') {
+    const stickerSrc = readField(row, FIELD_ALIASES.src);
+    const stickerPreviewSrc = readField(row, FIELD_ALIASES.previewSrc);
     item.packId = group || 'user-pack';
-    item.src = normalizeAssetPath(readField(row, FIELD_ALIASES.src), type);
-    item.previewSrc = normalizeAssetPath(readField(row, FIELD_ALIASES.previewSrc) || readField(row, FIELD_ALIASES.src), type, 'preview');
+    item.src = normalizeAssetPath(stickerSrc || stickerPreviewSrc, type);
+    item.previewSrc = normalizeAssetPath(stickerPreviewSrc || stickerSrc, type, 'preview');
   }
 
   if (type === 'frame') {
