@@ -45,6 +45,24 @@ test('material cms generates a stable id from the Feishu row id across renames',
   assert.equal(renamed.items[generatedId].sortOrder, 1);
 });
 
+test('material cms preserves explicit Feishu material ids across table rebuilds', () => {
+  const payload = buildMaterialCmsPayload([
+    {
+      record_id: 'recRebuilt',
+      素材ID: 'mat-sticker-existing',
+      名称: '重建后的素材',
+      类型: '贴纸',
+      状态: '上架',
+      网页展示顺序: '8',
+      素材文件: 'rebuilt.png',
+    },
+  ]);
+
+  assert.deepEqual(Object.keys(payload.items), ['mat-sticker-existing']);
+  assert.equal(payload.items['mat-sticker-existing'].sortOrder, 8);
+  assert.equal(payload.idMap['feishu:recRebuilt'], 'mat-sticker-existing');
+});
+
 test('material cms normalizes new sticker, frame, and text rows for static app data', () => {
   const payload = buildMaterialCmsPayload([
     {
@@ -177,7 +195,7 @@ test('material cms maps Feishu Bitable rows to existing formal material source k
   assert.equal(isMaterialVisible(buildMaterialCmsPayload([rows[2]]).items[Object.keys(buildMaterialCmsPayload([rows[2]]).items)[0]]), false);
 });
 
-test('material cms uses Feishu view row order as the display order', () => {
+test('material cms uses website display order with row-order fallback', () => {
   const rows = normalizeFeishuBitableRows([
     {
       record_id: 'recA',
@@ -186,6 +204,7 @@ test('material cms uses Feishu view row order as the display order', () => {
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '1',
+      网页展示顺序: '8',
       英文文件名: 'first.png',
     },
     {
@@ -204,11 +223,12 @@ test('material cms uses Feishu view row order as the display order', () => {
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '2',
+      网页展示顺序: '3',
       英文文件名: 'third.png',
     },
   ]);
 
-  assert.deepEqual(rows.map((row) => row.排序), [1, 2, 3]);
+  assert.deepEqual(rows.map((row) => row.排序), [8, 2, 3]);
 });
 
 test('material cms leaves generated Feishu material ids as additions', () => {
@@ -260,7 +280,7 @@ test('material cms creates Feishu material id backfills for blank material ids',
   assert.match(backfills[0].materialId, /^mat-sticker-[a-z0-9]+$/);
 });
 
-test('material cms creates Feishu field backfills for blank ids and stale sort values', () => {
+test('material cms creates Feishu field backfills for blank ids and stale website display order values', () => {
   const backfills = getFeishuMaterialFieldBackfills([
     {
       record_id: 'recOne',
@@ -270,6 +290,7 @@ test('material cms creates Feishu field backfills for blank ids and stale sort v
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '1',
+      网页展示顺序: '1',
     },
     {
       record_id: 'recTwo',
@@ -279,6 +300,7 @@ test('material cms creates Feishu field backfills for blank ids and stale sort v
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '',
+      网页展示顺序: '',
     },
     {
       record_id: 'recThree',
@@ -288,13 +310,14 @@ test('material cms creates Feishu field backfills for blank ids and stale sort v
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '2',
+      网页展示顺序: '2',
     },
   ]);
 
   assert.deepEqual(backfills.map((item) => item.recordId), ['recTwo', 'recThree']);
   assert.match(backfills[0].patch.素材ID, /^mat-sticker-[a-z0-9]+$/);
-  assert.equal(backfills[0].patch.排序, 2);
-  assert.deepEqual(backfills[1].patch, { 排序: 3 });
+  assert.equal(backfills[0].patch.网页展示顺序, 2);
+  assert.deepEqual(backfills[1].patch, { 网页展示顺序: 3 });
 });
 
 test('material cms parses Feishu Bitable URL parameters', () => {

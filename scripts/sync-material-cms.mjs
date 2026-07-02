@@ -93,10 +93,55 @@ async function runLarkCli(larkCli, args) {
   return JSON.parse(stdout);
 }
 
+async function ensureFeishuMaterialFields({ baseToken, tableId, larkCli }) {
+  const result = await runLarkCli(larkCli, [
+    'base',
+    '+field-list',
+    '--base-token',
+    baseToken,
+    '--table-id',
+    tableId,
+    '--format',
+    'json',
+    '--as',
+    'user',
+  ]);
+  const fields = result?.data?.fields || [];
+  const names = new Set(fields.map((field) => field.name));
+  if (!names.has('网页展示顺序')) {
+    await runLarkCli(larkCli, [
+      'base',
+      '+field-create',
+      '--base-token',
+      baseToken,
+      '--table-id',
+      tableId,
+      '--json',
+      JSON.stringify({
+        name: '网页展示顺序',
+        type: 'number',
+        style: {
+          type: 'plain',
+          precision: 0,
+          thousands_separator: false,
+          percentage: false,
+        },
+      }),
+      '--format',
+      'json',
+      '--as',
+      'user',
+    ]);
+  }
+}
+
 async function fetchFeishuRows(args) {
   const { baseToken, tableId, viewId } = parseFeishuBaseUrl(args['feishu-url']);
   if (!baseToken || !tableId) throw new Error('Invalid --feishu-url: missing base token or table id.');
   const larkCli = resolveLarkCli(args);
+  if (args['no-ensure-material-fields'] !== true) {
+    await ensureFeishuMaterialFields({ baseToken, tableId, larkCli });
+  }
   const allRows = [];
   let offset = 0;
   let hasMore = true;

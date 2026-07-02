@@ -2,8 +2,8 @@
 // Do not edit by hand; run scripts/sync-material-cms.mjs.
 
 export const MATERIAL_CMS_ITEMS = {
-  "mat-sticker-gwqu9k": {
-    "id": "mat-sticker-gwqu9k",
+  "lab-face-cover-face-cover-lace-heart-png": {
+    "id": "lab-face-cover-face-cover-lace-heart-png",
     "title": "猫嘴",
     "type": "sticker",
     "group": "face-cover",
@@ -15,8 +15,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/face-cover-lace-heart.png",
     "previewSrc": "./assets/sticker_previews/user/face-cover-lace-heart.png"
   },
-  "mat-sticker-1cnwf3b": {
-    "id": "mat-sticker-1cnwf3b",
+  "lab-face-cover-sel_01-png": {
+    "id": "lab-face-cover-sel_01-png",
     "title": "GAME OVER",
     "type": "sticker",
     "group": "face-cover",
@@ -28,8 +28,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_01.png",
     "previewSrc": "./assets/sticker_previews/user/sel_01.png"
   },
-  "mat-sticker-gf9szz": {
-    "id": "mat-sticker-gf9szz",
+  "lab-face-cover-sel_03-png": {
+    "id": "lab-face-cover-sel_03-png",
     "title": "secret",
     "type": "sticker",
     "group": "face-cover",
@@ -113,8 +113,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/微信图片_20260702014116_516_13.png",
     "previewSrc": "./assets/sticker_previews/user/微信图片_20260702014116_516_13.png"
   },
-  "mat-sticker-1u4s0ms": {
-    "id": "mat-sticker-1u4s0ms",
+  "lab-face-cover-sel_08-png": {
+    "id": "lab-face-cover-sel_08-png",
     "title": "きらい",
     "type": "sticker",
     "group": "face-cover",
@@ -126,8 +126,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_08.png",
     "previewSrc": "./assets/sticker_previews/user/sel_08.png"
   },
-  "mat-sticker-m1cqxp": {
-    "id": "mat-sticker-m1cqxp",
+  "lab-face-cover-sel_09-png": {
+    "id": "lab-face-cover-sel_09-png",
     "title": "天使光环",
     "type": "sticker",
     "group": "face-cover",
@@ -139,8 +139,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_09.png",
     "previewSrc": "./assets/sticker_previews/user/sel_09.png"
   },
-  "mat-sticker-1n3urnj": {
-    "id": "mat-sticker-1n3urnj",
+  "lab-face-cover-sel_12-png": {
+    "id": "lab-face-cover-sel_12-png",
     "title": "XXX",
     "type": "sticker",
     "group": "face-cover",
@@ -152,8 +152,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_12.png",
     "previewSrc": "./assets/sticker_previews/user/sel_12.png"
   },
-  "mat-sticker-1yeg2sp": {
-    "id": "mat-sticker-1yeg2sp",
+  "lab-face-cover-sel_13-png": {
+    "id": "lab-face-cover-sel_13-png",
     "title": "爱心点赞",
     "type": "sticker",
     "group": "face-cover",
@@ -165,8 +165,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_13.png",
     "previewSrc": "./assets/sticker_previews/user/sel_13.png"
   },
-  "mat-sticker-1j4bpwg": {
-    "id": "mat-sticker-1j4bpwg",
+  "lab-face-cover-deco_02-png": {
+    "id": "lab-face-cover-deco_02-png",
     "title": "みせないよ！",
     "type": "sticker",
     "group": "face-cover",
@@ -178,8 +178,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_02.png",
     "previewSrc": "./assets/sticker_previews/user/deco_02.png"
   },
-  "mat-sticker-1j2l3qc": {
-    "id": "mat-sticker-1j2l3qc",
+  "lab-face-cover-deco_08-png": {
+    "id": "lab-face-cover-deco_08-png",
     "title": "爱心十字架",
     "type": "sticker",
     "group": "face-cover",
@@ -191,8 +191,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_08.png",
     "previewSrc": "./assets/sticker_previews/user/deco_08.png"
   },
-  "mat-sticker-dvogph": {
-    "id": "mat-sticker-dvogph",
+  "lab-face-cover-sel_05-png": {
+    "id": "lab-face-cover-sel_05-png",
     "title": "すき气泡",
     "type": "sticker",
     "group": "face-cover",
@@ -204,8 +204,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_05.png",
     "previewSrc": "./assets/sticker_previews/user/sel_05.png"
   },
-  "mat-sticker-12ze4kk": {
-    "id": "mat-sticker-12ze4kk",
+  "lab-face-cover-sel_06-png": {
+    "id": "lab-face-cover-sel_06-png",
     "title": "爱心气泡",
     "type": "sticker",
     "group": "face-cover",
@@ -217,8 +217,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_06.png",
     "previewSrc": "./assets/sticker_previews/user/sel_06.png"
   },
-  "mat-sticker-j0br8f": {
-    "id": "mat-sticker-j0br8f",
+  "lab-face-cover-sel_04-png": {
+    "id": "lab-face-cover-sel_04-png",
     "title": "爱心死",
     "type": "sticker",
     "group": "face-cover",
@@ -230,8 +230,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_04.png",
     "previewSrc": "./assets/sticker_previews/user/sel_04.png"
   },
-  "mat-sticker-15celbn": {
-    "id": "mat-sticker-15celbn",
+  "lab-face-cover-sel_07-png": {
+    "id": "lab-face-cover-sel_07-png",
     "title": "が",
     "type": "sticker",
     "group": "face-cover",
@@ -243,8 +243,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_07.png",
     "previewSrc": "./assets/sticker_previews/user/sel_07.png"
   },
-  "mat-sticker-1cijra7": {
-    "id": "mat-sticker-1cijra7",
+  "lab-face-cover-sel_10-png": {
+    "id": "lab-face-cover-sel_10-png",
     "title": "I HATE U",
     "type": "sticker",
     "group": "face-cover",
@@ -256,8 +256,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_10.png",
     "previewSrc": "./assets/sticker_previews/user/sel_10.png"
   },
-  "mat-sticker-13ejray": {
-    "id": "mat-sticker-13ejray",
+  "lab-face-cover-sel_11-png": {
+    "id": "lab-face-cover-sel_11-png",
     "title": "secret",
     "type": "sticker",
     "group": "face-cover",
@@ -269,8 +269,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/sel_11.png",
     "previewSrc": "./assets/sticker_previews/user/sel_11.png"
   },
-  "mat-sticker-ju85ky": {
-    "id": "mat-sticker-ju85ky",
+  "lab-face-cover-deco_01-png": {
+    "id": "lab-face-cover-deco_01-png",
     "title": "みせないよ！",
     "type": "sticker",
     "group": "face-cover",
@@ -282,8 +282,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_01.png",
     "previewSrc": "./assets/sticker_previews/user/deco_01.png"
   },
-  "mat-sticker-1fdtsa3": {
-    "id": "mat-sticker-1fdtsa3",
+  "lab-face-cover-deco_03-png": {
+    "id": "lab-face-cover-deco_03-png",
     "title": "爱心十字架",
     "type": "sticker",
     "group": "face-cover",
@@ -295,8 +295,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_03.png",
     "previewSrc": "./assets/sticker_previews/user/deco_03.png"
   },
-  "mat-sticker-kc9rug": {
-    "id": "mat-sticker-kc9rug",
+  "lab-face-cover-deco_04-png": {
+    "id": "lab-face-cover-deco_04-png",
     "title": "爱心绑带",
     "type": "sticker",
     "group": "face-cover",
@@ -308,8 +308,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_04.png",
     "previewSrc": "./assets/sticker_previews/user/deco_04.png"
   },
-  "mat-sticker-1uibli7": {
-    "id": "mat-sticker-1uibli7",
+  "lab-face-cover-deco_05-png": {
+    "id": "lab-face-cover-deco_05-png",
     "title": "爱心十字架",
     "type": "sticker",
     "group": "face-cover",
@@ -321,8 +321,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_05.png",
     "previewSrc": "./assets/sticker_previews/user/deco_05.png"
   },
-  "mat-sticker-1w15n12": {
-    "id": "mat-sticker-1w15n12",
+  "lab-face-cover-deco_06-png": {
+    "id": "lab-face-cover-deco_06-png",
     "title": "爱心十字架",
     "type": "sticker",
     "group": "face-cover",
@@ -334,8 +334,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_06.png",
     "previewSrc": "./assets/sticker_previews/user/deco_06.png"
   },
-  "mat-sticker-1pi01ui": {
-    "id": "mat-sticker-1pi01ui",
+  "lab-face-cover-deco_07-png": {
+    "id": "lab-face-cover-deco_07-png",
     "title": "爱心十字架",
     "type": "sticker",
     "group": "face-cover",
@@ -347,8 +347,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/deco_07.png",
     "previewSrc": "./assets/sticker_previews/user/deco_07.png"
   },
-  "mat-sticker-j5uuvp": {
-    "id": "mat-sticker-j5uuvp",
+  "lab-pink-frame": {
+    "id": "lab-pink-frame",
     "title": "粉色线框",
     "type": "sticker",
     "group": "hand-drawn",
@@ -360,8 +360,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-01.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-01.png"
   },
-  "mat-sticker-12ywne7": {
-    "id": "mat-sticker-12ywne7",
+  "lab-pink-ribbon": {
+    "id": "lab-pink-ribbon",
     "title": "粉色蝴蝶结",
     "type": "sticker",
     "group": "hand-drawn",
@@ -373,8 +373,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-02.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-02.png"
   },
-  "mat-sticker-1seunmu": {
-    "id": "mat-sticker-1seunmu",
+  "lab-pink-arrow": {
+    "id": "lab-pink-arrow",
     "title": "粉色箭头",
     "type": "sticker",
     "group": "hand-drawn",
@@ -386,8 +386,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-03.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-03.png"
   },
-  "mat-sticker-43x8zt": {
-    "id": "mat-sticker-43x8zt",
+  "lab-pink-bandage": {
+    "id": "lab-pink-bandage",
     "title": "粉色绑带",
     "type": "sticker",
     "group": "hand-drawn",
@@ -399,8 +399,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-04.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-04.png"
   },
-  "mat-sticker-165g8ik": {
-    "id": "mat-sticker-165g8ik",
+  "lab-pink-heart-wings": {
+    "id": "lab-pink-heart-wings",
     "title": "粉色爱心翅膀",
     "type": "sticker",
     "group": "hand-drawn",
@@ -412,8 +412,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-05.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-05.png"
   },
-  "mat-sticker-bsqw8u": {
-    "id": "mat-sticker-bsqw8u",
+  "lab-pink-glow-heart": {
+    "id": "lab-pink-glow-heart",
     "title": "粉色发光爱心",
     "type": "sticker",
     "group": "hand-drawn",
@@ -425,8 +425,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-06.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-06.png"
   },
-  "mat-sticker-1r0a6ze": {
-    "id": "mat-sticker-1r0a6ze",
+  "lab-pink-double-heart": {
+    "id": "lab-pink-double-heart",
     "title": "粉色双爱心",
     "type": "sticker",
     "group": "hand-drawn",
@@ -438,8 +438,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-07.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-07.png"
   },
-  "mat-sticker-1ayctfm": {
-    "id": "mat-sticker-1ayctfm",
+  "lab-pink-angel-text": {
+    "id": "lab-pink-angel-text",
     "title": "粉色天使字",
     "type": "sticker",
     "group": "hand-drawn",
@@ -451,8 +451,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-08.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-08.png"
   },
-  "mat-sticker-1lxcp15": {
-    "id": "mat-sticker-1lxcp15",
+  "lab-pink-sparkle-cross": {
+    "id": "lab-pink-sparkle-cross",
     "title": "粉色星星十字",
     "type": "sticker",
     "group": "hand-drawn",
@@ -464,8 +464,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-09.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-09.png"
   },
-  "mat-sticker-1ioslnl": {
-    "id": "mat-sticker-1ioslnl",
+  "lab-pink-suki": {
+    "id": "lab-pink-suki",
     "title": "粉色スキ",
     "type": "sticker",
     "group": "hand-drawn",
@@ -477,8 +477,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/hand-drawn-10.png",
     "previewSrc": "./assets/sticker_previews/hand_drawn/hand-drawn-10.png"
   },
-  "mat-frame-3bi9a": {
-    "id": "mat-frame-3bi9a",
+  "lab-portrait-clean": {
+    "id": "lab-portrait-clean",
     "title": "竖版拍立得",
     "type": "frame",
     "group": "frame",
@@ -490,8 +490,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/portrait-clean.png",
     "renderMode": "frame"
   },
-  "mat-frame-lcevv1": {
-    "id": "mat-frame-lcevv1",
+  "lab-landscape-clean": {
+    "id": "lab-landscape-clean",
     "title": "横版拍立得",
     "type": "frame",
     "group": "frame",
@@ -503,8 +503,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/landscape-clean.png",
     "renderMode": "frame"
   },
-  "mat-frame-1unh9n2": {
-    "id": "mat-frame-1unh9n2",
+  "lab-texture-band-square": {
+    "id": "lab-texture-band-square",
     "title": "1:1 蕾丝星星",
     "type": "frame",
     "group": "overlay",
@@ -516,8 +516,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-band-square.png",
     "renderMode": "texture"
   },
-  "mat-frame-1fasg1o": {
-    "id": "mat-frame-1fasg1o",
+  "lab-texture-band-vertical": {
+    "id": "lab-texture-band-vertical",
     "title": "竖版4:3 蕾丝星星",
     "type": "frame",
     "group": "overlay",
@@ -529,8 +529,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-band-vertical.png",
     "renderMode": "texture"
   },
-  "mat-frame-mfgnvt": {
-    "id": "mat-frame-mfgnvt",
+  "lab-texture-glow-square": {
+    "id": "lab-texture-glow-square",
     "title": "1:1 蕾丝爱心",
     "type": "frame",
     "group": "overlay",
@@ -542,8 +542,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-glow-square.png",
     "renderMode": "texture"
   },
-  "mat-frame-h2tkqg": {
-    "id": "mat-frame-h2tkqg",
+  "lab-texture-glow-vertical": {
+    "id": "lab-texture-glow-vertical",
     "title": "竖版4:3 蕾丝爱心",
     "type": "frame",
     "group": "overlay",
@@ -555,8 +555,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-glow-vertical.png",
     "renderMode": "texture"
   },
-  "mat-frame-1fe15ox": {
-    "id": "mat-frame-1fe15ox",
+  "lab-texture-charm-square": {
+    "id": "lab-texture-charm-square",
     "title": "1:1 韩系波点",
     "type": "frame",
     "group": "overlay",
@@ -568,8 +568,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-charm-square.png",
     "renderMode": "texture"
   },
-  "mat-frame-173cixb": {
-    "id": "mat-frame-173cixb",
+  "lab-texture-charm-vertical": {
+    "id": "lab-texture-charm-vertical",
     "title": "竖版4:3 韩系波点",
     "type": "frame",
     "group": "overlay",
@@ -581,8 +581,8 @@ export const MATERIAL_CMS_ITEMS = {
     "previewSrc": "./assets/polaroid_frame_previews/texture-charm-vertical.png",
     "renderMode": "texture"
   },
-  "mat-text-hj4l6h": {
-    "id": "mat-text-hj4l6h",
+  "lab-preset-copy-1": {
+    "id": "lab-preset-copy-1",
     "title": "今日の私、満点！",
     "type": "text",
     "group": "copy",
@@ -593,8 +593,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "今日の私、満点！",
     "style": {}
   },
-  "mat-text-vl753i": {
-    "id": "mat-text-vl753i",
+  "lab-preset-copy-2": {
+    "id": "lab-preset-copy-2",
     "title": "自分が一番かわいいかも！",
     "type": "text",
     "group": "copy",
@@ -605,8 +605,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "自分が一番かわいいかも！",
     "style": {}
   },
-  "mat-text-j7gm1p": {
-    "id": "mat-text-j7gm1p",
+  "lab-preset-copy-3": {
+    "id": "lab-preset-copy-3",
     "title": "世界一かわいい～",
     "type": "text",
     "group": "copy",
@@ -617,8 +617,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "世界一かわいい～",
     "style": {}
   },
-  "mat-text-gs6ms6": {
-    "id": "mat-text-gs6ms6",
+  "lab-preset-copy-4": {
+    "id": "lab-preset-copy-4",
     "title": "天才的にかわいい！",
     "type": "text",
     "group": "copy",
@@ -629,8 +629,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "天才的にかわいい！",
     "style": {}
   },
-  "mat-text-oco6ew": {
-    "id": "mat-text-oco6ew",
+  "lab-preset-copy-5": {
+    "id": "lab-preset-copy-5",
     "title": "かわいくてごめん～",
     "type": "text",
     "group": "copy",
@@ -641,8 +641,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "かわいくてごめん～",
     "style": {}
   },
-  "mat-text-1rrx9nm": {
-    "id": "mat-text-1rrx9nm",
+  "lab-preset-copy-6": {
+    "id": "lab-preset-copy-6",
     "title": "推しは最高！",
     "type": "text",
     "group": "copy",
@@ -653,8 +653,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "推しは最高！",
     "style": {}
   },
-  "mat-text-wiy71r": {
-    "id": "mat-text-wiy71r",
+  "lab-preset-copy-7": {
+    "id": "lab-preset-copy-7",
     "title": "推ししか勝たん！",
     "type": "text",
     "group": "copy",
@@ -665,8 +665,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "推ししか勝たん！",
     "style": {}
   },
-  "mat-text-1sivlny": {
-    "id": "mat-text-1sivlny",
+  "lab-preset-copy-8": {
+    "id": "lab-preset-copy-8",
     "title": "推ししか見えない",
     "type": "text",
     "group": "copy",
@@ -677,8 +677,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "推ししか見えない",
     "style": {}
   },
-  "mat-text-neh0ik": {
-    "id": "mat-text-neh0ik",
+  "lab-preset-copy-9": {
+    "id": "lab-preset-copy-9",
     "title": "推し依存症",
     "type": "text",
     "group": "copy",
@@ -689,8 +689,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "推し依存症",
     "style": {}
   },
-  "mat-text-13bi5a5": {
-    "id": "mat-text-13bi5a5",
+  "lab-preset-copy-10": {
+    "id": "lab-preset-copy-10",
     "title": "ずっと応援してるよ",
     "type": "text",
     "group": "copy",
@@ -701,8 +701,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "ずっと応援してるよ",
     "style": {}
   },
-  "mat-text-1dnv8rw": {
-    "id": "mat-text-1dnv8rw",
+  "lab-preset-copy-11": {
+    "id": "lab-preset-copy-11",
     "title": "推し大好きすぎる",
     "type": "text",
     "group": "copy",
@@ -713,8 +713,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "推し大好きすぎる",
     "style": {}
   },
-  "mat-text-10yp04w": {
-    "id": "mat-text-10yp04w",
+  "lab-kaomoji-1": {
+    "id": "lab-kaomoji-1",
     "title": ">w<",
     "type": "text",
     "group": "kaomoji",
@@ -724,8 +724,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": ">w<",
     "style": {}
   },
-  "mat-text-nbqdfs": {
-    "id": "mat-text-nbqdfs",
+  "lab-kaomoji-2": {
+    "id": "lab-kaomoji-2",
     "title": "T_T",
     "type": "text",
     "group": "kaomoji",
@@ -735,8 +735,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "T_T",
     "style": {}
   },
-  "mat-text-xssw8j": {
-    "id": "mat-text-xssw8j",
+  "lab-kaomoji-3": {
+    "id": "lab-kaomoji-3",
     "title": "( ᐡ. ̫ .ᐡ )",
     "type": "text",
     "group": "kaomoji",
@@ -746,8 +746,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "( ᐡ. ̫ .ᐡ )",
     "style": {}
   },
-  "mat-text-1xt72gm": {
-    "id": "mat-text-1xt72gm",
+  "lab-kaomoji-4": {
+    "id": "lab-kaomoji-4",
     "title": "(՞ ܸ. .ܸ՞)",
     "type": "text",
     "group": "kaomoji",
@@ -757,8 +757,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "(՞ ܸ. .ܸ՞)",
     "style": {}
   },
-  "mat-text-rcx2ot": {
-    "id": "mat-text-rcx2ot",
+  "lab-kaomoji-5": {
+    "id": "lab-kaomoji-5",
     "title": "♡⸜(˶˃ ᵕ ˂˶)⸝♡",
     "type": "text",
     "group": "kaomoji",
@@ -768,8 +768,8 @@ export const MATERIAL_CMS_ITEMS = {
     "content": "♡⸜(˶˃ ᵕ ˂˶)⸝♡",
     "style": {}
   },
-  "mat-text-1s4yjuu": {
-    "id": "mat-text-1s4yjuu",
+  "lab-kaomoji-6": {
+    "id": "lab-kaomoji-6",
     "title": "(っ ̫ -˘)",
     "type": "text",
     "group": "kaomoji",

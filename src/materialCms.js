@@ -17,11 +17,12 @@ const HIDDEN_STATUS = new Set(['下架', '隐藏', '禁用', '暂不上架', '�
 
 const FIELD_ALIASES = {
   recordId: ['record_id', 'recordId', '记录ID', '飞书记录ID', '行ID'],
+  materialId: ['素材ID', 'materialId', 'cmsId', 'id'],
   title: ['名称', '标题', '素材名称', 'title', 'name'],
   type: ['类型', '素材类型', 'type'],
   group: ['分组', '分类', 'group', 'packId', '贴纸包'],
   status: ['状态', '上下架', 'status'],
-  sortOrder: ['排序', '顺序', 'order', 'sortOrder'],
+  sortOrder: ['网页展示顺序', '展示顺序', '页面展示顺序', '排序', '顺序', 'order', 'sortOrder'],
   sourceKey: ['源素材Key', 'sourceKey', '替换素材', '替换Key'],
   src: ['素材文件', '素材路径', '文件名或资源路径', '资源路径', '图片', 'src', 'fileName'],
   previewSrc: ['预览图', '预览图路径', 'previewSrc'],
@@ -192,11 +193,12 @@ export function normalizeFeishuBitableRows(rowsOrEnvelope) {
     const previewPath = toText(row.预览图路径 || row.预览图);
     const normalized = {
       record_id: row.record_id,
+      素材ID: toText(row.素材ID),
       名称: toText(row.中文显示名 || row.名称 || row.素材ID),
       类型: type,
       分组: group,
       状态: normalizeFeishuSelect(row.状态),
-      排序: index + 1,
+      排序: toNumber(row.网页展示顺序, index + 1),
       素材文件: fileName,
       预览图: previewPath,
       作者: toText(row.作者),
@@ -291,6 +293,8 @@ export function getMaterialRecordKey(row, index = 0) {
 }
 
 export function createMaterialStableId(row, idMap = {}, index = 0) {
+  const materialId = toText(readField(row, FIELD_ALIASES.materialId));
+  if (materialId) return materialId;
   const type = normalizeMaterialType(readField(row, FIELD_ALIASES.type)) || 'item';
   const recordKey = getMaterialRecordKey(row, index);
   if (idMap[recordKey]) return idMap[recordKey];
@@ -384,8 +388,8 @@ export function getFeishuMaterialFieldBackfills(rowsOrEnvelope, existingIdMap = 
       patch.素材ID = createMaterialStableId(normalizedRows[index], existingIdMap, index);
     }
     const expectedSortOrder = index + 1;
-    if (toNumber(row.排序, 0) !== expectedSortOrder) {
-      patch.排序 = expectedSortOrder;
+    if (toNumber(row.网页展示顺序, 0) !== expectedSortOrder) {
+      patch.网页展示顺序 = expectedSortOrder;
     }
     if (!Object.keys(patch).length) return null;
     return { recordId, patch };
