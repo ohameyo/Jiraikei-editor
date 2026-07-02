@@ -365,13 +365,29 @@ export function buildMaterialCmsPayload(rows, existingIdMap = {}) {
 }
 
 export function getFeishuMaterialIdBackfills(rowsOrEnvelope, existingIdMap = {}) {
+  return getFeishuMaterialFieldBackfills(rowsOrEnvelope, existingIdMap)
+    .filter((backfill) => backfill.patch.素材ID)
+    .map((backfill) => ({
+      recordId: backfill.recordId,
+      materialId: backfill.patch.素材ID,
+    }));
+}
+
+export function getFeishuMaterialFieldBackfills(rowsOrEnvelope, existingIdMap = {}) {
   const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
   const normalizedRows = normalizeFeishuBitableRows(rows);
   return rows.map((row, index) => {
-    if (toText(row.素材ID)) return null;
     const recordId = toText(row.record_id);
     if (!recordId) return null;
-    const materialId = createMaterialStableId(normalizedRows[index], existingIdMap, index);
-    return { recordId, materialId };
+    const patch = {};
+    if (!toText(row.素材ID)) {
+      patch.素材ID = createMaterialStableId(normalizedRows[index], existingIdMap, index);
+    }
+    const expectedSortOrder = index + 1;
+    if (toNumber(row.排序, 0) !== expectedSortOrder) {
+      patch.排序 = expectedSortOrder;
+    }
+    if (!Object.keys(patch).length) return null;
+    return { recordId, patch };
   }).filter(Boolean);
 }

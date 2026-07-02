@@ -33,6 +33,8 @@ test('material cms sync script writes static app data and an id map', async () =
   assert.match(script, /parseCsv/);
   assert.match(script, /--feishu-url/);
   assert.match(script, /--backfill-material-ids/);
+  assert.match(script, /--no-backfill-material-fields/);
+  assert.match(script, /Backfilled \$\{backfills.length\} material rows/);
   assert.match(script, /base \+record-list/);
   assert.match(script, /base \+record-upsert/);
   assert.match(script, /record-download-attachment/);

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   buildMaterialCmsPayload,
   feishuRecordListToRows,
-  getFeishuMaterialIdBackfills,
+  getFeishuMaterialFieldBackfills,
   normalizeFeishuBitableRows,
   parseFeishuBaseUrl,
 } from '../src/materialCms.js';
@@ -207,10 +207,11 @@ async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, 
   }
 }
 
-async function backfillFeishuMaterialIds({ rows, baseToken, tableId, larkCli, idMap }) {
-  const backfills = getFeishuMaterialIdBackfills(rows, idMap);
+async function backfillFeishuMaterialFields({ rows, baseToken, tableId, larkCli, idMap }) {
+  const backfills = getFeishuMaterialFieldBackfills(rows, idMap);
   for (const backfill of backfills) {
-    // --backfill-material-ids uses lark-cli base +record-upsert because each row needs a different material id.
+    // --backfill-material-ids is kept as a legacy alias; --no-backfill-material-fields skips default writes.
+    // Uses lark-cli base +record-upsert because each row can need a different patch.
     await runLarkCli(larkCli, [
       'base',
       '+record-upsert',
@@ -221,7 +222,7 @@ async function backfillFeishuMaterialIds({ rows, baseToken, tableId, larkCli, id
       '--record-id',
       backfill.recordId,
       '--json',
-      JSON.stringify({ 素材ID: backfill.materialId }),
+      JSON.stringify(backfill.patch),
       '--format',
       'json',
       '--as',
@@ -240,12 +241,12 @@ async function main() {
   let feishuSource = null;
   if (args['feishu-url']) {
     feishuSource = await fetchFeishuRows(args);
-    if (args['backfill-material-ids']) {
-      const backfills = await backfillFeishuMaterialIds({
+    if (args['no-backfill-material-fields'] !== true) {
+      const backfills = await backfillFeishuMaterialFields({
         ...feishuSource,
         idMap: existingIdMap,
       });
-      console.log(`Backfilled ${backfills.length} missing material IDs.`);
+      console.log(`Backfilled ${backfills.length} material rows.`);
       if (backfills.length) feishuSource = await fetchFeishuRows(args);
     }
     rows = feishuSource.normalizedRows;

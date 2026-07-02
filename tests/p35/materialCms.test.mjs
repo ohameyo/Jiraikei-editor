@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildMaterialCmsPayload,
   findMaterialCmsOverride,
+  getFeishuMaterialFieldBackfills,
   getFeishuMaterialIdBackfills,
   getNewCmsMaterials,
   isMaterialVisible,
@@ -257,6 +258,43 @@ test('material cms creates Feishu material id backfills for blank material ids',
   assert.equal(backfills.length, 1);
   assert.equal(backfills[0].recordId, 'recBlank');
   assert.match(backfills[0].materialId, /^mat-sticker-[a-z0-9]+$/);
+});
+
+test('material cms creates Feishu field backfills for blank ids and stale sort values', () => {
+  const backfills = getFeishuMaterialFieldBackfills([
+    {
+      record_id: 'recOne',
+      素材ID: 'mat-sticker-one',
+      中文显示名: '第一行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '1',
+    },
+    {
+      record_id: 'recTwo',
+      素材ID: '',
+      中文显示名: '第二行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '',
+    },
+    {
+      record_id: 'recThree',
+      素材ID: 'mat-sticker-three',
+      中文显示名: '第三行',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '2',
+    },
+  ]);
+
+  assert.deepEqual(backfills.map((item) => item.recordId), ['recTwo', 'recThree']);
+  assert.match(backfills[0].patch.素材ID, /^mat-sticker-[a-z0-9]+$/);
+  assert.equal(backfills[0].patch.排序, 2);
+  assert.deepEqual(backfills[1].patch, { 排序: 3 });
 });
 
 test('material cms parses Feishu Bitable URL parameters', () => {
