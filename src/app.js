@@ -22,6 +22,16 @@ import {
 import {
   shouldAutoEnterManualBlushFallback,
 } from './interaction/portraitFallbackPolicy.js';
+import {
+  applyMaterialCmsOverride,
+  findMaterialCmsOverride,
+  getNewCmsMaterials,
+  isMaterialVisible,
+  sortMaterialItems,
+} from './materialCms.js';
+import {
+  MATERIAL_CMS_ITEMS,
+} from './materialCmsData.js';
 
 (function () {
   const FIXED_CANVAS = { width: 1080, height: 1350 };
@@ -345,7 +355,7 @@ import {
     { id: 'pink-suki', name: '粉色スキ', fileName: 'hand-drawn-10.png' },
   ];
 
-  const TEXT_PRESETS = [
+  const BASE_TEXT_PRESETS = [
     '今日の私、満点！',
     '自分が一番かわいいかも！',
     '世界一かわいい～',
@@ -376,6 +386,34 @@ import {
       textAlign: 'left',
     },
   }));
+  const TEXT_PRESETS = buildTextPresetsWithCms(BASE_TEXT_PRESETS);
+
+  function buildTextPresetsWithCms(basePresets) {
+    const base = basePresets.map((preset, index) => {
+      const sourceKey = `text:${preset.id}`;
+      const cms = findMaterialCmsOverride(MATERIAL_CMS_ITEMS, sourceKey);
+      const merged = applyMaterialCmsOverride(preset, MATERIAL_CMS_ITEMS, sourceKey, index + 1);
+      return {
+        ...merged,
+        name: cms?.title || cms?.content || merged.name,
+        content: cms?.content || cms?.title || merged.content,
+        style: {
+          ...(preset.style || {}),
+          ...(cms?.style || {}),
+        },
+      };
+    }).filter(isMaterialVisible);
+    const extra = getNewCmsMaterials(MATERIAL_CMS_ITEMS, 'text').map((item) => ({
+      id: item.id,
+      name: item.title || item.content,
+      content: item.content || item.title,
+      fontId: item.fontId || 'mushin',
+      style: item.style || {},
+      status: item.status || '上架',
+      cmsSortOrder: item.sortOrder,
+    }));
+    return sortMaterialItems([...base, ...extra]);
+  }
 
   const TEXT_FONT_FALLBACK = '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", "PingFang SC", sans-serif';
   const TEXT_NO_STROKE_DEFAULT_COLOR = '#F168CB';
@@ -551,6 +589,70 @@ import {
       photoWindow: { x: 0, y: 0, width: 960, height: 1280 },
     },
   };
+
+  function getCmsFrameKey(item) {
+    return `cmsFrame${String(item.id || item.title || 'item').replace(/[^a-zA-Z0-9]+/g, '_')}`;
+  }
+
+  function normalizeCmsPhotoWindow(item) {
+    const width = Math.max(1, Number(item.width || 1280));
+    const height = Math.max(1, Number(item.height || 1280));
+    const photoWindow = item.photoWindow || {};
+    return {
+      x: Math.max(0, Number(photoWindow.x ?? 0)),
+      y: Math.max(0, Number(photoWindow.y ?? 0)),
+      width: Math.max(1, Number(photoWindow.width ?? width)),
+      height: Math.max(1, Number(photoWindow.height ?? height)),
+    };
+  }
+
+  function installCmsPolaroidFrames(frames) {
+    Object.entries(frames).forEach(([key, frame], index) => {
+      const cms = findMaterialCmsOverride(MATERIAL_CMS_ITEMS, `frame:${frame.id}`);
+      frames[key] = {
+        ...applyMaterialCmsOverride(frame, MATERIAL_CMS_ITEMS, `frame:${frame.id}`, index + 1),
+        src: cms?.src || frame.src,
+        previewSrc: cms?.previewSrc || frame.previewSrc,
+        width: Number(cms?.width || frame.width),
+        height: Number(cms?.height || frame.height),
+        previewShape: cms?.previewShape || frame.previewShape,
+        renderMode: cms?.renderMode || frame.renderMode,
+        photoWindow: cms?.photoWindow || frame.photoWindow,
+      };
+    });
+
+    getNewCmsMaterials(MATERIAL_CMS_ITEMS, 'frame').forEach((item) => {
+      if (!item.src) return;
+      frames[getCmsFrameKey(item)] = {
+        id: item.id,
+        name: item.title,
+        src: item.src,
+        previewSrc: item.previewSrc || item.src,
+        width: Math.max(1, Number(item.width || 1280)),
+        height: Math.max(1, Number(item.height || 1280)),
+        previewShape: item.previewShape,
+        renderMode: item.renderMode || 'texture',
+        photoWindow: normalizeCmsPhotoWindow(item),
+        status: item.status || '上架',
+        cmsSortOrder: item.sortOrder,
+      };
+    });
+  }
+
+  installCmsPolaroidFrames(POLAROID_FRAMES);
+
+  function getPolaroidFrameEntries() {
+    return sortMaterialItems(Object.entries(POLAROID_FRAMES)
+      .map(([orientation, frame], index) => ({
+        id: frame.id,
+        orientation,
+        frame,
+        status: frame.status || '上架',
+        cmsSortOrder: frame.cmsSortOrder ?? index + 1,
+      }))
+      .filter(isMaterialVisible))
+      .map((item) => [item.orientation, item.frame]);
+  }
 
   function getPolaroidFramePreviewClass(frame) {
     if (frame.previewShape) return `is-${frame.previewShape}`;
@@ -5051,7 +5153,7 @@ import {
   }
 
   function preloadPolaroidFrameImages() {
-    Object.values(POLAROID_FRAMES).forEach((frame) => {
+    getPolaroidFrameEntries().forEach(([, frame]) => {
       loadPolaroidFrameImage(frame.id).catch(() => {});
     });
   }
@@ -5544,26 +5646,72 @@ import {
     return String(layer?.name || '').replace(/^贴纸：(粉色|蓝色|黑色|红色|紫色)/, `贴纸：${color.title}`);
   }
 
+  function normalizeCmsStickerPackId(item, fallbackPackId = 'user-pack') {
+    const packId = item.packId || item.group || fallbackPackId;
+    if (packId === 'hand-drawn') return HAND_DRAWN_PACK_ID;
+    if (packId === 'face-cover') return 'user-pack';
+    return packId;
+  }
+
+  function applyStickerCms(sticker, sourceKey, fallbackSort) {
+    const cms = findMaterialCmsOverride(MATERIAL_CMS_ITEMS, sourceKey);
+    const merged = applyMaterialCmsOverride(sticker, MATERIAL_CMS_ITEMS, sourceKey, fallbackSort);
+    return {
+      ...merged,
+      name: cms?.title || merged.name,
+      src: cms?.src ? resolveAssetUrl(cms.src, cms.version || USER_STICKER_VERSION) : sticker.src,
+      fallbackSrc: cms?.fallbackSrc ? resolveAssetUrl(cms.fallbackSrc) : sticker.fallbackSrc,
+      previewSrc: cms?.previewSrc ? resolveAssetUrl(cms.previewSrc, cms.previewVersion || cms.version || STICKER_PREVIEW_VERSION) : sticker.previewSrc,
+      previewFallbackSrc: cms?.previewFallbackSrc ? resolveAssetUrl(cms.previewFallbackSrc) : sticker.previewFallbackSrc,
+      packId: normalizeCmsStickerPackId(cms || sticker, sticker.packId || 'user-pack'),
+      previewCrop: Boolean(cms?.previewCrop ?? sticker.previewCrop),
+    };
+  }
+
+  function buildCmsStickerItems(packId) {
+    return getNewCmsMaterials(MATERIAL_CMS_ITEMS, 'sticker')
+      .filter((item) => normalizeCmsStickerPackId(item) === packId)
+      .filter((item) => item.src)
+      .map((item) => ({
+        id: item.id,
+        name: item.title,
+        src: resolveAssetUrl(item.src, item.version || USER_STICKER_VERSION),
+        fallbackSrc: item.fallbackSrc ? resolveAssetUrl(item.fallbackSrc) : resolveAssetUrl(item.src),
+        previewSrc: resolveAssetUrl(item.previewSrc || item.src, item.previewVersion || item.version || STICKER_PREVIEW_VERSION),
+        previewFallbackSrc: item.previewFallbackSrc ? resolveAssetUrl(item.previewFallbackSrc) : resolveAssetUrl(item.src),
+        packId,
+        status: item.status || '上架',
+        cmsSortOrder: item.sortOrder,
+        previewCrop: Boolean(item.previewCrop),
+      }));
+  }
+
   function buildPixelStickerPack() {
-    const stickers = USER_STICKER_FILES.map((fileName, index) => ({
-      id: `user-${index + 1}`,
-      name: `贴纸 ${index + 1}`,
-      src: resolveAssetUrl(`./assets/user_stickers/${fileName}`, USER_STICKER_VERSION),
-      fallbackSrc: resolveAssetUrl(`./assets/user_stickers/${fileName}`),
-      previewSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`, STICKER_PREVIEW_VERSION),
-      previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`),
-      packId: 'user-pack',
-    }));
-    const handDrawnStickers = HAND_DRAWN_STICKERS.map((sticker) => ({
-      id: `hand-drawn-${sticker.id}`,
-      name: sticker.name,
-      src: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`, HAND_DRAWN_STICKER_VERSION),
-      fallbackSrc: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`),
-      previewSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`, STICKER_PREVIEW_VERSION),
-      previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`),
-      packId: HAND_DRAWN_PACK_ID,
-      previewCrop: Boolean(sticker.previewCrop),
-    }));
+    const stickers = sortMaterialItems([
+      ...USER_STICKER_FILES.map((fileName, index) => applyStickerCms({
+        id: `user-${index + 1}`,
+        name: `贴纸 ${index + 1}`,
+        src: resolveAssetUrl(`./assets/user_stickers/${fileName}`, USER_STICKER_VERSION),
+        fallbackSrc: resolveAssetUrl(`./assets/user_stickers/${fileName}`),
+        previewSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`, STICKER_PREVIEW_VERSION),
+        previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/user/${fileName}`),
+        packId: 'user-pack',
+      }, `sticker:user:${fileName}`, index + 1)),
+      ...buildCmsStickerItems('user-pack'),
+    ].filter(isMaterialVisible));
+    const handDrawnStickers = sortMaterialItems([
+      ...HAND_DRAWN_STICKERS.map((sticker, index) => applyStickerCms({
+        id: `hand-drawn-${sticker.id}`,
+        name: sticker.name,
+        src: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`, HAND_DRAWN_STICKER_VERSION),
+        fallbackSrc: resolveAssetUrl(`./assets/hand_drawn_stickers/${sticker.fileName}`),
+        previewSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`, STICKER_PREVIEW_VERSION),
+        previewFallbackSrc: resolveAssetUrl(`./assets/sticker_previews/hand_drawn/${sticker.fileName}`),
+        packId: HAND_DRAWN_PACK_ID,
+        previewCrop: Boolean(sticker.previewCrop),
+      }, `sticker:hand-drawn:${sticker.fileName}`, index + 1)),
+      ...buildCmsStickerItems(HAND_DRAWN_PACK_ID),
+    ].filter(isMaterialVisible));
     stickerPacks = [
       ...(stickers.length ? [{ id: 'user-pack', name: '地雷系装饰贴纸', stickers }] : []),
       { id: HAND_DRAWN_PACK_ID, name: '手绘风格贴纸', stickers: handDrawnStickers },
@@ -5947,7 +6095,7 @@ import {
     if (!els.polaroidFrameList) return;
     els.polaroidFrameList.innerHTML = '';
 
-    Object.entries(POLAROID_FRAMES).forEach(([orientation, frame]) => {
+    getPolaroidFrameEntries().forEach(([orientation, frame]) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'polaroid-frame-btn';
