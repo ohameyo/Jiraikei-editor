@@ -13,7 +13,7 @@ const TYPE_ALIASES = new Map([
   ['text', 'text'],
 ]);
 
-const HIDDEN_STATUS = new Set(['下架', '隐藏', '禁用', '否', 'false', 'off', 'disabled', '0']);
+const HIDDEN_STATUS = new Set(['下架', '隐藏', '禁用', '暂不上架', '待替换', '否', 'false', 'off', 'disabled', '0']);
 
 const FIELD_ALIASES = {
   recordId: ['record_id', 'recordId', '记录ID', '飞书记录ID', '行ID'],
@@ -111,10 +111,104 @@ function normalizeAssetPath(value, type, kind = 'src') {
   return path;
 }
 
+function withoutExtension(fileName) {
+  return String(fileName || '').replace(/\.[^.]+$/, '');
+}
+
+function normalizeFeishuSelect(value) {
+  return toText(value);
+}
+
+function normalizeFeishuGroup(type, group) {
+  const groupText = normalizeFeishuSelect(group);
+  if (type === '贴纸') {
+    if (groupText === '手绘贴纸') return 'hand-drawn';
+    if (groupText === '挡脸贴纸') return 'face-cover';
+  }
+  if (type === '文字') {
+    if (groupText === '颜文字') return 'kaomoji';
+    if (groupText === '文案') return 'copy';
+  }
+  if (type === '相框') {
+    if (groupText === '覆膜') return 'overlay';
+    if (groupText === '相框') return 'frame';
+  }
+  return groupText;
+}
+
+function inferFeishuSourceKey(row) {
+  const materialId = toText(row.素材ID);
+  const type = normalizeFeishuSelect(row.一级分类 || row.类型);
+  const group = normalizeFeishuSelect(row.二级分类 || row.分组);
+  const fileName = toText(row.英文文件名 || row.素材文件);
+  if (!materialId) return '';
+  if (type === '贴纸' && fileName) {
+    return group === '手绘贴纸' ? `sticker:hand-drawn:${fileName}` : `sticker:user:${fileName}`;
+  }
+  if (type === '相框' && fileName) {
+    return `frame:${withoutExtension(fileName)}`;
+  }
+  const presetMatch = materialId.match(/^lab-(preset-copy-\d+)$/);
+  if (type === '文字' && presetMatch) return `text:${presetMatch[1]}`;
+  return '';
+}
+
 export function normalizeMaterialType(value) {
   const key = String(value || '').trim();
   if (!key) return '';
   return TYPE_ALIASES.get(key) || TYPE_ALIASES.get(key.toLowerCase()) || key;
+}
+
+export function parseFeishuBaseUrl(url) {
+  const parsed = new URL(url);
+  const parts = parsed.pathname.split('/').filter(Boolean);
+  const baseIndex = parts.indexOf('base');
+  const baseToken = baseIndex >= 0 ? parts[baseIndex + 1] : '';
+  return {
+    baseToken,
+    tableId: parsed.searchParams.get('table') || '',
+    viewId: parsed.searchParams.get('view') || '',
+  };
+}
+
+export function feishuRecordListToRows(envelope) {
+  const data = envelope?.data || envelope;
+  const fields = data?.fields || [];
+  const records = data?.data || [];
+  const recordIds = data?.record_id_list || [];
+  return records.map((cells, rowIndex) => ({
+    record_id: recordIds[rowIndex] || '',
+    ...Object.fromEntries(fields.map((field, cellIndex) => [field, cells[cellIndex] ?? ''])),
+  }));
+}
+
+export function normalizeFeishuBitableRows(rowsOrEnvelope) {
+  const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
+  return rows.map((row) => {
+    const type = normalizeFeishuSelect(row.一级分类 || row.类型);
+    const group = normalizeFeishuGroup(type, row.二级分类 || row.分组);
+    const fileName = toText(row.英文文件名 || row.素材文件);
+    const previewPath = toText(row.预览图路径 || row.预览图);
+    const normalized = {
+      record_id: row.record_id,
+      名称: toText(row.中文显示名 || row.名称 || row.素材ID),
+      类型: type,
+      分组: group,
+      状态: normalizeFeishuSelect(row.状态),
+      排序: row.排序,
+      素材文件: fileName,
+      预览图: previewPath,
+      作者: toText(row.作者),
+      sourceKey: inferFeishuSourceKey(row),
+    };
+    if (type === '相框') {
+      normalized.模式 = normalizeFeishuSelect(row.二级分类) === '相框' ? '相框' : '覆膜';
+    }
+    if (type === '文字') {
+      normalized.文案 = toText(row.中文显示名 || row.文案 || row.素材ID);
+    }
+    return normalized;
+  });
 }
 
 export function isMaterialVisible(item) {
@@ -229,16 +323,21 @@ export function normalizeMaterialRow(row, index = 0, idMap = {}) {
   }
 
   if (type === 'frame') {
-    const width = toNumber(readField(row, FIELD_ALIASES.width), 1280);
-    const height = toNumber(readField(row, FIELD_ALIASES.height), 1280);
+    const widthField = readField(row, FIELD_ALIASES.width);
+    const heightField = readField(row, FIELD_ALIASES.height);
+    const hasExplicitGeometry = widthField !== '' || heightField !== '';
+    const width = toNumber(widthField, 1280);
+    const height = toNumber(heightField, 1280);
     const mode = toText(readField(row, FIELD_ALIASES.mode));
     item.src = normalizeAssetPath(readField(row, FIELD_ALIASES.src), type);
     item.previewSrc = normalizeAssetPath(readField(row, FIELD_ALIASES.previewSrc) || readField(row, FIELD_ALIASES.src), type, 'preview');
-    item.width = width;
-    item.height = height;
-    item.previewShape = toText(readField(row, FIELD_ALIASES.previewShape)) || (Math.abs(width - height) < 8 ? 'square' : width < height ? 'portrait' : 'landscape');
     item.renderMode = mode === '相框' || mode === 'frame' ? 'frame' : 'texture';
-    item.photoWindow = { x: 0, y: 0, width, height };
+    if (!sourceKey || hasExplicitGeometry) {
+      item.width = width;
+      item.height = height;
+      item.previewShape = toText(readField(row, FIELD_ALIASES.previewShape)) || (Math.abs(width - height) < 8 ? 'square' : width < height ? 'portrait' : 'landscape');
+      item.photoWindow = { x: 0, y: 0, width, height };
+    }
   }
 
   if (type === 'text') {

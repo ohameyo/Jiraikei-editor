@@ -6,6 +6,8 @@ import {
   findMaterialCmsOverride,
   getNewCmsMaterials,
   isMaterialVisible,
+  normalizeFeishuBitableRows,
+  parseFeishuBaseUrl,
   sortMaterialItems,
 } from '../../src/materialCms.js';
 
@@ -122,5 +124,85 @@ test('material cms exposes new active materials and source-key overrides in disp
       { id: 'middle', sortOrder: 3 },
     ]).map((item) => item.id),
     ['first', 'middle', 'fallback']
+  );
+});
+
+test('material cms maps Feishu Bitable rows to existing formal material source keys', () => {
+  const rows = normalizeFeishuBitableRows([
+    {
+      record_id: 'recSticker',
+      素材ID: 'lab-face-cover-sel_01-png',
+      中文显示名: 'GAME OVER',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      筛选分类: ['最新', '热门'],
+      状态: ['上架'],
+      排序: '2',
+      英文文件名: 'sel_01.png',
+      预览图路径: 'assets/sticker_previews/user/sel_01.png',
+    },
+    {
+      record_id: 'recFrame',
+      素材ID: 'lab-texture-band-square',
+      中文显示名: '1:1 蕾丝星星',
+      一级分类: ['相框'],
+      二级分类: ['覆膜'],
+      状态: ['上架'],
+      排序: '34',
+      英文文件名: 'texture-band-square.png',
+    },
+    {
+      record_id: 'recText',
+      素材ID: 'lab-preset-copy-1',
+      中文显示名: '今日の私、満点！',
+      一级分类: ['文字'],
+      二级分类: ['文案'],
+      状态: ['暂不上架'],
+      排序: '40',
+    },
+  ]);
+
+  assert.equal(rows[0].sourceKey, 'sticker:user:sel_01.png');
+  assert.equal(rows[0].类型, '贴纸');
+  assert.equal(rows[0].分组, 'face-cover');
+  assert.equal(rows[1].sourceKey, 'frame:texture-band-square');
+  assert.equal(rows[1].模式, '覆膜');
+  assert.equal(rows[2].sourceKey, 'text:preset-copy-1');
+  const framePayload = buildMaterialCmsPayload([rows[1]]);
+  const frameItem = Object.values(framePayload.items)[0];
+  assert.equal(frameItem.photoWindow, undefined);
+  assert.equal(frameItem.width, undefined);
+  assert.equal(isMaterialVisible(buildMaterialCmsPayload([rows[2]]).items[Object.keys(buildMaterialCmsPayload([rows[2]]).items)[0]]), false);
+});
+
+test('material cms leaves new Feishu rows without manual material id as additions', () => {
+  const [row] = normalizeFeishuBitableRows([
+    {
+      record_id: 'recNew',
+      中文显示名: '新增黑蝴蝶',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      排序: '99',
+      英文文件名: 'black-bow.png',
+    },
+  ]);
+  const payload = buildMaterialCmsPayload([row]);
+  const [item] = Object.values(payload.items);
+
+  assert.equal(row.sourceKey, '');
+  assert.match(item.id, /^mat-sticker-/);
+  assert.equal(item.src, './assets/user_stickers/black-bow.png');
+  assert.deepEqual(getNewCmsMaterials(payload.items, 'sticker').map((newItem) => newItem.title), ['新增黑蝴蝶']);
+});
+
+test('material cms parses Feishu Bitable URL parameters', () => {
+  assert.deepEqual(
+    parseFeishuBaseUrl('https://fcnc3levok4u.feishu.cn/base/A3cwb8VDaaaAECsA8wOc3gGKnFh?table=tbl8ZzFHh80OGPAh&view=vewqRL5IBF'),
+    {
+      baseToken: 'A3cwb8VDaaaAECsA8wOc3gGKnFh',
+      tableId: 'tbl8ZzFHh80OGPAh',
+      viewId: 'vewqRL5IBF',
+    }
   );
 });

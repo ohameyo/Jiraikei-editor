@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { copyFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-import { buildMaterialCmsPayload } from '../src/materialCms.js';
+import {
+  buildMaterialCmsPayload,
+  feishuRecordListToRows,
+  normalizeFeishuBitableRows,
+  parseFeishuBaseUrl,
+} from '../src/materialCms.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const execFileAsync = promisify(execFile);
 
 function parseArgs(argv) {
   const args = {};
@@ -54,6 +63,7 @@ export function parseCsv(text) {
 function parseRows(source, path) {
   if (path.endsWith('.csv')) return parseCsv(source);
   const parsed = JSON.parse(source);
+  if (parsed?.data?.fields && parsed?.data?.data) return normalizeFeishuBitableRows(parsed);
   if (Array.isArray(parsed)) return parsed;
   if (Array.isArray(parsed.records)) return parsed.records;
   if (Array.isArray(parsed.rows)) return parsed.rows;
@@ -69,13 +79,146 @@ function serializeData(items) {
   return `// Generated from the Feishu Bitable material CMS.\n// Do not edit by hand; run scripts/sync-material-cms.mjs.\n\nexport const MATERIAL_CMS_ITEMS = ${JSON.stringify(items, null, 2)};\n`;
 }
 
+function resolveLarkCli(args) {
+  if (args['lark-cli']) return resolve(repoRoot, args['lark-cli']);
+  if (process.env.LARK_CLI) return process.env.LARK_CLI;
+  const localSibling = resolve(repoRoot, '../.lark-cli/node_modules/.bin/lark-cli');
+  if (existsSync(localSibling)) return localSibling;
+  return 'lark-cli';
+}
+
+async function runLarkCli(larkCli, args) {
+  const { stdout } = await execFileAsync(larkCli, args, { maxBuffer: 20 * 1024 * 1024 });
+  return JSON.parse(stdout);
+}
+
+async function fetchFeishuRows(args) {
+  const { baseToken, tableId, viewId } = parseFeishuBaseUrl(args['feishu-url']);
+  if (!baseToken || !tableId) throw new Error('Invalid --feishu-url: missing base token or table id.');
+  const larkCli = resolveLarkCli(args);
+  const allRows = [];
+  let offset = 0;
+  let hasMore = true;
+  while (hasMore) {
+    // Reads records with lark-cli base +record-list.
+    const result = await runLarkCli(larkCli, [
+      'base',
+      '+record-list',
+      '--base-token',
+      baseToken,
+      '--table-id',
+      tableId,
+      ...(viewId ? ['--view-id', viewId] : []),
+      '--limit',
+      '200',
+      '--offset',
+      String(offset),
+      '--format',
+      'json',
+      '--as',
+      'user',
+    ]);
+    const rows = feishuRecordListToRows(result);
+    allRows.push(...rows);
+    hasMore = Boolean(result?.data?.has_more);
+    offset += rows.length;
+    if (!rows.length) break;
+  }
+  return { rows: allRows, normalizedRows: normalizeFeishuBitableRows(allRows), baseToken, tableId, larkCli };
+}
+
+function firstAttachmentToken(value) {
+  const item = Array.isArray(value) ? value[0] : value;
+  return item?.file_token || '';
+}
+
+function localAssetTarget(path) {
+  if (!path) return '';
+  const cleanPath = String(path).replace(/^\.\//, '');
+  if (!cleanPath.startsWith('assets/')) return '';
+  return resolve(repoRoot, cleanPath);
+}
+
+function materialAssetTargets(row) {
+  const fileName = String(row.素材文件 || '').trim();
+  if (!fileName) return [];
+  if (row.类型 === '贴纸') {
+    return [
+      `assets/user_stickers/${fileName}`,
+      row.预览图 || `assets/sticker_previews/user/${fileName}`,
+    ];
+  }
+  if (row.类型 === '相框') {
+    return [
+      `assets/polaroid_frames/${fileName}`,
+      row.预览图 || `assets/polaroid_frame_previews/${fileName}`,
+    ];
+  }
+  return [];
+}
+
+async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, larkCli, overwrite = false }) {
+  for (let index = 0; index < normalizedRows.length; index += 1) {
+    const sourceRow = rows[index] || {};
+    const row = normalizedRows[index];
+    const token = firstAttachmentToken(sourceRow.预览图);
+    if (!token) continue;
+    const targets = materialAssetTargets(row)
+      .map(localAssetTarget)
+      .filter(Boolean);
+    const [sourceTarget, ...copyTargets] = targets;
+    if (!sourceTarget) continue;
+    await mkdir(dirname(sourceTarget), { recursive: true });
+    if (overwrite || !existsSync(sourceTarget)) {
+      // Downloads attachments with lark-cli base +record-download-attachment.
+      await runLarkCli(larkCli, [
+        'base',
+        '+record-download-attachment',
+        '--base-token',
+        baseToken,
+        '--table-id',
+        tableId,
+        '--record-id',
+        sourceRow.record_id,
+        '--file-token',
+        token,
+        '--output',
+        sourceTarget,
+        '--overwrite',
+        '--format',
+        'json',
+        '--as',
+        'user',
+      ]);
+    }
+    for (const copyTarget of copyTargets) {
+      if (copyTarget === sourceTarget || (!overwrite && existsSync(copyTarget))) continue;
+      await mkdir(dirname(copyTarget), { recursive: true });
+      await copyFile(sourceTarget, copyTarget);
+    }
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const inputPath = args.input ? resolve(repoRoot, args.input) : resolve(repoRoot, 'data/material-cms-source.json');
   const idMapPath = resolve(repoRoot, args['id-map'] || 'data/material-cms-id-map.json');
   const outPath = resolve(repoRoot, args.out || 'src/materialCmsData.js');
-  const source = await readFile(inputPath, 'utf8');
-  const rows = parseRows(source, inputPath);
+  let rows;
+  let feishuSource = null;
+  if (args['feishu-url']) {
+    feishuSource = await fetchFeishuRows(args);
+    rows = feishuSource.normalizedRows;
+    if (args['download-assets']) {
+      await downloadFeishuAssets({
+        ...feishuSource,
+        overwrite: Boolean(args['overwrite-assets']),
+      });
+    }
+  } else {
+    const inputPath = args.input ? resolve(repoRoot, args.input) : resolve(repoRoot, 'data/material-cms-source.json');
+    const source = await readFile(inputPath, 'utf8');
+    rows = parseRows(source, inputPath);
+  }
   const existingIdMap = await readJsonIfExists(idMapPath, {});
   const payload = buildMaterialCmsPayload(rows, existingIdMap);
 

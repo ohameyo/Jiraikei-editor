@@ -31,5 +31,8 @@ test('material cms sync script writes static app data and an id map', async () =
   assert.match(script, /material-cms-id-map\.json/);
   assert.match(script, /src\/materialCmsData\.js/);
   assert.match(script, /parseCsv/);
+  assert.match(script, /--feishu-url/);
+  assert.match(script, /base \+record-list/);
+  assert.match(script, /record-download-attachment/);
   assert.match(script, /fileURLToPath\(import\.meta\.url\) === resolve\(process\.argv\[1\]\)/);
 });
