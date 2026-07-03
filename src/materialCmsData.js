@@ -117,7 +117,7 @@ export const MATERIAL_CMS_ITEMS = {
   },
   "mat-sticker-10pslce": {
     "id": "mat-sticker-10pslce",
-    "title": "みせないよ！",
+    "title": "みせられないよ！",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
@@ -129,7 +129,7 @@ export const MATERIAL_CMS_ITEMS = {
   },
   "mat-sticker-n7nvpi": {
     "id": "mat-sticker-n7nvpi",
-    "title": "みせないよ！",
+    "title": "みせられないよ！",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
@@ -141,7 +141,7 @@ export const MATERIAL_CMS_ITEMS = {
   },
   "lab-face-cover-deco_02-png": {
     "id": "lab-face-cover-deco_02-png",
-    "title": "みせないよ！",
+    "title": "みせられないよ！",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
@@ -154,7 +154,7 @@ export const MATERIAL_CMS_ITEMS = {
   },
   "lab-face-cover-deco_01-png": {
     "id": "lab-face-cover-deco_01-png",
-    "title": "みせないよ！",
+    "title": "みせられないよ！",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
