@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="./styles/material-sort.css" />
   </head>
   <body>
+    <script>
+      if (window.location.protocol === 'file:') {
+        window.location.replace('https://jirai-editor-ux-lab.pages.dev/material-sort');
+      }
+    </script>
     <main class="sort-shell">
       <header class="sort-header">
         <a class="brand-link" href="./index.html" aria-label="返回编辑器">

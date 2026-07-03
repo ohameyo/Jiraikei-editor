@@ -16,6 +16,8 @@ test('material sort admin page is wired as a standalone management page', async 
   assert.match(html, /id="saveOrderBtn"/);
   assert.match(html, /打开飞书表格/);
   assert.match(html, /tblhl8dRA0HRY9cD/);
+  assert.match(html, /window\.location\.protocol === 'file:'/);
+  assert.match(html, /jirai-editor-ux-lab\.pages\.dev\/material-sort/);
 });
 
 test('material sort admin page uses a five-column desktop grid', async () => {
