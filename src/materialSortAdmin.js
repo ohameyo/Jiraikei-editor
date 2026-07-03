@@ -218,6 +218,17 @@ function reorderByVisibleIndexes(state, visibleFromIndex, visibleToIndex) {
   render(state);
 }
 
+function shouldDropAfter(event, item) {
+  const rect = item.getBoundingClientRect();
+  const columns = window.getComputedStyle(item.parentElement).gridTemplateColumns
+    .split(' ')
+    .filter(Boolean).length;
+  if (columns > 1) {
+    return event.clientX > rect.left + rect.width / 2;
+  }
+  return event.clientY > rect.top + rect.height / 2;
+}
+
 function getAdminToken() {
   return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
 }
@@ -316,8 +327,7 @@ function bindEvents(state) {
     const item = event.target.closest('.sort-item');
     if (!item || !state.dragId || item.dataset.id === state.dragId) return;
     event.preventDefault();
-    const rect = item.getBoundingClientRect();
-    const after = event.clientY > rect.top + rect.height / 2;
+    const after = shouldDropAfter(event, item);
     item.classList.toggle('drop-before', !after);
     item.classList.toggle('drop-after', after);
   });
@@ -334,8 +344,7 @@ function bindEvents(state) {
     const visible = filteredRows(state);
     const fromVisibleIndex = visible.findIndex((row) => row.id === state.dragId);
     let toVisibleIndex = visible.findIndex((row) => row.id === item.dataset.id);
-    const rect = item.getBoundingClientRect();
-    if (event.clientY > rect.top + rect.height / 2) toVisibleIndex += 1;
+    if (shouldDropAfter(event, item)) toVisibleIndex += 1;
     if (fromVisibleIndex < toVisibleIndex) toVisibleIndex -= 1;
     item.classList.remove('drop-before', 'drop-after');
     reorderByVisibleIndexes(state, fromVisibleIndex, toVisibleIndex);

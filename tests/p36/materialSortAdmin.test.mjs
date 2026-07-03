@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const htmlPath = new URL('../../material-sort.html', import.meta.url);
+const cssPath = new URL('../../styles/material-sort.css', import.meta.url);
 const adminScriptPath = new URL('../../src/materialSortAdmin.js', import.meta.url);
 const apiPath = new URL('../../functions/api/material-order.js', import.meta.url);
 
@@ -13,6 +14,14 @@ test('material sort admin page is wired as a standalone management page', async 
   assert.match(html, /src\/materialSortAdmin\.js/);
   assert.match(html, /id="materialSortList"/);
   assert.match(html, /id="saveOrderBtn"/);
+  assert.match(html, /打开飞书表格/);
+  assert.match(html, /tblhl8dRA0HRY9cD/);
+});
+
+test('material sort admin page uses a five-column desktop grid', async () => {
+  const css = await readFile(cssPath, 'utf8');
+
+  assert.match(css, /\.sort-list\s*{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s);
 });
 
 test('material sort helpers expose current CMS items in display order', async () => {
