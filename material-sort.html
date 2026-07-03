@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>素材排序管理 - jiraikei-editor</title>
+    <link rel="icon" type="image/png" href="./assets/logo.png" />
+    <link rel="stylesheet" href="./styles/material-sort.css" />
+  </head>
+  <body>
+    <main class="sort-shell">
+      <header class="sort-header">
+        <a class="brand-link" href="./index.html" aria-label="返回编辑器">
+          <img src="./assets/logo.png" alt="" />
+        </a>
+        <div>
+          <p class="eyebrow">Material CMS</p>
+          <h1>素材排序管理</h1>
+          <p class="header-note">拖动卡片调整网页展示顺序，保存后会写回飞书的“网页展示顺序”字段。</p>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="素材筛选">
+        <label class="search-box">
+          <span>搜索</span>
+          <input id="materialSearchInput" type="search" placeholder="名称 / ID / 文件名" autocomplete="off" />
+        </label>
+        <div class="filter-tabs" id="materialTypeTabs" role="tablist" aria-label="素材类型"></div>
+      </section>
+
+      <section class="summary-bar" aria-live="polite">
+        <span id="materialSortSummary">读取素材中...</span>
+        <span id="materialSaveStatus" class="save-status">未修改</span>
+      </section>
+
+      <ol id="materialSortList" class="sort-list" aria-label="素材排序列表"></ol>
+
+      <footer class="action-bar">
+        <button id="resetOrderBtn" class="ghost-button" type="button">恢复当前网页顺序</button>
+        <button id="saveOrderBtn" class="primary-button" type="button">保存到飞书</button>
+      </footer>
+    </main>
+
+    <script type="module" src="./src/materialSortAdmin.js"></script>
+  </body>
+</html>
