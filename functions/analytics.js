@@ -34,6 +34,11 @@ function text(value, fallback = '') {
   return String(value ?? fallback).slice(0, 80);
 }
 
+function visitorId(value) {
+  const next = text(value);
+  return /^jv1_[a-zA-Z0-9_-]{8,76}$/.test(next) ? next : '';
+}
+
 function number(value) {
   const next = Number(value);
   return Number.isFinite(next) ? next : 0;
@@ -105,6 +110,7 @@ export async function onRequestPost({ request, env }) {
         text(payload.strings.fontId),
         text(payload.strings.mode),
         text(payload.strings.referrerType),
+        visitorId(data.visitorId),
       ],
       doubles: [
         number(data.viewportWidth),

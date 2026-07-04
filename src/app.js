@@ -38,6 +38,7 @@ import {
   const EDIT_CANVAS_MAX_SIDE = 2400;
   const EDIT_CANVAS_MAX_PIXELS = 3200000;
   const ANALYTICS_ENDPOINT = '/analytics';
+  const ANALYTICS_VISITOR_ID_KEY = 'jirai_editor_visitor_id_v1';
   const ANALYTICS_EVENT_NAMES = new Set([
     'app_open',
     'tool_select',
@@ -72,6 +73,34 @@ import {
     return safe;
   }
 
+  let analyticsVisitorIdMemory = '';
+
+  function isValidAnalyticsVisitorId(value) {
+    return /^jv1_[a-zA-Z0-9_-]{8,76}$/.test(String(value || ''));
+  }
+
+  function createAnalyticsVisitorId() {
+    const randomPart = globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+    return `jv1_${randomPart}`.slice(0, 80);
+  }
+
+  function getAnalyticsVisitorId() {
+    try {
+      const stored = window.localStorage?.getItem(ANALYTICS_VISITOR_ID_KEY);
+      if (isValidAnalyticsVisitorId(stored)) return stored;
+      const next = createAnalyticsVisitorId();
+      window.localStorage?.setItem(ANALYTICS_VISITOR_ID_KEY, next);
+      return next;
+    } catch {
+      if (!isValidAnalyticsVisitorId(analyticsVisitorIdMemory)) {
+        analyticsVisitorIdMemory = createAnalyticsVisitorId();
+      }
+      return analyticsVisitorIdMemory;
+    }
+  }
+
   function getAnalyticsContext() {
     return {
       path: window.location.pathname || '/',
@@ -79,6 +108,7 @@ import {
       viewportHeight: Math.round(window.innerHeight || 0),
       isMobile: isMobileLayoutViewport(),
       language: (navigator.language || '').slice(0, 16),
+      visitorId: getAnalyticsVisitorId(),
     };
   }
 

@@ -12,7 +12,8 @@ P1。
 - 不采集用户输入文字或文字图层内容。
 - 不采集人脸框、人脸关键点、分割蒙版或其他人脸数据。
 - 不采集姓名、邮箱、账号、IP 等个人身份信息。
-- 不生成或上报用户 ID、设备 ID、随机 session ID 等可持续关联标识。
+- 生成并上报匿名访客 ID，仅用于按天去重统计 DAU；不与姓名、账号、IP 或图片内容绑定。
+- 不生成或上报设备 ID、随机 session ID 等额外可持续关联标识。
 - 仅保留安全的枚举、布尔值和粗粒度数字，例如工具名、预设 ID、贴纸 ID、字体 ID、画布图层数量、图片宽高和文件大小。
 
 ## 10 个核心事件
@@ -35,6 +36,34 @@ P1。
 - 新增 Cloudflare Pages Function `functions/analytics.js`。
 - Pages Function 对事件名和字段做二次 allowlist，只写入安全字段。
 - Cloudflare 环境存在 `ANALYTICS` 绑定时写入 Workers Analytics Engine；本地或未配置绑定时返回成功但不落库，避免影响静态页面使用。
+- 前端生成 `jirai_editor_visitor_id_v1` 匿名访客 ID，随所有埋点事件上报。
+- Pages Function 把匿名访客 ID 写入 Analytics Engine 的 `blob18`，便于和 `app_open` 事件一起查询 DAU。
+
+## 常用查询
+APP 打开次数：
+
+```sql
+SELECT
+  toDate(timestamp) AS day,
+  SUM(_sample_interval) AS app_opens
+FROM jirai_editor_events
+WHERE index1 = 'app_open'
+GROUP BY day
+ORDER BY day DESC
+```
+
+APP 打开次数 + DAU：
+
+```sql
+SELECT
+  toDate(timestamp) AS day,
+  SUM(_sample_interval) AS app_opens,
+  COUNT(DISTINCT blob18) AS dau
+FROM jirai_editor_events
+WHERE index1 = 'app_open' AND blob18 != ''
+GROUP BY day
+ORDER BY day DESC
+```
 
 ## Cloudflare 配置
 部署时需要在 Cloudflare Pages 项目中绑定 Workers Analytics Engine 数据集：
