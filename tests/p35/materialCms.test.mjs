@@ -195,40 +195,43 @@ test('material cms maps Feishu Bitable rows to existing formal material source k
   assert.equal(isMaterialVisible(buildMaterialCmsPayload([rows[2]]).items[Object.keys(buildMaterialCmsPayload([rows[2]]).items)[0]]), false);
 });
 
-test('material cms uses website display order with row-order fallback', () => {
+test('material cms inserts blank website display order rows after their material group', () => {
   const rows = normalizeFeishuBitableRows([
     {
       record_id: 'recA',
-      中文显示名: '第一行',
+      中文显示名: '挡脸 A',
       一级分类: ['贴纸'],
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '1',
-      网页展示顺序: '8',
-      英文文件名: 'first.png',
-    },
-    {
-      record_id: 'recB',
-      中文显示名: '第二行',
-      一级分类: ['贴纸'],
-      二级分类: ['挡脸贴纸'],
-      状态: ['上架'],
-      排序: '',
-      英文文件名: 'second.png',
+      网页展示顺序: '1',
+      英文文件名: 'face-a.png',
     },
     {
       record_id: 'recC',
-      中文显示名: '第三行',
+      中文显示名: '手绘 C',
+      一级分类: ['贴纸'],
+      二级分类: ['手绘贴纸'],
+      状态: ['上架'],
+      网页展示顺序: '2',
+      英文文件名: 'hand-c.png',
+    },
+    {
+      record_id: 'recB',
+      中文显示名: '新增挡脸 B',
       一级分类: ['贴纸'],
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
-      排序: '2',
-      网页展示顺序: '3',
-      英文文件名: 'third.png',
+      网页展示顺序: '',
+      英文文件名: 'face-b.png',
     },
   ]);
 
-  assert.deepEqual(rows.map((row) => row.排序), [8, 2, 3]);
+  assert.deepEqual(rows.map((row) => [row.record_id, row.排序]), [
+    ['recA', 1],
+    ['recC', 3],
+    ['recB', 2],
+  ]);
 });
 
 test('material cms leaves generated Feishu material ids as additions', () => {
@@ -280,12 +283,12 @@ test('material cms creates Feishu material id backfills for blank material ids',
   assert.match(backfills[0].materialId, /^mat-sticker-[a-z0-9]+$/);
 });
 
-test('material cms creates Feishu field backfills for blank ids and stale website display order values', () => {
+test('material cms creates Feishu field backfills for blank ids and grouped blank display orders', () => {
   const backfills = getFeishuMaterialFieldBackfills([
     {
       record_id: 'recOne',
       素材ID: 'mat-sticker-one',
-      中文显示名: '第一行',
+      中文显示名: '挡脸一',
       一级分类: ['贴纸'],
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
@@ -293,24 +296,23 @@ test('material cms creates Feishu field backfills for blank ids and stale websit
       网页展示顺序: '1',
     },
     {
+      record_id: 'recThree',
+      素材ID: 'mat-sticker-three',
+      中文显示名: '手绘三',
+      一级分类: ['贴纸'],
+      二级分类: ['手绘贴纸'],
+      状态: ['上架'],
+      网页展示顺序: '',
+    },
+    {
       record_id: 'recTwo',
       素材ID: '',
-      中文显示名: '第二行',
+      中文显示名: '新增挡脸二',
       一级分类: ['贴纸'],
       二级分类: ['挡脸贴纸'],
       状态: ['上架'],
       排序: '',
       网页展示顺序: '',
-    },
-    {
-      record_id: 'recThree',
-      素材ID: 'mat-sticker-three',
-      中文显示名: '第三行',
-      一级分类: ['贴纸'],
-      二级分类: ['挡脸贴纸'],
-      状态: ['上架'],
-      排序: '2',
-      网页展示顺序: '2',
     },
   ]);
 

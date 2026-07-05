@@ -58,6 +58,10 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
 function parseMaybeJson(value, fallback = {}) {
   if (!value) return fallback;
   if (typeof value === 'object') return value;
@@ -186,6 +190,7 @@ export function feishuRecordListToRows(envelope) {
 
 export function normalizeFeishuBitableRows(rowsOrEnvelope) {
   const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
+  const displayOrders = getGroupedFeishuDisplayOrders(rows);
   return rows.map((row, index) => {
     const type = normalizeFeishuSelect(row.一级分类 || row.类型);
     const group = normalizeFeishuGroup(type, row.二级分类 || row.分组);
@@ -198,7 +203,7 @@ export function normalizeFeishuBitableRows(rowsOrEnvelope) {
       类型: type,
       分组: group,
       状态: normalizeFeishuSelect(row.状态),
-      排序: toNumber(row.网页展示顺序, index + 1),
+      排序: displayOrders[index] ?? index + 1,
       素材文件: fileName,
       预览图: previewPath,
       作者: toText(row.作者),
@@ -212,6 +217,43 @@ export function normalizeFeishuBitableRows(rowsOrEnvelope) {
     }
     return normalized;
   });
+}
+
+function getGroupedFeishuDisplayOrders(rows) {
+  const entries = rows.map((row, index) => {
+    const type = normalizeFeishuSelect(row.一级分类 || row.类型);
+    const group = normalizeFeishuGroup(type, row.二级分类 || row.分组);
+    return {
+      index,
+      type,
+      group,
+      explicit: hasValue(row.网页展示顺序),
+      order: toNumber(row.网页展示顺序, index + 1),
+    };
+  });
+
+  const placed = entries
+    .filter((entry) => entry.explicit)
+    .sort((a, b) => {
+      const orderDelta = a.order - b.order;
+      if (orderDelta) return orderDelta;
+      return a.index - b.index;
+    });
+
+  entries
+    .filter((entry) => !entry.explicit)
+    .forEach((entry) => {
+      const insertAfterIndex = placed.findLastIndex((item) => (
+        item.type === entry.type && item.group === entry.group
+      ));
+      placed.splice(insertAfterIndex >= 0 ? insertAfterIndex + 1 : placed.length, 0, entry);
+    });
+
+  const displayOrders = [];
+  placed.forEach((entry, index) => {
+    displayOrders[entry.index] = index + 1;
+  });
+  return displayOrders;
 }
 
 export function isMaterialVisible(item) {
@@ -387,11 +429,16 @@ export function getFeishuMaterialFieldBackfills(rowsOrEnvelope, existingIdMap = 
     if (!toText(row.素材ID)) {
       patch.素材ID = createMaterialStableId(normalizedRows[index], existingIdMap, index);
     }
-    const expectedSortOrder = index + 1;
+    const expectedSortOrder = normalizedRows[index]?.排序 ?? index + 1;
     if (toNumber(row.网页展示顺序, 0) !== expectedSortOrder) {
       patch.网页展示顺序 = expectedSortOrder;
     }
     if (!Object.keys(patch).length) return null;
     return { recordId, patch };
-  }).filter(Boolean);
+  }).filter(Boolean).sort((a, b) => {
+    const orderDelta = toNumber(a.patch.网页展示顺序, Number.MAX_SAFE_INTEGER)
+      - toNumber(b.patch.网页展示顺序, Number.MAX_SAFE_INTEGER);
+    if (orderDelta) return orderDelta;
+    return a.recordId.localeCompare(b.recordId);
+  });
 }
