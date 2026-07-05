@@ -409,15 +409,15 @@ export const MATERIAL_CMS_ITEMS = {
   },
   "mat-sticker-5cg7zf": {
     "id": "mat-sticker-5cg7zf",
-    "title": "galfy",
+    "title": "mine by LAFARY",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
     "sortOrder": 33,
     "author": "小天使",
     "packId": "face-cover",
-    "src": "./assets/user_stickers/631813989_18523008910069940_4971762893895868629_n.png",
-    "previewSrc": "./assets/sticker_previews/user/631813989_18523008910069940_4971762893895868629_n.png"
+    "src": "./assets/user_stickers/573650620_18143810656447096_2991134601079121587_n.jpg",
+    "previewSrc": "./assets/sticker_previews/user/573650620_18143810656447096_2991134601079121587_n.jpg"
   },
   "mat-sticker-py5q3z": {
     "id": "mat-sticker-py5q3z",
