@@ -31,3 +31,12 @@ test('init no longer eagerly renders every secondary panel on desktop', async ()
   assert.match(app, /if \(activeTool === 'polaroid'\) \{/)
   assert.match(app, /if \(activeTool === 'text'\) ensureTextTemplatesRendered\(\);/)
 })
+
+test('versioned material assets use long-lived cache headers', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+  const headers = await readFile(new URL('../../_headers', import.meta.url), 'utf8')
+
+  assert.match(app, /const STICKER_PREVIEW_VERSION = '20260707-fast-sticker-previews-1'/)
+  assert.match(headers, /\/assets\/\*/)
+  assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/)
+})

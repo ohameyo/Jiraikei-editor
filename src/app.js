@@ -359,7 +359,7 @@ import {
   ];
   const USER_STICKER_VERSION = '20260619-face-cover-1';
   const HAND_DRAWN_STICKER_VERSION = '20260512-hand-drawn-angel';
-  const STICKER_PREVIEW_VERSION = '20260619-face-cover-1';
+  const STICKER_PREVIEW_VERSION = '20260707-fast-sticker-previews-1';
   const POLAROID_FRAME_VERSION = '20260621-replaced-lace-textures-1';
   const POLAROID_FRAME_PREVIEW_VERSION = POLAROID_FRAME_VERSION;
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
