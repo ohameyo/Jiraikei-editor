@@ -1,7 +1,8 @@
 import SwiftUI
 
 enum AppChrome {
-    static let background = Color(red: 1.0, green: 0.973, blue: 0.988)
+    static let topBarBackground = Color(red: 1.0, green: 0.973, blue: 0.988)
+    static let pageBackground = Color(red: 0.969, green: 0.945, blue: 0.965)
 }
 
 struct ContentView: View {
@@ -10,22 +11,31 @@ struct ContentView: View {
     @State private var reloadToken = UUID()
 
     var body: some View {
-        ZStack {
-            AppChrome.background
+        GeometryReader { proxy in
+            ZStack {
+                VStack(spacing: 0) {
+                    AppChrome.topBarBackground
+                        .frame(height: proxy.safeAreaInsets.top)
+                    Spacer(minLength: 0)
+                    AppChrome.pageBackground
+                        .frame(height: proxy.safeAreaInsets.bottom)
+                }
                 .ignoresSafeArea()
-            EditorWebView(
-                url: AppEnvironment.activeEditorURL,
-                reloadToken: reloadToken,
-                isLoading: $isLoading,
-                loadError: $loadError
-            )
 
-            if isLoading {
-                statusPanel(title: "蕾蕾卡哇加载中", detail: "正在连接 App 专用 Lab...")
-            }
+                EditorWebView(
+                    url: AppEnvironment.activeEditorURL,
+                    reloadToken: reloadToken,
+                    isLoading: $isLoading,
+                    loadError: $loadError
+                )
 
-            if let loadError {
-                statusPanel(title: "页面加载失败", detail: loadError, showsRetry: true)
+                if isLoading {
+                    statusPanel(title: "蕾蕾卡哇加载中", detail: "正在连接 App 专用 Lab...")
+                }
+
+                if let loadError {
+                    statusPanel(title: "页面加载失败", detail: loadError, showsRetry: true)
+                }
             }
         }
     }

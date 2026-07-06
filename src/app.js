@@ -5401,6 +5401,7 @@ import {
 
   function openProfileModal() {
     if (!els.profileModal) return;
+    syncProfileAvatarAsset();
     els.profileModal.classList.add('show');
     els.profileModal.setAttribute('aria-hidden', 'false');
     trackEvent('profile_open', { source: 'bow_icon' });
@@ -5416,11 +5417,21 @@ import {
     if (!els.profileAvatar) return;
     const avatarSrc = resolveAssetUrl('./assets/profile-avatar.png', '20260619-profile-avatar-1');
     const fallbackSrc = resolveAssetUrl('./assets/logo.png', '20260619-profile-avatar-1');
+    if (!els.profileAvatar.complete || !els.profileAvatar.naturalWidth) {
+      els.profileAvatar.src = fallbackSrc;
+    }
     els.profileAvatar.onerror = () => {
       if (els.profileAvatar.src === fallbackSrc) return;
       els.profileAvatar.src = fallbackSrc;
     };
-    els.profileAvatar.src = avatarSrc;
+    const avatarProbe = new Image();
+    avatarProbe.onload = () => {
+      els.profileAvatar.src = avatarSrc;
+    };
+    avatarProbe.onerror = () => {
+      els.profileAvatar.src = fallbackSrc;
+    };
+    avatarProbe.src = avatarSrc;
   }
 
   function scheduleFirstScreenWarmups() {
