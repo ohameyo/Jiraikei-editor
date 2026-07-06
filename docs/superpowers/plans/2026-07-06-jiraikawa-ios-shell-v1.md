@@ -30,16 +30,16 @@ V1 excludes:
 
 Create these files when implementation starts:
 
-- `ios/LeileiKawa/LeileiKawa.xcodeproj`: Xcode project. Xcode project is the Apple IDE project file that stores build settings and targets.
-- `ios/LeileiKawa/LeileiKawa/App/LeileiKawaApp.swift`: SwiftUI App entry.
-- `ios/LeileiKawa/LeileiKawa/App/ContentView.swift`: Hosts the web editor container.
-- `ios/LeileiKawa/LeileiKawa/Web/EditorWebView.swift`: WKWebView wrapper and navigation policy.
-- `ios/LeileiKawa/LeileiKawa/Bridge/EditorBridge.swift`: JavaScript bridge message handling.
-- `ios/LeileiKawa/LeileiKawa/Photos/PhotoImportService.swift`: Native photo picker.
-- `ios/LeileiKawa/LeileiKawa/Photos/PhotoExportService.swift`: Save to Photos and system share.
-- `ios/LeileiKawa/LeileiKawa/Config/AppEnvironment.swift`: Lab and production URL selection.
-- `ios/LeileiKawa/LeileiKawa/Resources/Info.plist`: App permissions and display metadata.
-- `ios/LeileiKawa/README.md`: Local build, signing, and TestFlight notes.
+- `ios/JiraiKawa/JiraiKawa.xcodeproj`: Xcode project. Xcode project is the Apple IDE project file that stores build settings and targets.
+- `ios/JiraiKawa/JiraiKawa/App/JiraiKawaApp.swift`: SwiftUI App entry.
+- `ios/JiraiKawa/JiraiKawa/App/ContentView.swift`: Hosts the web editor container.
+- `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`: WKWebView wrapper and navigation policy.
+- `ios/JiraiKawa/JiraiKawa/Bridge/EditorBridge.swift`: JavaScript bridge message handling.
+- `ios/JiraiKawa/JiraiKawa/Photos/PhotoImportService.swift`: Native photo picker.
+- `ios/JiraiKawa/JiraiKawa/Photos/PhotoExportService.swift`: Save to Photos and system share.
+- `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`: Lab and production URL selection.
+- `ios/JiraiKawa/JiraiKawa/Resources/Info.plist`: App permissions and display metadata.
+- `ios/JiraiKawa/README.md`: Local build, signing, and TestFlight notes.
 
 Modify these existing web files only after the native shell loads successfully:
 
@@ -50,36 +50,36 @@ Modify these existing web files only after the native shell loads successfully:
 ## Task 1: Create iOS Project Skeleton
 
 **Files:**
-- Create: `ios/LeileiKawa/LeileiKawa.xcodeproj`
-- Create: `ios/LeileiKawa/LeileiKawa/App/LeileiKawaApp.swift`
-- Create: `ios/LeileiKawa/LeileiKawa/App/ContentView.swift`
-- Create: `ios/LeileiKawa/LeileiKawa/Config/AppEnvironment.swift`
-- Create: `ios/LeileiKawa/LeileiKawa/Resources/Info.plist`
-- Create: `ios/LeileiKawa/README.md`
+- Create: `ios/JiraiKawa/JiraiKawa.xcodeproj`
+- Create: `ios/JiraiKawa/JiraiKawa/App/JiraiKawaApp.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/App/ContentView.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Resources/Info.plist`
+- Create: `ios/JiraiKawa/README.md`
 
 - [ ] **Step 1: Create the Xcode project**
 
 Use Xcode to create a new iOS App project:
 
 ```text
-Product Name: LeileiKawa
+Product Name: JiraiKawa
 Interface: SwiftUI
 Language: Swift
 Bundle Identifier: com.jiraikawa.app
 Minimum iOS: 16.0
 ```
 
-Expected: Xcode creates an iOS project under `ios/LeileiKawa`.
+Expected: Xcode creates an iOS project under `ios/JiraiKawa`.
 
 - [ ] **Step 2: Set the App entry**
 
-Create `ios/LeileiKawa/LeileiKawa/App/LeileiKawaApp.swift`:
+Create `ios/JiraiKawa/JiraiKawa/App/JiraiKawaApp.swift`:
 
 ```swift
 import SwiftUI
 
 @main
-struct LeileiKawaApp: App {
+struct JiraiKawaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -92,7 +92,7 @@ Expected: the App target has a single SwiftUI entry point.
 
 - [ ] **Step 3: Add the first content view**
 
-Create `ios/LeileiKawa/LeileiKawa/App/ContentView.swift`:
+Create `ios/JiraiKawa/JiraiKawa/App/ContentView.swift`:
 
 ```swift
 import SwiftUI
@@ -110,7 +110,7 @@ Expected: simulator or device displays `蕾蕾卡哇`.
 
 - [ ] **Step 4: Add environment URL config**
 
-Create `ios/LeileiKawa/LeileiKawa/Config/AppEnvironment.swift`:
+Create `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`:
 
 ```swift
 import Foundation
@@ -126,7 +126,7 @@ Expected: V1 starts from Lab while native shell behavior is being tested.
 
 - [ ] **Step 5: Configure permissions**
 
-Set `ios/LeileiKawa/LeileiKawa/Resources/Info.plist` entries:
+Set `ios/JiraiKawa/JiraiKawa/Resources/Info.plist` entries:
 
 ```xml
 <key>CFBundleDisplayName</key>
@@ -152,8 +152,8 @@ Expected: build succeeds on simulator and the app launches to the placeholder te
 - [ ] **Step 7: Commit**
 
 ```bash
-git add ios/LeileiKawa
-git commit -m "feat: add leileikawa ios app skeleton"
+git add ios/JiraiKawa
+git commit -m "feat: add jiraikawa ios app skeleton"
 ```
 
 Expected: one commit contains only the iOS project skeleton.
@@ -161,13 +161,13 @@ Expected: one commit contains only the iOS project skeleton.
 ## Task 2: Load Lab Editor In WKWebView
 
 **Files:**
-- Create: `ios/LeileiKawa/LeileiKawa/Web/EditorWebView.swift`
-- Modify: `ios/LeileiKawa/LeileiKawa/App/ContentView.swift`
-- Modify: `ios/LeileiKawa/LeileiKawa/Config/AppEnvironment.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`
+- Modify: `ios/JiraiKawa/JiraiKawa/App/ContentView.swift`
+- Modify: `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`
 
 - [ ] **Step 1: Create WKWebView wrapper**
 
-Create `ios/LeileiKawa/LeileiKawa/Web/EditorWebView.swift`:
+Create `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`:
 
 ```swift
 import SwiftUI
@@ -220,7 +220,7 @@ Expected: WKWebView loads only the editor domains and cancels unrelated navigati
 
 - [ ] **Step 2: Replace placeholder content**
 
-Modify `ios/LeileiKawa/LeileiKawa/App/ContentView.swift`:
+Modify `ios/JiraiKawa/JiraiKawa/App/ContentView.swift`:
 
 ```swift
 import SwiftUI
@@ -258,7 +258,7 @@ Expected: editor loads on device, scroll and tap interactions work, and external
 - [ ] **Step 5: Commit**
 
 ```bash
-git add ios/LeileiKawa
+git add ios/JiraiKawa
 git commit -m "feat: load lab editor in ios webview"
 ```
 
@@ -267,9 +267,9 @@ Expected: one commit contains the WKWebView loading behavior.
 ## Task 3: Add Native Photo Import Bridge
 
 **Files:**
-- Create: `ios/LeileiKawa/LeileiKawa/Bridge/EditorBridge.swift`
-- Create: `ios/LeileiKawa/LeileiKawa/Photos/PhotoImportService.swift`
-- Modify: `ios/LeileiKawa/LeileiKawa/Web/EditorWebView.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Bridge/EditorBridge.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Photos/PhotoImportService.swift`
+- Modify: `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`
 - Modify: `src/app.js`
 - Create: `tests/p38/iosBridge.test.mjs`
 
@@ -328,7 +328,7 @@ Expected: PASS for the standalone bridge helper behavior.
 
 - [ ] **Step 3: Add native bridge handler**
 
-Create `ios/LeileiKawa/LeileiKawa/Bridge/EditorBridge.swift`:
+Create `ios/JiraiKawa/JiraiKawa/Bridge/EditorBridge.swift`:
 
 ```swift
 import Foundation
@@ -368,7 +368,7 @@ Expected: native code can receive `pickImage`, `saveImage`, and `shareImage`.
 
 - [ ] **Step 4: Add photo import service**
 
-Create `ios/LeileiKawa/LeileiKawa/Photos/PhotoImportService.swift`:
+Create `ios/JiraiKawa/JiraiKawa/Photos/PhotoImportService.swift`:
 
 ```swift
 import PhotosUI
@@ -483,7 +483,7 @@ Expected: native photo picker opens and the selected image enters the existing e
 - [ ] **Step 9: Commit**
 
 ```bash
-git add ios/LeileiKawa src/app.js tests/p38/iosBridge.test.mjs
+git add ios/JiraiKawa src/app.js tests/p38/iosBridge.test.mjs
 git commit -m "feat: add ios native photo import"
 ```
 
@@ -492,9 +492,9 @@ Expected: one commit contains native import and web bridge integration.
 ## Task 4: Add Native Save And Share
 
 **Files:**
-- Create: `ios/LeileiKawa/LeileiKawa/Photos/PhotoExportService.swift`
-- Modify: `ios/LeileiKawa/LeileiKawa/Bridge/EditorBridge.swift`
-- Modify: `ios/LeileiKawa/LeileiKawa/Web/EditorWebView.swift`
+- Create: `ios/JiraiKawa/JiraiKawa/Photos/PhotoExportService.swift`
+- Modify: `ios/JiraiKawa/JiraiKawa/Bridge/EditorBridge.swift`
+- Modify: `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`
 - Modify: `src/app.js`
 - Modify: `tests/p38/iosBridge.test.mjs`
 
@@ -531,7 +531,7 @@ Expected: bridge tests cover export actions.
 
 - [ ] **Step 2: Add photo export service**
 
-Create `ios/LeileiKawa/LeileiKawa/Photos/PhotoExportService.swift`:
+Create `ios/JiraiKawa/JiraiKawa/Photos/PhotoExportService.swift`:
 
 ```swift
 import Photos
@@ -622,7 +622,7 @@ Expected: edited static image appears in Photos and share sheet opens successful
 - [ ] **Step 7: Commit**
 
 ```bash
-git add ios/LeileiKawa src/app.js tests/p38/iosBridge.test.mjs
+git add ios/JiraiKawa src/app.js tests/p38/iosBridge.test.mjs
 git commit -m "feat: add ios native save and share"
 ```
 
@@ -702,8 +702,8 @@ Expected: one commit contains analytics changes only.
 ## Task 6: Prepare TestFlight Build
 
 **Files:**
-- Modify: `ios/LeileiKawa/README.md`
-- Modify: `docs/app-store/leileikawa-ios-v1-app-store-draft.md`
+- Modify: `ios/JiraiKawa/README.md`
+- Modify: `docs/app-store/jiraikawa-ios-v1-app-store-draft.md`
 
 - [ ] **Step 1: Switch active URL for release candidate**
 
@@ -728,7 +728,7 @@ Expected: Xcode uploads the build to App Store Connect.
 
 - [ ] **Step 3: Add build notes**
 
-Update `ios/LeileiKawa/README.md` with:
+Update `ios/JiraiKawa/README.md` with:
 
 ```markdown
 ## TestFlight V1 Notes
@@ -745,8 +745,8 @@ Expected: the TestFlight build state is clear.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add ios/LeileiKawa/README.md docs/app-store/leileikawa-ios-v1-app-store-draft.md
-git commit -m "docs: prepare leileikawa testflight notes"
+git add ios/JiraiKawa/README.md docs/app-store/jiraikawa-ios-v1-app-store-draft.md
+git commit -m "docs: prepare jiraikawa testflight notes"
 ```
 
 Expected: TestFlight notes are committed separately from code changes.
@@ -754,12 +754,12 @@ Expected: TestFlight notes are committed separately from code changes.
 ## Task 7: App Store Submission Package
 
 **Files:**
-- Modify: `docs/app-store/leileikawa-ios-v1-app-store-draft.md`
-- Create: `docs/app-store/leileikawa-ios-v1-submission-checklist.md`
+- Modify: `docs/app-store/jiraikawa-ios-v1-app-store-draft.md`
+- Create: `docs/app-store/jiraikawa-ios-v1-submission-checklist.md`
 
 - [ ] **Step 1: Create submission checklist**
 
-Create `docs/app-store/leileikawa-ios-v1-submission-checklist.md`:
+Create `docs/app-store/jiraikawa-ios-v1-submission-checklist.md`:
 
 ```markdown
 # 蕾蕾卡哇 iOS V1 Submission Checklist
@@ -795,8 +795,8 @@ Expected: matches only appear in exclusion or warning sections.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/app-store/leileikawa-ios-v1-app-store-draft.md docs/app-store/leileikawa-ios-v1-submission-checklist.md
-git commit -m "docs: add leileikawa app store submission checklist"
+git add docs/app-store/jiraikawa-ios-v1-app-store-draft.md docs/app-store/jiraikawa-ios-v1-submission-checklist.md
+git commit -m "docs: add jiraikawa app store submission checklist"
 ```
 
 Expected: App Store submission docs are committed.
