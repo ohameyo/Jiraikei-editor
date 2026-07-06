@@ -6,7 +6,7 @@
 
 **Architecture:** V1 is a hybrid App. The native iOS layer owns WKWebView, photo picker, album save, system share, permissions, and App Store packaging; the existing web editor owns editing UI, rendering, filters, stickers, text, frames, overlays, and export pixels. A small JavaScript bridge connects the web editor to native import, save, and share actions.
 
-**Tech Stack:** Swift, SwiftUI, WKWebView, PHPicker, Photos, UIActivityViewController, existing JiraiKawa web editor, Cloudflare Pages Lab and production deployments.
+**Tech Stack:** Swift, SwiftUI, WKWebView, PHPicker, Photos, UIActivityViewController, existing JiraiKawa web editor, Cloudflare Pages App-specific Lab and production deployments.
 
 ---
 
@@ -37,7 +37,7 @@ Create these files when implementation starts:
 - `ios/JiraiKawa/JiraiKawa/Bridge/EditorBridge.swift`: JavaScript bridge message handling.
 - `ios/JiraiKawa/JiraiKawa/Photos/PhotoImportService.swift`: Native photo picker.
 - `ios/JiraiKawa/JiraiKawa/Photos/PhotoExportService.swift`: Save to Photos and system share.
-- `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`: Lab and production URL selection.
+- `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`: App-specific Lab and production URL selection.
 - `ios/JiraiKawa/JiraiKawa/Resources/Info.plist`: App permissions and display metadata.
 - `ios/JiraiKawa/README.md`: Local build, signing, and TestFlight notes.
 
@@ -116,13 +116,13 @@ Create `ios/JiraiKawa/JiraiKawa/Config/AppEnvironment.swift`:
 import Foundation
 
 enum AppEnvironment {
-    static let labEditorURL = URL(string: "https://jirai-editor-ux-lab.pages.dev")!
+    static let appLabEditorURL = URL(string: "https://jiraikawa-ios-lab.pages.dev")!
     static let productionEditorURL = URL(string: "https://jirai.pages.dev")!
-    static let activeEditorURL = labEditorURL
+    static let activeEditorURL = appLabEditorURL
 }
 ```
 
-Expected: V1 starts from Lab while native shell behavior is being tested.
+Expected: V1 starts from the App-specific Lab while native shell behavior is being tested. Do not point the iOS shell at the shared `jirai-editor-ux-lab.pages.dev`, because that shared Lab may contain V5, material-page, or unrelated web experiments.
 
 - [ ] **Step 5: Configure permissions**
 
@@ -158,7 +158,7 @@ git commit -m "feat: add jiraikawa ios app skeleton"
 
 Expected: one commit contains only the iOS project skeleton.
 
-## Task 2: Load Lab Editor In WKWebView
+## Task 2: Load App-Specific Lab Editor In WKWebView
 
 **Files:**
 - Create: `ios/JiraiKawa/JiraiKawa/Web/EditorWebView.swift`
@@ -205,7 +205,7 @@ struct EditorWebView: UIViewRepresentable {
             }
 
             let allowedHosts = [
-                "jirai-editor-ux-lab.pages.dev",
+                "jiraikawa-ios-lab.pages.dev",
                 "jirai.pages.dev",
                 "jiraikawa.com"
             ]
@@ -233,7 +233,7 @@ struct ContentView: View {
 }
 ```
 
-Expected: App opens directly into the Lab editor.
+Expected: App opens directly into the App-specific Lab editor.
 
 - [ ] **Step 3: Verify on simulator**
 
@@ -243,7 +243,7 @@ Run in Xcode:
 Product > Run
 ```
 
-Expected: Lab editor loads and no browser chrome is visible.
+Expected: App-specific Lab editor loads and no browser chrome is visible.
 
 - [ ] **Step 4: Verify on iPhone**
 
@@ -707,13 +707,13 @@ Expected: one commit contains analytics changes only.
 
 - [ ] **Step 1: Switch active URL for release candidate**
 
-Before TestFlight, decide whether the build loads Lab or production:
+Before TestFlight, decide whether the build loads App-specific Lab or production:
 
 ```swift
-static let activeEditorURL = labEditorURL
+static let activeEditorURL = appLabEditorURL
 ```
 
-Expected: internal TestFlight can use Lab until the native bridge is stable.
+Expected: internal TestFlight can use App-specific Lab until the native bridge is stable.
 
 - [ ] **Step 2: Archive in Xcode**
 
@@ -735,7 +735,7 @@ Update `ios/JiraiKawa/README.md` with:
 
 - Bundle ID: `com.jiraikawa.app`
 - SKU: `jiraikawa-ios-v1`
-- Current editor URL: Lab
+- Current editor URL: App-specific Lab
 - Required device checks: launch, import, edit, save, share
 - Excluded: Live Photo, Lab more-materials page, community, account, paid features
 ```
@@ -827,4 +827,4 @@ Manual device checks:
 
 Start only after Apple Developer account activation is complete and Xcode signing can use the personal developer team.
 
-Use Lab URL for early native development. Switch to production or an App-specific production URL only after Meyo confirms the Lab App behavior on phone.
+Use App-specific Lab URL for early native development. The App-specific Lab should be a copy of the current production editor plus App-only adaptation work, not the shared web Lab. Switch to production or an App-specific production URL only after Meyo confirms the App-specific Lab behavior on phone.
