@@ -109,7 +109,7 @@ test('texture frame images draw without top crop or matte strip', async () => {
 test('texture frame source and preview assets share a cache-busting version', async () => {
   const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
 
-  assert.match(app, /const POLAROID_FRAME_VERSION = '20260621-replaced-lace-textures-1';/)
+  assert.match(app, /const POLAROID_FRAME_VERSION = '20260707-fast-polaroid-frames-1';/)
   assert.match(app, /const POLAROID_FRAME_PREVIEW_VERSION = POLAROID_FRAME_VERSION;/)
   assert.match(app, /img\.src = resolveAssetUrl\(frame\.src, POLAROID_FRAME_VERSION\);/)
 })

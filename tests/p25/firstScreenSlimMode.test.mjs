@@ -37,6 +37,14 @@ test('versioned material assets use long-lived cache headers', async () => {
   const headers = await readFile(new URL('../../_headers', import.meta.url), 'utf8')
 
   assert.match(app, /const STICKER_PREVIEW_VERSION = '20260707-fast-sticker-previews-1'/)
+  assert.match(app, /const POLAROID_FRAME_VERSION = '20260707-fast-polaroid-frames-1'/)
   assert.match(headers, /\/assets\/\*/)
   assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/)
+})
+
+test('mobile polaroid mode does not eagerly download every full frame', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+
+  assert.match(app, /function preloadPolaroidFrameImages\(\) \{\s*if \(isMobileViewport\(\)\) return;/)
+  assert.match(app, /loading:\s*false,\s*\};\s*syncPolaroidScaleInput\(\);/)
 })
