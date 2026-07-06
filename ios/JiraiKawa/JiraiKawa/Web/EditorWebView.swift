@@ -10,6 +10,9 @@ struct EditorWebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        webView.isOpaque = false
+        webView.backgroundColor = UIColor(red: 0.969, green: 0.945, blue: 0.965, alpha: 1)
+        webView.scrollView.backgroundColor = webView.backgroundColor
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         webView.load(URLRequest(url: url))
         return webView
