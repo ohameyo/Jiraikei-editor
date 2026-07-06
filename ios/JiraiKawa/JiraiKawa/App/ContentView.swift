@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum AppChrome {
-    static let background = Color(red: 0.969, green: 0.945, blue: 0.965)
+    static let background = Color(red: 1.0, green: 0.973, blue: 0.988)
 }
 
 struct ContentView: View {
