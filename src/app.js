@@ -5435,12 +5435,11 @@ import {
   }
 
   function scheduleFirstScreenWarmups() {
-    runWhenIdle(() => {
-      preloadStickerPreviewImages();
-    }, isMobileViewport() ? 1600 : 900);
-    runWhenIdle(() => {
-      preloadStickerImages();
-    }, isMobileViewport() ? 4200 : 2200);
+    if (!isMobileViewport()) {
+      runWhenIdle(() => {
+        preloadStickerPreviewImages();
+      }, 900);
+    }
     runWhenIdle(() => preloadPolaroidFrameImages(), isMobileViewport() ? 2400 : 1400);
     runWhenIdle(() => {
       ensureTextFontLoaded(TEXT_FONTS.find((font) => font.id === activeTextFontId)).then(renderAfterAsyncAssetReady);
@@ -6248,9 +6247,9 @@ import {
 
         const img = document.createElement('img');
         img.alt = sticker.name;
-        img.loading = 'eager';
+        img.loading = thumbIndex <= 8 ? 'eager' : 'lazy';
         img.decoding = 'async';
-        img.setAttribute('fetchpriority', 'high');
+        img.setAttribute('fetchpriority', thumbIndex <= 8 ? 'high' : 'low');
         const previewSrc = sticker.previewSrc || sticker.src;
         const displaySrc = getStickerPreviewDisplaySrc(sticker, store.getState());
         img.onload = () => {

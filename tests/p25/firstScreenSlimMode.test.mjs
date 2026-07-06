@@ -14,8 +14,8 @@ test('first screen init defers non-critical warmups behind a dedicated scheduler
   const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
 
   assert.match(app, /function scheduleFirstScreenWarmups\(\)/)
-  assert.match(app, /runWhenIdle\(\(\) => \{\s*preloadStickerPreviewImages\(\);/)
-  assert.match(app, /runWhenIdle\(\(\) => \{\s*preloadStickerImages\(\);/)
+  assert.match(app, /if \(!isMobileViewport\(\)\) \{\s*runWhenIdle\(\(\) => \{\s*preloadStickerPreviewImages\(\);/)
+  assert.doesNotMatch(app.match(/function scheduleFirstScreenWarmups\(\) \{[\s\S]*?\n  \}/)?.[0] || '', /preloadStickerImages\(\);/)
   assert.match(app, /scheduleFirstScreenWarmups\(\);/)
   assert.doesNotMatch(app, /buildPixelStickerPack\(\);\s*preloadStickerPreviewImages\(\);/)
 })

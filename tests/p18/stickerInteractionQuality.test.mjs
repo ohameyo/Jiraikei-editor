@@ -2,17 +2,16 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
-test('production app preloads sticker preview thumbnails before full sticker sources', async () => {
+test('production app avoids full sticker preloads during first screen warmup', async () => {
   const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
 
   assert.match(app, /function preloadStickerPreviewImages\(/)
-  assert.match(app, /runWhenIdle\(\(\) => \{\s*preloadStickerPreviewImages\(\);/)
-  assert.match(app, /runWhenIdle\(\(\) => \{\s*preloadStickerImages\(\);/)
+  assert.match(app, /if \(!isMobileViewport\(\)\) \{\s*runWhenIdle\(\(\) => \{\s*preloadStickerPreviewImages\(\);/)
 
-  const previewPreloadIndex = app.indexOf('preloadStickerPreviewImages();')
-  const fullPreloadIndex = app.indexOf('preloadStickerImages();')
-  assert.ok(previewPreloadIndex !== -1 && fullPreloadIndex !== -1, 'sticker preload hooks should exist')
-  assert.ok(previewPreloadIndex < fullPreloadIndex, 'preview thumbnails should warm before full sticker assets')
+  const warmupBody = app.match(/function scheduleFirstScreenWarmups\(\) \{[\s\S]*?\n  \}/)?.[0] || ''
+  assert.doesNotMatch(warmupBody, /preloadStickerImages\(\);/)
+  assert.match(app, /img\.loading = thumbIndex <= 8 \? 'eager' : 'lazy'/)
+  assert.match(app, /img\.setAttribute\('fetchpriority', thumbIndex <= 8 \? 'high' : 'low'\)/)
 })
 
 test('overlay preview positioning clears conflicting inset constraints for sticker interaction', async () => {
