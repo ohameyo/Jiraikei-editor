@@ -22,6 +22,16 @@ App 名称：蕾蕾卡哇
 
 App Store 文案避开“地雷系”等可能造成审核误解的表达。JiraiKawa 继续作为英文品牌和域名资产存在，但中文上架表达以“蕾蕾卡哇”为主。
 
+## App Store Identity
+
+V1 使用个人开发者账号提交。
+
+固定上架字段：
+
+- App 名称：蕾蕾卡哇。
+- Bundle ID：`com.jiraikawa.app`。Bundle ID 是 iOS App 的唯一技术标识，用来区分不同 App。
+- SKU：`jiraikawa-ios-v1`。SKU 是 App Store Connect 后台内部编号，用于管理产品，不展示给用户。
+
 ## Recommended Approach
 
 V1 采用“混合 App”方案。混合 App 指一部分能力用网页实现，一部分能力用原生 iOS 实现。
@@ -77,6 +87,7 @@ V1 必须包含以下能力：
 - 离线完整编辑能力。
 - 用户账号、登录、云同步和会员系统。
 - 社区、模板投稿、创作者后台和电商。
+- Lab 的“更多素材页”独立功能。后续如果该功能进入正式版网页，再单独评估是否同步进入 App。
 - 推送通知。
 - 多语言。
 - iPad 专门布局。
@@ -215,6 +226,9 @@ V1 的隐私边界：
 V1 上架前需要准备：
 
 - App 名称：蕾蕾卡哇。
+- Bundle ID：`com.jiraikawa.app`。
+- SKU：`jiraikawa-ios-v1`。
+- 开发者类型：个人开发者账号。
 - Subtitle：日系量产型图片编辑器。Subtitle 是 App Store 名称下面的一行短描述。
 - App icon：1024 x 1024 图标。
 - 启动页。
