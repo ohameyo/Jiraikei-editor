@@ -18,7 +18,7 @@ struct EditorWebView: UIViewRepresentable {
         webView.backgroundColor = UIColor(red: 0.969, green: 0.945, blue: 0.965, alpha: 1)
         webView.scrollView.backgroundColor = webView.backgroundColor
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
-        webView.load(URLRequest(url: url))
+        load(url, in: webView)
         return webView
     }
 
@@ -29,12 +29,20 @@ struct EditorWebView: UIViewRepresentable {
                 isLoading = true
                 loadError = nil
             }
-            webView.load(URLRequest(url: url))
+            load(url, in: webView)
         }
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(isLoading: $isLoading, loadError: $loadError)
+    }
+
+    private func load(_ url: URL, in webView: WKWebView) {
+        if url.isFileURL {
+            webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        } else {
+            webView.load(URLRequest(url: url))
+        }
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -48,7 +56,15 @@ struct EditorWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            guard let host = navigationAction.request.url?.host else {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.cancel)
+                return
+            }
+            if url.isFileURL {
+                decisionHandler(.allow)
+                return
+            }
+            guard let host = url.host else {
                 decisionHandler(.cancel)
                 return
             }

@@ -12,6 +12,10 @@
 		000000000000000000000103 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000203 /* AppEnvironment.swift */; };
 		000000000000000000000104 /* EditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000204 /* EditorWebView.swift */; };
 		000000000000000000000105 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000205 /* Assets.xcassets */; };
+		000000000000000000000106 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000207 /* index.html */; };
+		000000000000000000000107 /* styles.css in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000208 /* styles.css */; };
+		000000000000000000000108 /* src in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000209 /* src */; };
+		000000000000000000000109 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020A /* assets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +26,10 @@
 		000000000000000000000204 /* EditorWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorWebView.swift; sourceTree = "<group>"; };
 		000000000000000000000205 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		000000000000000000000206 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		000000000000000000000207 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = index.html; path = ../../index.html; sourceTree = SOURCE_ROOT; };
+		000000000000000000000208 /* styles.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = styles.css; path = ../../styles.css; sourceTree = SOURCE_ROOT; };
+		000000000000000000000209 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../src; sourceTree = SOURCE_ROOT; };
+		00000000000000000000020A /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../assets; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +100,10 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000206 /* Info.plist */,
+				000000000000000000000207 /* index.html */,
+				000000000000000000000208 /* styles.css */,
+				000000000000000000000209 /* src */,
+				00000000000000000000020A /* assets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -155,6 +167,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000105 /* Assets.xcassets in Resources */,
+				000000000000000000000106 /* index.html in Resources */,
+				000000000000000000000107 /* styles.css in Resources */,
+				000000000000000000000108 /* src in Resources */,
+				000000000000000000000109 /* assets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
