@@ -35,17 +35,26 @@ function toFieldText(value) {
   return text(value);
 }
 
-export function normalizeOrderItems(items) {
+function toSortOrder(value) {
+  const next = Number(value);
+  return Number.isInteger(next) && next > 0 ? next : 0;
+}
+
+export function normalizeOrderItems(items, options = {}) {
   if (!Array.isArray(items)) throw new Error('items_must_be_array');
   const seen = new Set();
-  return items.map((item) => text(item?.id || item?.materialId))
-    .filter(Boolean)
-    .filter((id) => {
+  return items.map((item, index) => {
+    const id = text(item?.id || item?.materialId);
+    const sortOrder = options.preserveSortOrder ? toSortOrder(item?.sortOrder) : index + 1;
+    return { id, sortOrder };
+  })
+    .filter((item) => item.id && item.sortOrder)
+    .filter((item) => {
+      const { id } = item;
       if (seen.has(id)) return false;
       seen.add(id);
       return true;
-    })
-    .map((id, index) => ({ id, sortOrder: index + 1 }));
+    });
 }
 
 export function getMaterialOrderConfig(env = {}) {
@@ -191,7 +200,9 @@ export async function onRequestPost({ request, env }) {
 
   let orderItems;
   try {
-    orderItems = normalizeOrderItems(payload?.items);
+    orderItems = normalizeOrderItems(payload?.items, {
+      preserveSortOrder: Boolean(payload?.preserveSortOrder),
+    });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message, message: '排序数据格式不正确。' }, 400);
   }

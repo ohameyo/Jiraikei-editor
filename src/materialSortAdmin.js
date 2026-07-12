@@ -55,6 +55,35 @@ export function reindexRows(rows) {
   return rows.map((row, index) => ({ ...row, sortOrder: index + 1 }));
 }
 
+function moveRowWithoutReindex(rows, fromIndex, toIndex) {
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return rows;
+  const next = [...rows];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
+}
+
+export function reorderRowsInVisibleSubset(rows, visibleIds, visibleFromIndex, visibleToIndex) {
+  if (visibleFromIndex < 0 || visibleToIndex < 0 || visibleFromIndex === visibleToIndex) return rows;
+  const visibleIdSet = new Set(visibleIds);
+  const visibleRows = rows.filter((row) => visibleIdSet.has(row.id));
+  const movedVisibleRows = moveRowWithoutReindex(visibleRows, visibleFromIndex, visibleToIndex);
+  let visibleIndex = 0;
+  return reindexRows(rows.map((row) => {
+    if (!visibleIdSet.has(row.id)) return row;
+    const nextRow = movedVisibleRows[visibleIndex];
+    visibleIndex += 1;
+    return nextRow || row;
+  }));
+}
+
+export function getChangedOrderItems(initialRows, rows) {
+  const initialOrderById = new Map((initialRows || []).map((row) => [row.id, row.sortOrder]));
+  return (rows || [])
+    .filter((row) => initialOrderById.get(row.id) !== row.sortOrder)
+    .map((row) => ({ id: row.id, sortOrder: row.sortOrder }));
+}
+
 function getTypeCounts(rows) {
   return rows.reduce((counts, row) => {
     counts.all += 1;
@@ -70,11 +99,7 @@ function matchesQuery(row, query) {
 }
 
 function moveItem(rows, fromIndex, toIndex) {
-  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return rows;
-  const next = [...rows];
-  const [item] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, item);
-  return reindexRows(next);
+  return reindexRows(moveRowWithoutReindex(rows, fromIndex, toIndex));
 }
 
 function createState() {
@@ -208,12 +233,17 @@ function markDirty(state) {
 
 function reorderByVisibleIndexes(state, visibleFromIndex, visibleToIndex) {
   const visible = filteredRows(state);
-  const fromRow = visible[visibleFromIndex];
-  const toRow = visible[visibleToIndex];
-  if (!fromRow || !toRow) return;
-  const fromIndex = state.rows.findIndex((row) => row.id === fromRow.id);
-  const toIndex = state.rows.findIndex((row) => row.id === toRow.id);
-  state.rows = moveItem(state.rows, fromIndex, toIndex);
+  if (!visible[visibleFromIndex] || !visible[visibleToIndex]) return;
+  if (state.filter === 'all' && !state.query) {
+    state.rows = moveItem(state.rows, visibleFromIndex, visibleToIndex);
+  } else {
+    state.rows = reorderRowsInVisibleSubset(
+      state.rows,
+      visible.map((row) => row.id),
+      visibleFromIndex,
+      visibleToIndex
+    );
+  }
   markDirty(state);
   render(state);
 }
@@ -243,6 +273,12 @@ function setAdminToken(token) {
 
 async function saveOrder(state, retrying = false) {
   if (state.saving) return;
+  const changedItems = getChangedOrderItems(state.initialRows, state.rows);
+  if (!changedItems.length) {
+    state.dirty = false;
+    setStatus('没有需要保存的排序');
+    return;
+  }
   state.saving = true;
   setStatus('保存中...', 'saving');
   const token = getAdminToken();
@@ -254,7 +290,8 @@ async function saveOrder(state, retrying = false) {
         ...(token ? { 'x-admin-token': token } : {}),
       },
       body: JSON.stringify({
-        items: state.rows.map((row) => ({ id: row.id, sortOrder: row.sortOrder })),
+        preserveSortOrder: true,
+        items: changedItems,
       }),
     });
     const result = await response.json().catch(() => ({}));
@@ -268,6 +305,7 @@ async function saveOrder(state, retrying = false) {
       throw new Error(result.message || result.error || `保存失败：${response.status}`);
     }
     state.dirty = false;
+    state.initialRows = state.rows;
     const missing = Array.isArray(result.missingIds) && result.missingIds.length
       ? `，${result.missingIds.length} 个素材未在飞书找到`
       : '';

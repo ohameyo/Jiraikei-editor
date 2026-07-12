@@ -27,17 +27,25 @@ test('material sort admin page uses a five-column desktop grid', async () => {
 });
 
 test('material sort helpers expose current CMS items in display order', async () => {
-  const { getMaterialSortRows, reindexRows } = await import(adminScriptPath);
-  const rows = getMaterialSortRows({
+  const { getChangedOrderItems, getMaterialSortRows, reindexRows, reorderRowsInVisibleSubset } = await import(adminScriptPath);
+  const rows = reindexRows(getMaterialSortRows({
     z: { id: 'z', title: '最后', type: 'sticker', sortOrder: 9 },
     a: { id: 'a', title: '最前', type: 'frame', sortOrder: 1 },
     m: { id: 'm', title: '中间', type: 'text', sortOrder: 5 },
-  });
+  }));
 
   assert.deepEqual(rows.map((row) => row.id), ['a', 'm', 'z']);
   assert.deepEqual(reindexRows([rows[2], rows[0]]).map((row) => [row.id, row.sortOrder]), [
     ['z', 1],
     ['a', 2],
+  ]);
+
+  const nextRows = reorderRowsInVisibleSubset(rows, ['a', 'z'], 1, 0);
+  assert.deepEqual(nextRows.map((row) => row.id), ['z', 'm', 'a']);
+  assert.deepEqual(nextRows.map((row) => row.sortOrder), [1, 2, 3]);
+  assert.deepEqual(getChangedOrderItems(rows, nextRows), [
+    { id: 'z', sortOrder: 1 },
+    { id: 'a', sortOrder: 3 },
   ]);
 });
 
@@ -54,6 +62,23 @@ test('material order API normalizes drag order by array position', async () => {
       { id: 'mat-c', sortOrder: 1 },
       { id: 'mat-a', sortOrder: 2 },
       { id: 'mat-b', sortOrder: 3 },
+    ]
+  );
+});
+
+test('material order API can preserve explicit sort order for partial saves', async () => {
+  const { normalizeOrderItems } = await import(apiPath);
+
+  assert.deepEqual(
+    normalizeOrderItems([
+      { id: 'mat-c', sortOrder: 12 },
+      { id: 'mat-a', sortOrder: 8 },
+      { id: 'mat-b', sortOrder: 10 },
+    ], { preserveSortOrder: true }),
+    [
+      { id: 'mat-c', sortOrder: 12 },
+      { id: 'mat-a', sortOrder: 8 },
+      { id: 'mat-b', sortOrder: 10 },
     ]
   );
 });
