@@ -419,13 +419,25 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/573650620_18143810656447096_2991134601079121587_n.jpg",
     "previewSrc": "./assets/sticker_previews/user/573650620_18143810656447096_2991134601079121587_n.jpg"
   },
+  "mat-sticker-qwyl5b": {
+    "id": "mat-sticker-qwyl5b",
+    "title": "pium",
+    "type": "sticker",
+    "group": "face-cover",
+    "status": "上架",
+    "sortOrder": 34,
+    "author": "小天使",
+    "packId": "face-cover",
+    "src": "./assets/user_stickers/7pIA8Krn_400x400.jpg",
+    "previewSrc": "./assets/sticker_previews/user/7pIA8Krn_400x400.jpg"
+  },
   "mat-sticker-py5q3z": {
     "id": "mat-sticker-py5q3z",
     "title": "liz Lisa",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 34,
+    "sortOrder": 35,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/lizlisa.png",
@@ -437,7 +449,7 @@ export const MATERIAL_CMS_ITEMS = {
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 35,
+    "sortOrder": 36,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/amilige.png",
@@ -449,7 +461,7 @@ export const MATERIAL_CMS_ITEMS = {
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 36,
+    "sortOrder": 37,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/纯黑.png",
@@ -461,7 +473,7 @@ export const MATERIAL_CMS_ITEMS = {
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 37,
+    "sortOrder": 38,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/split-6.png",
@@ -473,23 +485,11 @@ export const MATERIAL_CMS_ITEMS = {
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 38,
+    "sortOrder": 39,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/split-11-mat-sticker-7a8e7k.png",
     "previewSrc": "./assets/sticker_previews/user/split-11-mat-sticker-7a8e7k.png"
-  },
-  "mat-sticker-10p95fl": {
-    "id": "mat-sticker-10p95fl",
-    "title": "NG",
-    "type": "sticker",
-    "group": "face-cover",
-    "status": "上架",
-    "sortOrder": 39,
-    "author": "小天使",
-    "packId": "face-cover",
-    "src": "./assets/user_stickers/split-12.png",
-    "previewSrc": "./assets/sticker_previews/user/split-12.png"
   },
   "mat-sticker-r93nsr": {
     "id": "mat-sticker-r93nsr",
@@ -503,8 +503,8 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/split-13.png",
     "previewSrc": "./assets/sticker_previews/user/split-13.png"
   },
-  "mat-sticker-1rsypi3": {
-    "id": "mat-sticker-1rsypi3",
+  "mat-sticker-10p95fl": {
+    "id": "mat-sticker-10p95fl",
     "title": "NG",
     "type": "sticker",
     "group": "face-cover",
@@ -512,20 +512,20 @@ export const MATERIAL_CMS_ITEMS = {
     "sortOrder": 41,
     "author": "小天使",
     "packId": "face-cover",
-    "src": "./assets/user_stickers/split-8.png",
-    "previewSrc": "./assets/sticker_previews/user/split-8.png"
+    "src": "./assets/user_stickers/split-12.png",
+    "previewSrc": "./assets/sticker_previews/user/split-12.png"
   },
-  "mat-sticker-qwyl5b": {
-    "id": "mat-sticker-qwyl5b",
-    "title": "pium",
+  "mat-sticker-1rsypi3": {
+    "id": "mat-sticker-1rsypi3",
+    "title": "NG",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
     "sortOrder": 42,
     "author": "小天使",
     "packId": "face-cover",
-    "src": "./assets/user_stickers/7pIA8Krn_400x400.jpg",
-    "previewSrc": "./assets/sticker_previews/user/7pIA8Krn_400x400.jpg"
+    "src": "./assets/user_stickers/split-8.png",
+    "previewSrc": "./assets/sticker_previews/user/split-8.png"
   },
   "mat-sticker-l4jebd": {
     "id": "mat-sticker-l4jebd",
@@ -539,29 +539,29 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/user_stickers/split-4.png",
     "previewSrc": "./assets/sticker_previews/user/split-4.png"
   },
-  "mat-sticker-1vojoo7": {
-    "id": "mat-sticker-1vojoo7",
-    "title": "美乐蒂",
-    "type": "sticker",
-    "group": "face-cover",
-    "status": "上架",
-    "sortOrder": 44,
-    "author": "小天使",
-    "packId": "face-cover",
-    "src": "./assets/user_stickers/split-6-mat-sticker-1vojoo7.png",
-    "previewSrc": "./assets/sticker_previews/user/split-6-mat-sticker-1vojoo7.png"
-  },
   "mat-sticker-kdqubk": {
     "id": "mat-sticker-kdqubk",
     "title": "白色爱心",
     "type": "sticker",
     "group": "face-cover",
     "status": "上架",
-    "sortOrder": 45,
+    "sortOrder": 44,
     "author": "小天使",
     "packId": "face-cover",
     "src": "./assets/user_stickers/split-3.png",
     "previewSrc": "./assets/sticker_previews/user/split-3.png"
+  },
+  "mat-sticker-1vojoo7": {
+    "id": "mat-sticker-1vojoo7",
+    "title": "美乐蒂",
+    "type": "sticker",
+    "group": "face-cover",
+    "status": "上架",
+    "sortOrder": 45,
+    "author": "小天使",
+    "packId": "face-cover",
+    "src": "./assets/user_stickers/split-6-mat-sticker-1vojoo7.png",
+    "previewSrc": "./assets/sticker_previews/user/split-6-mat-sticker-1vojoo7.png"
   },
   "mat-sticker-cea1r1": {
     "id": "mat-sticker-cea1r1",
