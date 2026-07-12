@@ -2036,6 +2036,51 @@ html.is-lab-build .lab-footnote {
   font-weight: 650;
 }
 
+.polaroid-color-control[hidden] {
+  display: none;
+}
+
+.polaroid-color-picker {
+  position: relative;
+  min-height: 46px;
+  border: var(--border-1) solid rgba(225, 112, 199, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 250, 253, 0.88);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  color: rgba(45, 31, 42, 0.76);
+  overflow: hidden;
+}
+
+.polaroid-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(45, 31, 42, 0.12), 0 6px 16px rgba(56, 36, 54, 0.12);
+  background: #d98bc3;
+  flex: 0 0 auto;
+}
+
+.polaroid-color-text {
+  font-weight: 720;
+  color: rgba(45, 31, 42, 0.82);
+}
+
+#polaroidFrameColorInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
 @keyframes logoFloat {
   0%,
   100% {

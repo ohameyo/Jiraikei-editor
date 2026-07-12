@@ -362,6 +362,7 @@ import {
   const STICKER_PREVIEW_VERSION = '20260707-fast-sticker-previews-1';
   const POLAROID_FRAME_VERSION = '20260707-fast-polaroid-frames-1';
   const POLAROID_FRAME_PREVIEW_VERSION = POLAROID_FRAME_VERSION;
+  const DEFAULT_POLAROID_FRAME_COLOR = '#d98bc3';
   const HAND_DRAWN_PACK_ID = 'hand-drawn-pack';
   const HAND_DRAWN_STICKER_COLORS = [
     { id: 'pink', label: '粉', color: '#f15ac6', title: '粉色' },
@@ -624,6 +625,10 @@ import {
     return `cmsFrame${String(item.id || item.title || 'item').replace(/[^a-zA-Z0-9]+/g, '_')}`;
   }
 
+  function isColorablePolaroidFrameItem(item) {
+    return /纯色边框/.test(String(item?.title || item?.name || ''));
+  }
+
   function normalizeCmsPhotoWindow(item) {
     const width = Math.max(1, Number(item.width || 1280));
     const height = Math.max(1, Number(item.height || 1280));
@@ -665,6 +670,8 @@ import {
         photoWindow: normalizeCmsPhotoWindow(item),
         status: item.status || '上架',
         cmsSortOrder: item.sortOrder,
+        colorable: isColorablePolaroidFrameItem(item),
+        defaultColor: item.defaultColor || DEFAULT_POLAROID_FRAME_COLOR,
       };
     });
   }
@@ -695,15 +702,48 @@ import {
     return frame?.renderMode !== 'texture';
   }
 
-  function drawTextureFrameImage(ctx, frameImage, frame, frameRect) {
+  function normalizeFrameColor(value, fallback = DEFAULT_POLAROID_FRAME_COLOR) {
+    const color = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(color) ? color.toLowerCase() : fallback;
+  }
+
+  function getPolaroidFrameColor(frame, polaroid = null) {
+    if (!frame?.colorable) return '';
+    return normalizeFrameColor(polaroid?.frameColor || frame.defaultColor || DEFAULT_POLAROID_FRAME_COLOR);
+  }
+
+  function getTintedPolaroidFrameImage(frameImage, color) {
+    if (!frameImage || !color) return frameImage;
+    const width = Math.max(1, frameImage.naturalWidth || frameImage.width || 1);
+    const height = Math.max(1, frameImage.naturalHeight || frameImage.height || 1);
+    const key = `${frameImage.src || 'frame'}:${width}x${height}:${color}`;
+    if (POLAROID_FRAME_TINT_CACHE.has(key)) return POLAROID_FRAME_TINT_CACHE.get(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const tintCtx = canvas.getContext('2d');
+    tintCtx.drawImage(frameImage, 0, 0, width, height);
+    tintCtx.globalCompositeOperation = 'source-atop';
+    tintCtx.fillStyle = color;
+    tintCtx.fillRect(0, 0, width, height);
+    tintCtx.globalCompositeOperation = 'source-over';
+    POLAROID_FRAME_TINT_CACHE.set(key, canvas);
+    return canvas;
+  }
+
+  function drawTextureFrameImage(ctx, frameImage, frame, frameRect, frameColor = '') {
     if (!ctx || !frameImage || !frameRect) return;
-    ctx.drawImage(frameImage, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
+    const source = frame?.colorable && frameColor
+      ? getTintedPolaroidFrameImage(frameImage, normalizeFrameColor(frameColor))
+      : frameImage;
+    ctx.drawImage(source, frameRect.x, frameRect.y, frameRect.width, frameRect.height);
   }
 
   const STICKER_IMAGE_CACHE = new Map();
   const STICKER_PREVIEW_CACHE = new Map();
   const HAND_DRAWN_RECOLOR_CACHE = new Map();
   const POLAROID_FRAME_CACHE = new Map();
+  const POLAROID_FRAME_TINT_CACHE = new Map();
   const POLAROID_MATTED_PHOTO_CACHE = new WeakMap();
   const MOBILE_SLIDER_COMMIT_MS = 64;
   const MOBILE_LIGHTWEIGHT_RENDER_MS = 96;
@@ -1044,6 +1084,7 @@ import {
             enabled: Boolean(state.polaroid.enabled),
             frameId: state.polaroid.frameId || null,
             frameOrientation: state.polaroid.frameOrientation || null,
+            frameColor: state.polaroid.frameColor || null,
             photoTransform: { ...(state.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
             photoCanvas: state.polaroid.photoCanvas || null,
             photoCanvasSize: state.polaroid.photoCanvasSize ? { ...state.polaroid.photoCanvasSize } : null,
@@ -1088,6 +1129,7 @@ import {
         enabled: false,
         frameId: null,
         frameOrientation: null,
+        frameColor: null,
         photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
         photoCanvas: null,
         photoCanvasSize: null,
@@ -1141,6 +1183,7 @@ import {
             enabled: Boolean(snapshot.polaroid.enabled),
             frameId: snapshot.polaroid.frameId || null,
             frameOrientation: snapshot.polaroid.frameOrientation || null,
+            frameColor: snapshot.polaroid.frameColor || null,
             photoTransform: { ...(snapshot.polaroid.photoTransform || { scale: 1, offsetX: 0, offsetY: 0 }) },
             photoCanvas: snapshot.polaroid.photoCanvas || null,
             photoCanvasSize: snapshot.polaroid.photoCanvasSize ? { ...snapshot.polaroid.photoCanvasSize } : null,
@@ -1150,6 +1193,7 @@ import {
             enabled: false,
             frameId: null,
             frameOrientation: null,
+            frameColor: null,
             photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
             photoCanvas: null,
             photoCanvasSize: null,
@@ -1252,6 +1296,7 @@ import {
           enabled: false,
           frameId: null,
           frameOrientation: null,
+          frameColor: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
           photoCanvasSize: null,
@@ -1335,6 +1380,7 @@ import {
           enabled: false,
           frameId: null,
           frameOrientation: null,
+          frameColor: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
           photoCanvasSize: null,
@@ -1439,6 +1485,7 @@ import {
           enabled: true,
           frameId: config.frameId,
           frameOrientation: config.frameOrientation,
+          frameColor: getPolaroidFrameColor(frame, { frameColor: config.frameColor }) || null,
           photoTransform: {
             scale: clamp(Number(config.photoTransform?.scale ?? 1), 0.1, 8),
             offsetX: Number(config.photoTransform?.offsetX ?? 0),
@@ -1463,6 +1510,7 @@ import {
           enabled: false,
           frameId: null,
           frameOrientation: null,
+          frameColor: null,
           photoTransform: { scale: 1, offsetX: 0, offsetY: 0 },
           photoCanvas: null,
           photoCanvasSize: null,
@@ -3090,7 +3138,7 @@ import {
       drawPhotoIntoPolaroidWindow(ctx, photoImage, polaroidFrame, renderState.polaroid.photoTransform, placement.photoRect);
       const frameImage = POLAROID_FRAME_CACHE.get(polaroidFrame.src);
       if (frameImage) {
-        drawTextureFrameImage(ctx, frameImage, polaroidFrame, placement.frameRect);
+        drawTextureFrameImage(ctx, frameImage, polaroidFrame, placement.frameRect, getPolaroidFrameColor(polaroidFrame, renderState.polaroid));
       } else if (shouldDrawPolaroidPaperFallback(polaroidFrame)) {
         drawPolaroidFrameFallback(ctx, polaroidFrame, placement.frameRect, placement.photoRect);
       }
@@ -5378,6 +5426,9 @@ import {
     polaroidModal: document.getElementById('polaroidModal'),
     polaroidPreviewCanvas: document.getElementById('polaroidPreviewCanvas'),
     polaroidScaleInput: document.getElementById('polaroidScaleInput'),
+    polaroidFrameColorControl: document.getElementById('polaroidFrameColorControl'),
+    polaroidFrameColorInput: document.getElementById('polaroidFrameColorInput'),
+    polaroidFrameColorSwatch: document.getElementById('polaroidFrameColorSwatch'),
     polaroidResetBtn: document.getElementById('polaroidResetBtn'),
     polaroidConfirmBtn: document.getElementById('polaroidConfirmBtn'),
     polaroidCancelBtn: document.getElementById('polaroidCancelBtn'),
@@ -5984,7 +6035,7 @@ import {
       placement.photoRect
     );
     if (polaroidEditor.frameImage) {
-      drawTextureFrameImage(ctx, polaroidEditor.frameImage, polaroidEditor.frame, placement.frameRect);
+      drawTextureFrameImage(ctx, polaroidEditor.frameImage, polaroidEditor.frame, placement.frameRect, polaroidEditor.frameColor);
     } else if (shouldDrawPolaroidPaperFallback(polaroidEditor.frame)) {
       drawPolaroidFrameFallback(ctx, polaroidEditor.frame, placement.frameRect, placement.photoRect);
     }
@@ -6035,6 +6086,19 @@ import {
     updateRangeInputProgress(els.polaroidScaleInput);
   }
 
+  function syncPolaroidFrameColorControl() {
+    const control = els.polaroidFrameColorControl;
+    const input = els.polaroidFrameColorInput;
+    const swatch = els.polaroidFrameColorSwatch;
+    if (!control || !input || !swatch) return;
+    const isColorable = Boolean(polaroidEditor?.frame?.colorable);
+    control.hidden = !isColorable;
+    if (!isColorable) return;
+    const color = normalizeFrameColor(polaroidEditor.frameColor || polaroidEditor.frame.defaultColor);
+    input.value = color;
+    swatch.style.backgroundColor = color;
+  }
+
   function resetPolaroidConfirmButton() {
     if (!els.polaroidConfirmBtn) return;
     els.polaroidConfirmBtn.disabled = false;
@@ -6065,10 +6129,14 @@ import {
       baseSource.naturalHeight || baseSource.height,
       baseTransform
     );
+    const frameColor = sameActiveFrame
+      ? getPolaroidFrameColor(frame, state.polaroid)
+      : getPolaroidFrameColor(frame);
     polaroidEditor = {
       open: true,
       frame,
       frameImage: POLAROID_FRAME_CACHE.get(frame.src) || null,
+      frameColor,
       image: baseSource,
       filteredImage: null,
       transform: {
@@ -6080,6 +6148,7 @@ import {
       loading: false,
     };
     syncPolaroidScaleInput();
+    syncPolaroidFrameColorControl();
     drawPolaroidEditorPreview();
 
     loadPolaroidFrameImage(frame.id)
@@ -7564,6 +7633,14 @@ import {
         drawPolaroidEditorPreview();
       };
     }
+    if (els.polaroidFrameColorInput) {
+      els.polaroidFrameColorInput.oninput = (event) => {
+        if (!polaroidEditor?.open || !polaroidEditor.frame?.colorable) return;
+        polaroidEditor.frameColor = normalizeFrameColor(event.target.value);
+        syncPolaroidFrameColorControl();
+        drawPolaroidEditorPreview();
+      };
+    }
     if (els.polaroidResetBtn) {
       els.polaroidResetBtn.onclick = () => {
         if (!polaroidEditor?.open) return;
@@ -7612,6 +7689,7 @@ import {
           store.setPolaroidMode({
             frameId: polaroidEditor.frame.id,
             frameOrientation: Object.keys(POLAROID_FRAMES).find((key) => POLAROID_FRAMES[key].id === polaroidEditor.frame.id) || null,
+            frameColor: polaroidEditor.frameColor,
             photoTransform: {
               scale: finalClampedTransform.scale,
               offsetX: finalClampedTransform.offsetX,

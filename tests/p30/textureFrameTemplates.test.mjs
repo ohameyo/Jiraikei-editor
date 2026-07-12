@@ -96,14 +96,33 @@ test('texture photo sources are matted before drawing to avoid transparent edge 
 test('texture frame images draw without top crop or matte strip', async () => {
   const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
 
-  assert.match(app, /function drawTextureFrameImage\(ctx, frameImage, frame, frameRect\)/)
-  assert.match(app, /ctx\.drawImage\(frameImage, frameRect\.x, frameRect\.y, frameRect\.width, frameRect\.height\);/)
+  assert.match(app, /function drawTextureFrameImage\(ctx, frameImage, frame, frameRect, frameColor = ''\)/)
+  assert.match(app, /ctx\.drawImage\(source, frameRect\.x, frameRect\.y, frameRect\.width, frameRect\.height\);/)
   assert.doesNotMatch(app, /sourceCropY/)
   assert.doesNotMatch(app, /sourceHeightRaw/)
   assert.doesNotMatch(app, /topMatteHeight/)
   assert.doesNotMatch(app, /globalAlpha = 0\.78/)
-  assert.match(app, /drawTextureFrameImage\(ctx, frameImage, polaroidFrame, placement\.frameRect\);/)
-  assert.match(app, /drawTextureFrameImage\(ctx, polaroidEditor\.frameImage, polaroidEditor\.frame, placement\.frameRect\);/)
+  assert.match(app, /drawTextureFrameImage\(ctx, frameImage, polaroidFrame, placement\.frameRect, getPolaroidFrameColor\(polaroidFrame, renderState\.polaroid\)\);/)
+  assert.match(app, /drawTextureFrameImage\(ctx, polaroidEditor\.frameImage, polaroidEditor\.frame, placement\.frameRect, polaroidEditor\.frameColor\);/)
+})
+
+test('solid color frame templates expose a color picker and tint only the frame overlay', async () => {
+  const app = await readFile(new URL('../../src/app.js', import.meta.url), 'utf8')
+  const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8')
+  const styles = await readFile(new URL('../../styles.css', import.meta.url), 'utf8')
+
+  assert.match(html, /id="polaroidFrameColorControl"/)
+  assert.match(html, /id="polaroidFrameColorSwatch"/)
+  assert.match(html, /id="polaroidFrameColorInput" type="color"/)
+  assert.match(styles, /\.polaroid-color-picker\s*\{[\s\S]*min-height:\s*46px/)
+  assert.match(app, /const DEFAULT_POLAROID_FRAME_COLOR = '#d98bc3';/)
+  assert.match(app, /function isColorablePolaroidFrameItem\(item\)/)
+  assert.match(app, /return \/纯色边框\/\.test/)
+  assert.match(app, /colorable: isColorablePolaroidFrameItem\(item\)/)
+  assert.match(app, /function getTintedPolaroidFrameImage\(frameImage, color\)/)
+  assert.match(app, /tintCtx\.globalCompositeOperation = 'source-atop';/)
+  assert.match(app, /polaroidEditor\.frameColor = normalizeFrameColor\(event\.target\.value\);/)
+  assert.match(app, /frameColor: polaroidEditor\.frameColor/)
 })
 
 test('texture frame source and preview assets share a cache-busting version', async () => {
