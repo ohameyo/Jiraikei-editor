@@ -438,7 +438,7 @@ test('material cms creates Feishu field backfills for blank ids and grouped blan
   assert.deepEqual(backfills[1].patch, { 网页展示顺序: 3 });
 });
 
-test('material cms keeps later frame additions with the frame material group', () => {
+test('material cms preserves explicit display order saved by the sort admin', () => {
   const backfills = getFeishuMaterialFieldBackfills([
     {
       record_id: 'recSticker',
@@ -478,10 +478,7 @@ test('material cms keeps later frame additions with the frame material group', (
     },
   ]);
 
-  assert.deepEqual(backfills.map((item) => [item.recordId, item.patch]), [
-    ['recFrameNew', { 网页展示顺序: 3 }],
-    ['recText', { 网页展示顺序: 4 }],
-  ]);
+  assert.deepEqual(backfills, []);
 });
 
 test('material cms parses Feishu Bitable URL parameters', () => {
