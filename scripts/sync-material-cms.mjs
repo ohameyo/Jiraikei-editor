@@ -76,6 +76,20 @@ async function readJsonIfExists(path, fallback) {
   return JSON.parse(await readFile(path, 'utf8'));
 }
 
+function toText(value) {
+  if (Array.isArray(value)) return toText(value[0]);
+  if (value && typeof value === 'object') {
+    return String(value.text || value.name || value.fileName || value.path || value.url || '').trim();
+  }
+  return String(value ?? '').trim();
+}
+
+function toNumber(value, fallback = 0) {
+  if (value === undefined || value === null || String(value).trim() === '') return fallback;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function serializeData(items) {
   return `// Generated from the Feishu Bitable material CMS.\n// Do not edit by hand; run scripts/sync-material-cms.mjs.\n\nexport const MATERIAL_CMS_ITEMS = ${JSON.stringify(items, null, 2)};\n`;
 }
@@ -252,8 +266,99 @@ async function downloadFeishuAssets({ rows, normalizedRows, baseToken, tableId, 
   }
 }
 
+function readPngDimensions(buffer) {
+  const isPng = buffer.length >= 24
+    && buffer[0] === 0x89
+    && buffer[1] === 0x50
+    && buffer[2] === 0x4e
+    && buffer[3] === 0x47
+    && buffer[4] === 0x0d
+    && buffer[5] === 0x0a
+    && buffer[6] === 0x1a
+    && buffer[7] === 0x0a;
+  if (!isPng) return null;
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+  };
+}
+
+function readJpegDimensions(buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+  let offset = 2;
+  while (offset + 9 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+    if (length < 2) return null;
+    const isStartOfFrame = (
+      (marker >= 0xc0 && marker <= 0xc3)
+      || (marker >= 0xc5 && marker <= 0xc7)
+      || (marker >= 0xc9 && marker <= 0xcb)
+      || (marker >= 0xcd && marker <= 0xcf)
+    );
+    if (isStartOfFrame && offset + 8 < buffer.length) {
+      return {
+        height: buffer.readUInt16BE(offset + 5),
+        width: buffer.readUInt16BE(offset + 7),
+      };
+    }
+    offset += 2 + length;
+  }
+  return null;
+}
+
+async function readImageDimensions(path) {
+  const buffer = await readFile(path);
+  return readPngDimensions(buffer) || readJpegDimensions(buffer);
+}
+
+async function enrichFrameGeometryFromAssets(rows) {
+  const enriched = [];
+  for (const row of rows) {
+    if (row.类型 !== '相框' || toText(row.sourceKey) || (toText(row.宽度) && toText(row.高度))) {
+      enriched.push(row);
+      continue;
+    }
+    const [target] = materialAssetTargets(row)
+      .map(localAssetTarget)
+      .filter(Boolean);
+    if (!target) {
+      enriched.push(row);
+      continue;
+    }
+    try {
+      const dimensions = await readImageDimensions(resolve(repoRoot, target));
+      enriched.push(dimensions ? { ...row, 宽度: dimensions.width, 高度: dimensions.height } : row);
+    } catch (_) {
+      enriched.push(row);
+    }
+  }
+  return enriched;
+}
+
+function getFeishuViewOrderBackfills(rows) {
+  return rows
+    .map((row, index) => {
+      const recordId = toText(row.record_id);
+      const order = index + 1;
+      if (!recordId || toNumber(row.网页展示顺序, order) === order) return null;
+      return {
+        recordId,
+        patch: { 网页展示顺序: order },
+      };
+    })
+    .filter(Boolean);
+}
+
 async function backfillFeishuMaterialFields({ rows, baseToken, tableId, larkCli, idMap }) {
-  const backfills = getFeishuMaterialFieldBackfills(rows, idMap);
+  const backfills = [
+    ...getFeishuMaterialFieldBackfills(rows, idMap),
+    ...getFeishuViewOrderBackfills(rows),
+  ];
   for (const backfill of backfills) {
     // --backfill-material-ids is kept as a legacy alias; --no-backfill-material-fields skips default writes.
     // Uses lark-cli base +record-upsert because each row can need a different patch.
@@ -301,10 +406,12 @@ async function main() {
         overwrite: Boolean(args['overwrite-assets']),
       });
     }
+    rows = await enrichFrameGeometryFromAssets(rows);
   } else {
     const inputPath = args.input ? resolve(repoRoot, args.input) : resolve(repoRoot, 'data/material-cms-source.json');
     const source = await readFile(inputPath, 'utf8');
     rows = parseRows(source, inputPath);
+    rows = await enrichFrameGeometryFromAssets(rows);
   }
   const payload = buildMaterialCmsPayload(rows, existingIdMap);
 

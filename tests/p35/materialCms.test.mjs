@@ -107,6 +107,29 @@ test('material cms normalizes new sticker, frame, and text rows for static app d
   assert.equal(isMaterialVisible(items[2]), false);
 });
 
+test('material cms uses supplied frame geometry for vertical texture frames', () => {
+  const payload = buildMaterialCmsPayload([
+    {
+      record_id: 'recVerticalFrame',
+      名称: '竖版4:3 纯色边框',
+      类型: '相框',
+      分组: 'overlay',
+      状态: '上架',
+      排序: 1,
+      素材文件: 'solid-vertical.png',
+      宽度: 600,
+      高度: 800,
+      模式: '覆膜',
+    },
+  ]);
+  const [item] = Object.values(payload.items);
+
+  assert.equal(item.width, 600);
+  assert.equal(item.height, 800);
+  assert.equal(item.previewShape, 'portrait');
+  assert.deepEqual(item.photoWindow, { x: 0, y: 0, width: 600, height: 800 });
+});
+
 test('material cms exposes new active materials and source-key overrides in display order', () => {
   const cmsItems = {
     'mat-sticker-new': {

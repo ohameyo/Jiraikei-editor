@@ -1018,14 +1018,14 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/polaroid_frames/新建项目.png",
     "previewSrc": "./assets/polaroid_frame_previews/新建项目.png",
     "renderMode": "texture",
-    "width": 1280,
-    "height": 1280,
+    "width": 1000,
+    "height": 1000,
     "previewShape": "square",
     "photoWindow": {
       "x": 0,
       "y": 0,
-      "width": 1280,
-      "height": 1280
+      "width": 1000,
+      "height": 1000
     }
   },
   "mat-frame-10hkt8b": {
@@ -1039,14 +1039,14 @@ export const MATERIAL_CMS_ITEMS = {
     "src": "./assets/polaroid_frames/新建项目-3.png",
     "previewSrc": "./assets/polaroid_frame_previews/新建项目-3.png",
     "renderMode": "texture",
-    "width": 1280,
-    "height": 1280,
-    "previewShape": "square",
+    "width": 600,
+    "height": 800,
+    "previewShape": "portrait",
     "photoWindow": {
       "x": 0,
       "y": 0,
-      "width": 1280,
-      "height": 1280
+      "width": 600,
+      "height": 800
     }
   }
 };
