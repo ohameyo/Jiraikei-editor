@@ -1006,5 +1006,47 @@ export const MATERIAL_CMS_ITEMS = {
     "author": "小天使",
     "content": "(っ ̫ -˘)",
     "style": {}
+  },
+  "mat-item-1pw16vj": {
+    "id": "mat-item-1pw16vj",
+    "title": "1:1 纯色边框",
+    "type": "frame",
+    "group": "overlay",
+    "status": "上架",
+    "sortOrder": 82,
+    "author": "小天使",
+    "src": "./assets/polaroid_frames/新建项目.png",
+    "previewSrc": "./assets/polaroid_frame_previews/新建项目.png",
+    "renderMode": "texture",
+    "width": 1280,
+    "height": 1280,
+    "previewShape": "square",
+    "photoWindow": {
+      "x": 0,
+      "y": 0,
+      "width": 1280,
+      "height": 1280
+    }
+  },
+  "mat-frame-10hkt8b": {
+    "id": "mat-frame-10hkt8b",
+    "title": "竖版4:3 纯色边框",
+    "type": "frame",
+    "group": "overlay",
+    "status": "上架",
+    "sortOrder": 83,
+    "author": "小天使",
+    "src": "./assets/polaroid_frames/新建项目-3.png",
+    "previewSrc": "./assets/polaroid_frame_previews/新建项目-3.png",
+    "renderMode": "texture",
+    "width": 1280,
+    "height": 1280,
+    "previewShape": "square",
+    "photoWindow": {
+      "x": 0,
+      "y": 0,
+      "width": 1280,
+      "height": 1280
+    }
   }
 };
