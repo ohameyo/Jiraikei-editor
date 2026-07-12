@@ -311,8 +311,20 @@ function getGroupedFeishuDisplayOrders(rows) {
       placed.splice(insertAfterIndex >= 0 ? insertAfterIndex + 1 : placed.length, 0, entry);
     });
 
+  const groups = new Map();
+  const groupKeys = [];
+  placed.forEach((entry) => {
+    const key = `${entry.type}\u0000${entry.group}`;
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      groupKeys.push(key);
+    }
+    groups.get(key).push(entry);
+  });
+
+  const compacted = groupKeys.flatMap((key) => groups.get(key));
   const displayOrders = [];
-  placed.forEach((entry, index) => {
+  compacted.forEach((entry, index) => {
     displayOrders[entry.index] = index + 1;
   });
   return displayOrders;

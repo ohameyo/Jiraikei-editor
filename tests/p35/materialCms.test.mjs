@@ -438,6 +438,52 @@ test('material cms creates Feishu field backfills for blank ids and grouped blan
   assert.deepEqual(backfills[1].patch, { 网页展示顺序: 3 });
 });
 
+test('material cms keeps later frame additions with the frame material group', () => {
+  const backfills = getFeishuMaterialFieldBackfills([
+    {
+      record_id: 'recSticker',
+      素材ID: 'mat-sticker',
+      中文显示名: '挡脸',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      网页展示顺序: '1',
+    },
+    {
+      record_id: 'recFrameBase',
+      素材ID: 'mat-frame-base',
+      中文显示名: '蕾丝星星',
+      一级分类: ['相框'],
+      二级分类: ['覆膜'],
+      状态: ['上架'],
+      网页展示顺序: '2',
+    },
+    {
+      record_id: 'recText',
+      素材ID: 'mat-text',
+      中文显示名: '今日の私',
+      一级分类: ['文字'],
+      二级分类: ['文案'],
+      状态: ['上架'],
+      网页展示顺序: '3',
+    },
+    {
+      record_id: 'recFrameNew',
+      素材ID: 'mat-frame-new',
+      中文显示名: '竖版4:3 纯色边框',
+      一级分类: ['相框'],
+      二级分类: ['覆膜'],
+      状态: ['上架'],
+      网页展示顺序: '4',
+    },
+  ]);
+
+  assert.deepEqual(backfills.map((item) => [item.recordId, item.patch]), [
+    ['recFrameNew', { 网页展示顺序: 3 }],
+    ['recText', { 网页展示顺序: 4 }],
+  ]);
+});
+
 test('material cms parses Feishu Bitable URL parameters', () => {
   assert.deepEqual(
     parseFeishuBaseUrl('https://fcnc3levok4u.feishu.cn/base/A3cwb8VDaaaAECsA8wOc3gGKnFh?table=tbl8ZzFHh80OGPAh&view=vewqRL5IBF'),
