@@ -121,6 +121,67 @@ function withoutExtension(fileName) {
   return String(fileName || '').replace(/\.[^.]+$/, '');
 }
 
+function splitFileExtension(fileName) {
+  const text = String(fileName || '');
+  const slashIndex = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
+  const dotIndex = text.lastIndexOf('.');
+  if (dotIndex <= slashIndex + 1) return { base: text, extension: '' };
+  return {
+    base: text.slice(0, dotIndex),
+    extension: text.slice(dotIndex),
+  };
+}
+
+function replacePathFileName(path, fileName) {
+  const text = String(path || '');
+  const slashIndex = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
+  if (slashIndex < 0) return fileName;
+  return `${text.slice(0, slashIndex + 1)}${fileName}`;
+}
+
+function makeUniqueMaterialFileName(fileName, row, index) {
+  const { base, extension } = splitFileExtension(basenameFromPath(fileName));
+  const suffix = slugify(
+    toText(row.素材ID) || toText(row.record_id) || hashString(`${index}:${fileName}`),
+    `row-${index + 1}`
+  );
+  return `${base}-${suffix}${extension}`;
+}
+
+function disambiguateDuplicateAssetFileNames(rows) {
+  const seen = new Set();
+  return rows.map((row, index) => {
+    const fileName = toText(row.素材文件);
+    const previewPath = toText(row.预览图);
+    const assetReference = fileName || basenameFromPath(previewPath);
+    const type = normalizeMaterialType(row.类型);
+    if (!assetReference || !['sticker', 'frame'].includes(type)) return row;
+    if (/^(https?:)?\/\//.test(assetReference) || assetReference.startsWith('/')) return row;
+
+    const key = `${type}:${assetReference}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      return fileName ? row : { ...row, 素材文件: assetReference };
+    }
+
+    const uniqueFileName = makeUniqueMaterialFileName(assetReference, row, index);
+    const nextPreviewPath = !previewPath || basenameFromPath(previewPath) === basenameFromPath(assetReference)
+      ? replacePathFileName(previewPath || assetReference, uniqueFileName)
+      : previewPath;
+    return {
+      ...row,
+      素材文件: replacePathFileName(fileName || assetReference, uniqueFileName),
+      预览图: nextPreviewPath,
+    };
+  });
+}
+
+function basenameFromPath(path) {
+  const text = String(path || '');
+  const slashIndex = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
+  return slashIndex >= 0 ? text.slice(slashIndex + 1) : text;
+}
+
 function normalizeFeishuSelect(value) {
   return toText(value);
 }
@@ -191,7 +252,7 @@ export function feishuRecordListToRows(envelope) {
 export function normalizeFeishuBitableRows(rowsOrEnvelope) {
   const rows = Array.isArray(rowsOrEnvelope) ? rowsOrEnvelope : feishuRecordListToRows(rowsOrEnvelope);
   const displayOrders = getGroupedFeishuDisplayOrders(rows);
-  return rows.map((row, index) => {
+  const normalizedRows = rows.map((row, index) => {
     const type = normalizeFeishuSelect(row.一级分类 || row.类型);
     const group = normalizeFeishuGroup(type, row.二级分类 || row.分组);
     const fileName = toText(row.英文文件名 || row.素材文件);
@@ -217,6 +278,7 @@ export function normalizeFeishuBitableRows(rowsOrEnvelope) {
     }
     return normalized;
   });
+  return disambiguateDuplicateAssetFileNames(normalizedRows);
 }
 
 function getGroupedFeishuDisplayOrders(rows) {

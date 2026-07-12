@@ -256,6 +256,99 @@ test('material cms leaves generated Feishu material ids as additions', () => {
   assert.deepEqual(getNewCmsMaterials(payload.items, 'sticker').map((newItem) => newItem.title), ['新增黑蝴蝶']);
 });
 
+test('material cms gives duplicate Feishu asset file names unique local paths', () => {
+  const rows = normalizeFeishuBitableRows([
+    {
+      record_id: 'recSecret',
+      素材ID: 'mat-sticker-secret',
+      中文显示名: 'secret',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'split-11.png',
+      预览图: [{ name: 'split-11.png' }],
+    },
+    {
+      record_id: 'recWatashi',
+      素材ID: 'mat-sticker-watashi',
+      中文显示名: '私',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'split-11.png',
+      预览图: [{ name: 'split-11.png' }],
+    },
+  ]);
+  const payload = buildMaterialCmsPayload(rows);
+
+  assert.equal(rows[0].素材文件, 'split-11.png');
+  assert.equal(rows[1].素材文件, 'split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-secret'].src, './assets/user_stickers/split-11.png');
+  assert.equal(payload.items['mat-sticker-watashi'].src, './assets/user_stickers/split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-watashi'].previewSrc, './assets/sticker_previews/user/split-11-mat-sticker-watashi.png');
+});
+
+test('material cms gives duplicate Feishu local asset paths unique local paths', () => {
+  const rows = normalizeFeishuBitableRows([
+    {
+      record_id: 'recSecret',
+      素材ID: 'mat-sticker-secret',
+      中文显示名: 'secret',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'assets/user_stickers/split-11.png',
+      预览图路径: 'assets/sticker_previews/user/split-11.png',
+    },
+    {
+      record_id: 'recWatashi',
+      素材ID: 'mat-sticker-watashi',
+      中文显示名: '私',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      英文文件名: 'assets/user_stickers/split-11.png',
+      预览图路径: 'assets/sticker_previews/user/split-11.png',
+    },
+  ]);
+  const payload = buildMaterialCmsPayload(rows);
+
+  assert.equal(rows[1].素材文件, 'assets/user_stickers/split-11-mat-sticker-watashi.png');
+  assert.equal(rows[1].预览图, 'assets/sticker_previews/user/split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-watashi'].src, './assets/user_stickers/split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-watashi'].previewSrc, './assets/sticker_previews/user/split-11-mat-sticker-watashi.png');
+});
+
+test('material cms gives duplicate Feishu attachment names unique local paths when file name is blank', () => {
+  const rows = normalizeFeishuBitableRows([
+    {
+      record_id: 'recSecret',
+      素材ID: 'mat-sticker-secret',
+      中文显示名: 'secret',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      预览图: [{ name: 'split-11.png' }],
+    },
+    {
+      record_id: 'recWatashi',
+      素材ID: 'mat-sticker-watashi',
+      中文显示名: '私',
+      一级分类: ['贴纸'],
+      二级分类: ['挡脸贴纸'],
+      状态: ['上架'],
+      预览图: [{ name: 'split-11.png' }],
+    },
+  ]);
+  const payload = buildMaterialCmsPayload(rows);
+
+  assert.equal(rows[0].素材文件, 'split-11.png');
+  assert.equal(rows[1].素材文件, 'split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-secret'].src, './assets/user_stickers/split-11.png');
+  assert.equal(payload.items['mat-sticker-watashi'].src, './assets/user_stickers/split-11-mat-sticker-watashi.png');
+  assert.equal(payload.items['mat-sticker-watashi'].previewSrc, './assets/sticker_previews/user/split-11-mat-sticker-watashi.png');
+});
+
 test('material cms creates Feishu material id backfills for blank material ids', () => {
   const backfills = getFeishuMaterialIdBackfills([
     {

@@ -476,8 +476,8 @@ export const MATERIAL_CMS_ITEMS = {
     "sortOrder": 38,
     "author": "小天使",
     "packId": "face-cover",
-    "src": "./assets/user_stickers/split-11.png",
-    "previewSrc": "./assets/sticker_previews/user/split-11.png"
+    "src": "./assets/user_stickers/split-11-mat-sticker-7a8e7k.png",
+    "previewSrc": "./assets/sticker_previews/user/split-11-mat-sticker-7a8e7k.png"
   },
   "mat-sticker-10p95fl": {
     "id": "mat-sticker-10p95fl",
